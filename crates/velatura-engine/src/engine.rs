@@ -570,6 +570,79 @@ pub fn history(host: &Host<'_>) -> Result<(Vec<Manifest>, Vec<PathBuf>), Error> 
     Ok((all, bad))
 }
 
+/// How one app or desktop part stands.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PartState {
+    /// The theme in use is applied to it and nothing is pending.
+    Themed,
+    /// It can be themed; the next apply will include it.
+    Ready,
+    /// The theme is set up, but something else wins over it.
+    Shadowed(Note),
+    /// It cannot be themed now, for this reason.
+    Unavailable(Skip),
+}
+
+#[derive(Clone, Debug)]
+pub struct Part {
+    pub instance: &'static str,
+    pub state: PartState,
+    /// False if the user turned it off for future applies.
+    pub included: bool,
+}
+
+/// How every part stands, learned by asking what applying would do. The
+/// theme in use is the probe; before the first apply, the first theme is.
+/// Reads only.
+pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) -> Vec<Part> {
+    let applied = State::load(host).ok().and_then(|s| s.applied).map(|a| a.0);
+    let (id, variant) = match applied.as_deref().and_then(|l| l.split_once('/')) {
+        Some((id, variant)) => (Some(id), Some(variant)),
+        None => (None, None),
+    };
+    let Some(resolved) = themes
+        .iter()
+        .find(|e| Some(e.theme.id.as_str()) == id)
+        .or(themes.first())
+        .and_then(|e| Resolved::new(&e.theme, variant).or_else(|| Resolved::new(&e.theme, None)))
+    else {
+        return Vec::new();
+    };
+    // Naming every instance looks past the ones that are turned off.
+    let all = ApplyOpts {
+        only: targets::INSTANCES.iter().map(|s| (*s).to_owned()).collect(),
+        ..ApplyOpts::default()
+    };
+    let Ok(plan) = plan_apply(host, env, &resolved, &all) else {
+        return Vec::new();
+    };
+    let off = excluded(host).unwrap_or_default();
+    let mut out = Vec::new();
+    for instance in targets::INSTANCES {
+        let Some(t) = plan.targets.iter().find(|t| t.instance == instance) else {
+            continue;
+        };
+        let shadow = t.notes.iter().find(|n| {
+            matches!(
+                n,
+                Note::Override { .. } | Note::KittyAutoTheme { .. } | Note::UserThemesOff
+            )
+        });
+        let state = match (&t.skipped, shadow) {
+            (Some(why), _) => PartState::Unavailable(why.clone()),
+            (None, Some(note)) if applied.is_some() => PartState::Shadowed(note.clone()),
+            (None, _) if t.changes.is_empty() && applied.is_some() => PartState::Themed,
+            (None, _) => PartState::Ready,
+        };
+        out.push(Part {
+            instance,
+            state,
+            included: !off.iter().any(|e| e == instance),
+        });
+    }
+    out
+}
+
 /// How one thing Velatura put on the machine looks now.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Health {

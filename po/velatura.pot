@@ -407,3 +407,223 @@ msgstr ""
 
 msgid "This can be undone at any time."
 msgstr ""
+
+msgid "the default"
+msgstr ""
+
+msgid "Default"
+msgstr ""
+
+#, rust-format
+msgid "Create the folder {1}"
+msgstr ""
+
+#, rust-format
+msgid "Remove the folder {1} if it is empty"
+msgstr ""
+
+#, rust-format
+msgid "Create {1}"
+msgstr ""
+
+#, rust-format
+msgid "Update {1}"
+msgstr ""
+
+#, rust-format
+msgid "Remove {1} (created by Velatura)"
+msgstr ""
+
+#, rust-format
+msgid "Remove {1} (created by Velatura, holds nothing else)"
+msgstr ""
+
+#, rust-format
+msgid "Add a marked block with one line at the end of {1}"
+msgstr ""
+
+#, rust-format
+msgid "Take the Velatura block out of {1}"
+msgstr ""
+
+#, rust-format
+msgid "Update the Velatura block in {1}"
+msgstr ""
+
+#, rust-format
+msgid "Set {1} to {2}"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "Left out: adding a line to the settings file was not agreed to"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} leads outside the home folder"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} is not a regular file or folder"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} cannot be read"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Left out: the Velatura markers in {1} are damaged. Remove both marker lines, "
+"then apply again"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} already exists and was not created by Velatura"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Left out: {1} was changed outside Velatura. Use --replace-changed to "
+"overwrite it"
+msgstr ""
+
+#, rust-format
+msgid "Left out: desktop settings are not available ({1})"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Left out: {1} has more than one name (a hard link), and replacing it would "
+"split them"
+msgstr ""
+
+msgid "Left out: High Contrast is on, and recoloring would lower contrast"
+msgstr ""
+
+msgid ""
+"Left out: the top bar and overview can only be recolored through the User "
+"Themes extension, which is not installed. It is in the gnome-shell-extension-"
+"user-theme package and on extensions.gnome.org"
+msgstr ""
+
+msgid ""
+"Left out: older apps can only be recolored with the adw-gtk3 theme, which is "
+"not installed. It can be installed without administrator rights into "
+"~/.local/share/themes, or from the adw-gtk3-theme package"
+msgstr ""
+
+#, rust-format
+msgid ""
+"{1} has lines after the Velatura block that win over the theme (line {2})"
+msgstr ""
+
+#, rust-format
+msgid ""
+"{1} exists. Kitty applies it over every other color setting, so the theme "
+"does not show until that file is renamed"
+msgstr ""
+
+msgid "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each"
+msgstr ""
+
+msgid "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them"
+msgstr ""
+
+msgid "Apps that are already open keep their colors until reopened"
+msgstr ""
+
+#, rust-format
+msgid "{1} is a link. The change is written to {2}"
+msgstr ""
+
+#, rust-format
+msgid ""
+"{1} could not be put back without a desktop session. After signing in, run: "
+"{2}"
+msgstr ""
+
+msgid ""
+"The User Themes extension is turned off, so the top bar keeps its colors. "
+"Turn it on in the Extensions app"
+msgstr ""
+
+#, rust-format
+msgid ""
+"These extensions bring their own colors, which win over the theme where they "
+"apply: {1}"
+msgstr ""
+
+#, rust-format
+msgid "{1} asks older apps for dark and can work against this light theme"
+msgstr ""
+
+#, rust-format
+msgid ""
+"The theme's accent is {1}. GNOME offers nine accents; the nearest is {2}"
+msgstr ""
+
+msgid "This GNOME version has no accent color setting"
+msgstr ""
+
+#, rust-format
+msgid "{1} is locked by the system administrator and was not changed"
+msgstr ""
+
+#, rust-format
+msgid "{1} was changed outside Velatura and is left as it is"
+msgstr ""
+
+msgid ""
+"Text on background is below a contrast of 4.5 to 1 and may be hard to read"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Another theming tool, {1}, is present ({2}). It may write the same colors"
+msgstr ""
+
+#, rust-format
+msgid "A timer that may change the theme is turned on: {1}"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Settings files may be managed by {1} ({2}). It can overwrite changes made "
+"here"
+msgstr ""
+
+#, rust-format
+msgid "  Kept, because it was changed afterwards: {1}\n"
+msgstr ""
+
+#, rust-format
+msgid "  Could not be put back: {1} ({2})\n"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Nothing was changed: {1} changed after the preview. Run the command again."
+msgstr ""
+
+#, rust-format
+msgid "Nothing was changed: the backup could not be written ({1})."
+msgstr ""
+
+#, rust-format
+msgid "The change failed at {1} ({2}).\n"
+msgstr ""
+
+msgid "Everything was put back as it was."
+msgstr ""
+
+msgid "Everything else was put back as it was.\n"
+msgstr ""
+
+msgid "Rolling back did not finish:\n"
+msgstr ""
+
+msgid ""
+"Backups are in ~/.local/share/velatura/backups. To try again: velatura "
+"recover"
+msgstr ""

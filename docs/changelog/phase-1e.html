@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1e – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 1e – closing the definition of done</h1>
+<p class="lead">Branch <code>phase-1e-done</code>. Completed 2026-10-12. Not in the original roadmap: the owner asked for the open lines of the MVP's definition of done to be closed before Phase 2. After this phase 16 of its 20 lines are met and 4 partly (after Phase 1d: 12, 7 and 1 not met).</p>
+<div class="note"><strong>On the owner's desktop</strong>, at the owner's request, Aetherius was applied to Ghostty, GTK 4 apps and the top bar on 2026-10-12, after a separate copy of the files was made (<a href="../decisions.html#d45">D45</a>). The Shell's log shows it loaded the theme.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>The app keeps its own window in stock colours.</strong> Whatever theme is applied to GTK apps, Velatura's window shows libadwaita's colours and the system accent, in light and dark, so an unreadable theme cannot hide the way back. The stock values are read from libadwaita by a script and kept as a table.</li>
+<li><strong>Every sentence can be translated.</strong> The sentences shared by the command and the app (the change list, reasons, hints, failures) now go through the same lookup as the app's own text, with numbered placeholders so a translation can reorder them. The template has 174 strings.</li>
+<li><strong>"Set up, but not taking effect" in <code>velatura status</code></strong>, which now lists every part with its state, from the same definition the app uses.</li>
+<li><strong>Other theming tools before the first apply</strong>: listed in the app's confirmation and by the command.</li>
+<li><strong>GNOME 47 to 51 in the selector check.</strong> The stock stylesheet of each version was taken from its Fedora package; all 17 selectors Velatura overrides exist in all five.</li>
+<li><strong>CI on two GNOME versions.</strong> The gate runs on Fedora 44 (GNOME 50) and Fedora 45 (GNOME 51, libadwaita 1.10), and now includes the app flow and the colour probe, run in a headless compositor.</li>
+<li><strong>Renders for accessibility</strong>: <code>scripts/gui-shots.sh</code> can render at 200% text size and in High Contrast.</li>
+</ul>
+
+<h2>Fixed</h2>
+<ul>
+<li><strong>Tests depended on what the machine had installed.</strong> A system-wide User Themes or adw-gtk3 changed the outcome of two tests. The tests now hide the system's shared data.</li>
+</ul>
+
+<h2>The MVP's definition of done, now</h2>
+<div class="wrap"><table>
+<tr><th>Line</th><th>State</th><th>Notes</th></tr>
+<tr><td>Applying leaves every target in the expected state, and a probe confirms GTK and the Shell compute the colours</td><td><span class="tag wa">Partly</span></td><td>GTK: confirmed on libadwaita 1.9 (GNOME 50) and 1.10 (GNOME 51), in CI. Shell: confirmed in a live GNOME Shell 50; on 51 only the static check that every overridden selector exists, because a Shell 51 cannot be started in a container. GTK 3 with adw-gtk3 is tested with a stand-in folder, not the real theme.</td></tr>
+<tr><td>Missing apps and prerequisites are skipped with a reason and do not fail the apply</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Overridden targets are reported as "set up but not taking effect"</td><td><span class="tag ok">Met</span></td><td>In the app and now in <code>velatura status</code>, from one shared definition.</td></tr>
+<tr><td>Day and night switching from the app and the command</td><td><span class="tag ok">Met</span></td><td>Manual; scheduling is Phase 2.</td></tr>
+<tr><td>Preview lists everything and changes nothing; a stale plan is refused</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Undo restores content, permissions, security label and settings; later edits are kept</td><td><span class="tag ok">Met</span></td><td>A file of the user is only ever replaced in place, which keeps its permissions and attributes. The only files undo recreates or removes are ones Velatura created.</td></tr>
+<tr><td>Restore original returns everything to its first recorded state</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Recovery after an interruption at any step</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Nothing outside the app's own files and spans; no elevated rights</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Hostile-theme tests pass for every target</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Recovery from a text console without a session bus</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Other theming tools and timers are reported before the first apply</td><td><span class="tag ok">Met</span></td><td>Now shown in the first-apply confirmation in the app and before the first apply in the command, as well as in Troubleshooting and <code>doctor</code>.</td></tr>
+<tr><td>First apply in four interactions or fewer</td><td><span class="tag ok">Met</span></td><td>Three.</td></tr>
+<tr><td>Theme in use always visible; Undo always in the menu</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>The app's own window stays readable under any theme; contrast floor; High Contrast</td><td><span class="tag ok">Met</span></td><td>The window keeps libadwaita's colours and the system accent whatever is applied; the gate checks it. The table of stock colours is from libadwaita 1.9, so on other versions the window is readable but a shade off.</td></tr>
+<tr><td>States what took effect and what the user must reload, and does none of it itself</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Each failure class has a designed, translated message</td><td><span class="tag wa">Partly</span></td><td>Every message can now be translated. No translation exists yet, and catalogs are only loaded once the app is installed with its data.</td></tr>
+<tr><td>All text translatable; the manual checklist passes</td><td><span class="tag wa">Partly</span></td><td>All text of the app and the shared sentences is collected for translation (174 strings); the command's help text is not. Of the manual checklist, large text, High Contrast, the minimum size and right-to-left were checked from renders. Screen reader, keyboard-only use and the lock screen need a person at the real session.</td></tr>
+<tr><td>One-step removal in the app and the command</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Automated tests pass in CI and the docs match</td><td><span class="tag wa">Partly</span></td><td>CI now runs the app flow and the colour probe headless, on GNOME 50 and 51. The live Shell check still runs only on a real machine.</td></tr>
+</table></div>
+
+<h2>What only a person at the real session can close</h2>
+<ul>
+<li><strong>Screen reader and keyboard-only use</strong> of the app.</li>
+<li><strong>The lock screen</strong>: what the top bar looks like on lock and after unlock with a theme applied.</li>
+<li><strong>A live GNOME Shell 51</strong>: the Shell check script runs as it is on a machine with GNOME 51.</li>
+<li><strong>adw-gtk3</strong>: GTK 3 apps with the real theme installed.</li>
+<li><strong>A first translation</strong> (Spanish is Phase 2), which is also what makes the app load a catalog.</li>
+</ul>
+
+<h2>Not done</h2>
+<ul>
+<li><strong>Stock colours in High Contrast</strong> use the ordinary light and dark tables; libadwaita's own High Contrast styling still applies on top.</li>
+<li><strong>The command's help text</strong> is English only.</li>
+<li><strong>The live Shell check in CI</strong>: the Shell needs the system's login manager, which a container does not have.</li>
+</ul>
+
+</main>
+</body>
+</html>

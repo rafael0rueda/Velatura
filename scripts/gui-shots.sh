@@ -4,6 +4,7 @@
 # database, and a headless compositor.
 #
 #   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--flow]
+#                        [--large-text] [--high-contrast]
 #
 # --applied applies a theme in the sandbox first, so the views show a
 # themed state and a backup. --flow then drives a real apply through the
@@ -11,9 +12,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$(realpath -m "${1:?output folder}"); shift
-size=""; rtl=""; applied=""; flow=""
+size=""; rtl=""; applied=""; flow=""; large=""; contrast=""
 for a in "$@"; do
-    case "$a" in --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; *x*) size=$a ;; esac
+    case "$a" in --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; *x*) size=$a ;; esac
 done
 cargo build -q -p velatura-gui -p velatura-cli
 root=$(mktemp -d)
@@ -28,9 +29,11 @@ printf '/* mine */\n' > "$root/home/.config/gtk-4.0/gtk.css"
 bin=$PWD/target/debug
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8 \
     GSETTINGS_BACKEND=dconf VELATURA_SHOTS="$out" VELATURA_SHOTS_SIZE="$size" \
-    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} APPLIED="$applied" BIN="$bin" \
+    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} APPLIED="$applied" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
     dbus-run-session -- bash -c ' exec 2>/dev/null
         [ -n "$APPLIED" ] && "$BIN/velatura" apply ember --yes >/dev/null
+        [ -n "$LARGE" ] && gsettings set org.gnome.desktop.interface text-scaling-factor 2.0
+        [ -n "$CONTRAST" ] && gsettings set org.gnome.desktop.a11y.interface high-contrast true
         mutter --headless --no-x11 --wayland-display velatura-shots \
             --virtual-monitor 1400x1000 >/dev/null 2>&1 &
         compositor=$!

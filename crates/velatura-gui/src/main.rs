@@ -6,6 +6,7 @@
 
 mod data;
 mod shots;
+mod stock;
 mod widgets;
 mod words;
 
@@ -49,6 +50,8 @@ struct Ui {
 type U = Rc<Ui>;
 
 fn main() -> glib::ExitCode {
+    // The sentences shared with the command use the same catalog.
+    velatura_text::set_translator(words::tr);
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_activate(|app| {
         if let Some(window) = app.active_window() {
@@ -172,6 +175,8 @@ fn build(app: &adw::Application) -> U {
     );
     window.add_breakpoint(narrow);
 
+    keep_stock_colors(&window);
+
     let preview_css = gtk::CssProvider::new();
     gtk::style_context_add_provider_for_display(
         &gtk::prelude::WidgetExt::display(&window),
@@ -212,6 +217,55 @@ fn build(app: &adw::Application) -> U {
         glib::Propagation::Proceed
     });
     ui
+}
+
+/// libadwaita's own colours for the current style, as definitions that
+/// take precedence over the user's stylesheet.
+fn stock_css() -> String {
+    let style = adw::StyleManager::default();
+    let table: &[(&str, &str)] = if style.is_dark() {
+        &stock::DARK
+    } else {
+        &stock::LIGHT
+    };
+    // The accent is the system's, read now, so it follows a change of it.
+    let accent = style.accent_color().to_rgba().to_string();
+    let accent_text = style.accent_color_rgba().to_string();
+    let mut css = String::new();
+    for (name, value) in table {
+        let value = if name.ends_with("selected_bg_color") {
+            accent.as_str()
+        } else {
+            value
+        };
+        css.push_str(&format!("@define-color {name} {value};\n"));
+    }
+    css.push_str(&format!(
+        "@define-color accent_bg_color {accent};\n@define-color accent_fg_color #ffffff;\n@define-color accent_color {accent_text};\n"
+    ));
+    css
+}
+
+/// Keep this app's window in stock colours whatever theme is applied, so a
+/// theme that turns out unreadable cannot hide the way back. GTK loads the
+/// user's stylesheet into every app, this one included; these definitions
+/// sit one step above it. One of the app's two recorded styling exceptions:
+/// it holds colour definitions only.
+fn keep_stock_colors(window: &adw::ApplicationWindow) {
+    let provider = gtk::CssProvider::new();
+    provider.load_from_string(&stock_css());
+    gtk::style_context_add_provider_for_display(
+        &gtk::prelude::WidgetExt::display(window),
+        &provider,
+        gtk::STYLE_PROVIDER_PRIORITY_USER + 1,
+    );
+    let style = adw::StyleManager::default();
+    for property in ["dark", "accent-color", "high-contrast"] {
+        let provider = provider.clone();
+        style.connect_notify_local(Some(property), move |_, _| {
+            provider.load_from_string(&stock_css());
+        });
+    }
 }
 
 fn add_actions(ui: &U) {
@@ -655,7 +709,14 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
         .targets
         .iter()
         .any(|t| t.notes.contains(&Note::LowContrast));
-    if (first || !asking.is_empty() || low) && !confirm(ui, &name, &plan, &home, low).await {
+    // Before the very first apply, say what else changes the same colours.
+    let tools = if first {
+        data::run(targets::other_tools).await.unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    if (first || !asking.is_empty() || low) && !confirm(ui, &name, &plan, &home, low, &tools).await
+    {
         return;
     }
 
@@ -676,8 +737,18 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     }
 }
 
-async fn confirm(ui: &U, name: &str, plan: &Plan, home: &Path, low: bool) -> bool {
+async fn confirm(
+    ui: &U,
+    name: &str,
+    plan: &Plan,
+    home: &Path,
+    low: bool,
+    tools: &[targets::OtherTool],
+) -> bool {
     let mut body = words::summary(words::count(plan));
+    for tool in tools {
+        body = format!("{body}\n\n{}.", velatura_text::other_tool(tool, home));
+    }
     if low {
         body = format!(
             "{}\n\n{body}",

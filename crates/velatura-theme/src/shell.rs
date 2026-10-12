@@ -146,10 +146,28 @@ mod tests {
     #[test]
     fn selectors_exist_in_the_stock_stylesheet() {
         // One fixture per supported Shell version, taken from its own theme.
-        let versions = [(
-            "50",
-            include_str!("../tests/fixtures/shell-selectors-50.txt"),
-        )];
+        let versions = [
+            (
+                "47",
+                include_str!("../tests/fixtures/shell-selectors-47.txt"),
+            ),
+            (
+                "48",
+                include_str!("../tests/fixtures/shell-selectors-48.txt"),
+            ),
+            (
+                "49",
+                include_str!("../tests/fixtures/shell-selectors-49.txt"),
+            ),
+            (
+                "50",
+                include_str!("../tests/fixtures/shell-selectors-50.txt"),
+            ),
+            (
+                "51",
+                include_str!("../tests/fixtures/shell-selectors-51.txt"),
+            ),
+        ];
         for (version, fixture) in versions {
             let stock: Vec<&str> = fixture.lines().collect();
             for selector in SELECTORS {

@@ -6,14 +6,11 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use gtk::gio;
-use velatura_engine::engine::{self, ApplyOpts};
+use velatura_engine::engine;
 use velatura_engine::gio_settings::GioSettings;
 use velatura_engine::host::{Dirs, Host, StdFs};
 use velatura_engine::library::{self, Entry};
-use velatura_engine::plan::{Note, Skip};
 use velatura_engine::store::{DayNight, Manifest};
-use velatura_engine::targets::INSTANCES;
-use velatura_theme::Resolved;
 
 pub fn env(key: &str) -> Option<OsString> {
     std::env::var_os(key)
@@ -50,25 +47,7 @@ pub fn save_window_size(width: i32, height: i32) {
     });
 }
 
-/// How one app or desktop part stands.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RowState {
-    /// The theme in use is applied to it and nothing is pending.
-    Themed,
-    /// It can be themed; the next apply will include it.
-    Ready,
-    /// The theme is set up, but something else wins over it.
-    Shadowed(Note),
-    /// It cannot be themed now, for this reason.
-    Unavailable(Skip),
-}
-
-#[derive(Clone, Debug)]
-pub struct AppRow {
-    pub instance: &'static str,
-    pub state: RowState,
-    pub included: bool,
-}
+pub use velatura_engine::engine::{Part as AppRow, PartState as RowState};
 
 /// One consistent picture of the machine.
 #[derive(Clone, Debug, Default)]
@@ -106,56 +85,7 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         snap.history = history;
     }
 
-    // Ask what applying would do to learn how each part stands. The theme
-    // in use is the probe; before the first apply, the first theme is.
-    let probe = themes
-        .iter()
-        .find(|e| {
-            snap.applied
-                .as_deref()
-                .is_some_and(|label| label.split('/').next() == Some(e.theme.id.as_str()))
-        })
-        .or(themes.first());
-    let excluded = engine::excluded(host).unwrap_or_default();
-    if let Some(resolved) = probe.and_then(|e| {
-        let variant = snap.applied.as_deref().and_then(|l| l.split('/').nth(1));
-        Resolved::new(&e.theme, variant).or_else(|| Resolved::new(&e.theme, None))
-    }) {
-        // Naming every instance looks past the ones that are turned off.
-        let all = ApplyOpts {
-            only: INSTANCES.iter().map(|s| (*s).to_owned()).collect(),
-            ..ApplyOpts::default()
-        };
-        if let Ok(plan) = engine::plan_apply(host, &env, &resolved, &all) {
-            for instance in INSTANCES {
-                let Some(t) = plan.targets.iter().find(|t| t.instance == instance) else {
-                    continue;
-                };
-                let shadow = t.notes.iter().find(|n| {
-                    matches!(
-                        n,
-                        Note::Override { .. } | Note::KittyAutoTheme { .. } | Note::UserThemesOff
-                    )
-                });
-                let state = match (&t.skipped, shadow) {
-                    (Some(why), _) => RowState::Unavailable(why.clone()),
-                    (None, Some(note)) if snap.applied.is_some() => {
-                        RowState::Shadowed(note.clone())
-                    }
-                    _ => match &t.skipped {
-                        Some(why) => RowState::Unavailable(why.clone()),
-                        None if t.changes.is_empty() && snap.applied.is_some() => RowState::Themed,
-                        None => RowState::Ready,
-                    },
-                };
-                snap.rows.push(AppRow {
-                    instance,
-                    state,
-                    included: !excluded.iter().any(|e| e == instance),
-                });
-            }
-        }
-    }
+    snap.rows = engine::parts(host, &env, &themes);
     snap.themes = themes;
     snap
 }

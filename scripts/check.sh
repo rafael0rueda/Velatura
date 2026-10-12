@@ -49,10 +49,27 @@ for major in 3 4; do
     fi
 done
 # And a libadwaita app must compute those colours, over earlier definitions.
-if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+# Needs a display: the session's, or a headless compositor started for it.
+probe() {
     for f in "$golden"/*.gtk.css; do python3 scripts/gtk-probe.py "$f"; done
+    # Informational: has libadwaita's own palette moved since the table the
+    # app uses to keep its window in stock colours was generated?
+    python3 scripts/gen-stock-colors.py --check crates/velatura-gui/src/stock.rs || true
+}
+if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    probe
+elif command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
+    export -f probe; export golden
+    run=$(mktemp -d); chmod 700 "$run"
+    XDG_RUNTIME_DIR="$run" dbus-run-session -- bash -c '
+        mutter --headless --no-x11 --wayland-display velatura-probe --virtual-monitor 800x600 >/dev/null 2>&1 &
+        compositor=$!
+        for _ in $(seq 50); do [ -S "$XDG_RUNTIME_DIR/velatura-probe" ] && break; read -t 0.1 <> <(:) || true; done
+        WAYLAND_DISPLAY=velatura-probe GDK_BACKEND=wayland probe; status=$?
+        kill $compositor 2>/dev/null; exit $status' 2>/dev/null
+    rm -rf "$run"
 else
-    echo "NOT RUN: the colour probe needs a display (none in CI)"
+    echo "NOT RUN: the colour probe needs a display or a headless compositor"
 fi
 if command -v ghostty >/dev/null 2>&1; then
     for f in "$golden"/*.ghostty.conf; do
@@ -83,6 +100,15 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
         'FLOW undone applied=None' 'SANDBOX No theme applied.' 'SANDBOX kitty.conf: font_size 12|'; do
         grep -qxF "$want" <<<"$flow" || { echo "app flow check failed, missing: $want"; exit 1; }
     done
+    # With a theme applied to GTK apps, the app's own window keeps
+    # libadwaita's colours: not Ember's background.
+    shots=$(mktemp -d)
+    own=$(scripts/gui-shots.sh "$shots" --applied 2>/dev/null | grep '^SHOTS own' || true)
+    rm -rf "$shots"
+    echo "$own"
+    case "$own" in
+        "SHOTS own window_bg_color=#191316" | "") echo "the app's window took the theme's colours"; exit 1 ;;
+    esac
 else
     echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
 fi
@@ -91,10 +117,13 @@ step "shell"
 # The command applies themes in a sandbox and a headless GNOME Shell must
 # show their colours on the panel, reload on a new theme, and return to
 # stock after undo.
-if command -v gnome-shell >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
-    scripts/shell-accept.sh
-else
+if ! command -v gnome-shell >/dev/null 2>&1 || ! command -v dbus-run-session >/dev/null 2>&1; then
     echo "NOT RUN: the Shell check needs gnome-shell (not in the CI image)"
+elif [ ! -S /run/dbus/system_bus_socket ]; then
+    # The Shell asks the login manager for its session when it starts.
+    echo "NOT RUN: the Shell check needs a system bus, which a container does not have"
+else
+    scripts/shell-accept.sh
 fi
 
 step "docs"
