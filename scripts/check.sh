@@ -27,6 +27,13 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 step "test"
 cargo test --workspace --locked
 
+step "dependencies"
+# A cap on third-party crates per binary, so growth is a decision.
+cap=45
+count=$(cargo tree -p velatura-cli -e normal --prefix none --locked | sed 's/ (.*//' | sort -u | grep -vc '^velatura-')
+echo "third-party crates in the velatura binary: $count (cap $cap)"
+[ "$count" -le "$cap" ] || { echo "crate count is over the cap"; exit 1; }
+
 step "docs"
 python3 scripts/check_docs.py
 

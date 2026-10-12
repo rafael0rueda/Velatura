@@ -10,5 +10,5 @@ fmt=""
 [ "${1:-}" = "--fmt" ] && fmt="cargo fmt --all &&"
 exec podman run --rm --security-opt label=disable -v "$PWD":/src -w /src \
     -e CARGO_TARGET_DIR=/tmp/target -e VELATURA_CI=1 fedora:44 bash -c "
-    dnf install -y -q --setopt=install_weak_deps=False git cargo rustfmt clippy gcc python3 >/dev/null
+    dnf install -y -q --setopt=install_weak_deps=False git cargo rustfmt clippy gcc python3 pkgconf-pkg-config glib2-devel dbus-daemon dconf gsettings-desktop-schemas >/dev/null
     $fmt scripts/check.sh"

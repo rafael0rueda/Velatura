@@ -7,7 +7,13 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+# Read and write GNOME settings through GIO. Needs the GLib development files.
+gio = ["dep:gio"]
+
 [dependencies]
+gio = { version = "0.22", optional = true, default-features = false }
+serde_json = { version = "1", default-features = false, features = ["std"] }
 velatura-theme = { path = "../velatura-theme" }
 
 [lints]

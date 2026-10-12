@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1a – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 1a – engine and command line</h1>
+<p class="lead">Branch <code>phase-1a-engine-cli</code>. Completed 2026-10-12. Exit condition from the <a href="../plan.html#roadmap">roadmap</a>: the exhaustive crash test passes. It does.</p>
+<div class="note"><strong>Nothing was applied to the owner's desktop.</strong> Every test ran in a throw-away home folder, and the one test that uses the real settings store runs it inside a private session with its own database. On the real machine only the read-only commands were run (<code>doctor</code>, <code>status</code>, <code>apply --preview</code>). The old <code>theme-auto.timer</code> is untouched and still active.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Interface guidelines page</strong> (<a href="../hig.html">hig.html</a>): the GNOME Human Interface Guidelines applied to Velatura, eight corrections to the planned GUI, and the acceptance checklist for the GUI phase. Decisions <a href="../decisions.html#d36">D36</a> and <a href="../decisions.html#d37">D37</a>.</li>
+<li><strong>Theme file format</strong>: parser and validator for the TOML format of the plan. Size cap before parsing, version check before anything else is read, every colour typed, one-level references into the palette, unknown keys and slots reported as warnings, every problem reported with its location. Derivation rule 1 fills the optional interface roles and is frozen by a test.</li>
+<li><strong>Aetherius and Ember</strong> as bundled themes, converted from the existing palettes. All 45 named colours of each are carried without loss, and every role is written out, so nothing is left to derivation.</li>
+<li><strong>Kitty</strong>: a colour file Velatura creates (<code>velatura.conf</code>, 30 settings) and a marked block at the end of <code>kitty.conf</code> holding the one include line. Reports lines after the block that would override the theme, and Kitty's automatic theme files.</li>
+<li><strong>Dark style and accent colour</strong> through the desktop settings, with the accent set to the nearest of GNOME's nine. A value the user had set is told apart from a default, and is restored as it was.</li>
+<li><strong>Backups, undo and restore.</strong> Before anything is changed its content is stored. Each change is recorded in a numbered backup. <code>undo</code> reverses the latest; <code>restore &lt;id&gt;</code> goes back to the state before that backup; <code>restore --original</code> removes everything Velatura added, using a ledger of first-seen states that is never pruned. Twenty backups are kept.</li>
+<li><strong>Undo keeps the user's later edits.</strong> A block is taken out of the file as it is now; a file or setting changed outside Velatura since is left alone and reported.</li>
+<li><strong>Journal and crash recovery.</strong> A journal is written before the first change and removed after the last. An interrupted run is rolled back at the next start, and only items that still hold exactly what that run wrote are restored.</li>
+<li><strong>Preview is the plan that runs.</strong> <code>--preview</code> prints the plan; applying executes that same plan and stops if anything it was computed against has changed.</li>
+<li><strong>Agreement before the first edit of a user's file.</strong> On a terminal the command asks; without a terminal and without <code>--yes</code> it changes nothing and exits with code 3.</li>
+<li><strong>Command line</strong>: <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>; <code>--preview</code>, <code>--yes</code>, <code>--only</code>, <code>--except</code>, <code>--replace-changed</code>, <code>--json</code>. The help text carries the recovery commands for a text console. All text is US English and follows the writing rules of the interface guidelines.</li>
+<li><strong>One lock</strong> for every change, held through the operating system, so it cannot outlive a process that died.</li>
+</ul>
+
+<h2>Tests</h2>
+<p>57 tests, all run by the gate.</p>
+<div class="wrap"><table>
+<tr><th>What</th><th>How</th></tr>
+<tr><td>Exhaustive crash test</td><td>An apply is stopped at every step in turn, as if the process had died; recovery then runs and the whole home folder and the settings are compared with the state before. Done from a clean start, on top of an applied theme, and for undo.</td></tr>
+<tr><td>Apply then undo equals the start</td><td>Byte for byte, for six kinds of settings file: with and without a final newline, empty, Windows line endings, comment only, not UTF-8.</td></tr>
+<tr><td>Apply twice</td><td>The second run makes no backup and writes no setting.</td></tr>
+<tr><td>A, B, undo, undo</td><td>Equals the start, and the state after the first undo equals the state after A.</td></tr>
+<tr><td>Edits made after applying</td><td>Kept by undo and by crash recovery; reported, not overwritten.</td></tr>
+<tr><td>Places that are not safe</td><td>Links leaving the home folder, dangling and looping links, a folder where a file should be, damaged or duplicated markers, a file with Velatura's name that Velatura did not create: each is skipped with its reason and nothing is changed.</td></tr>
+<tr><td>Settings</td><td>No settings store, no accent setting (older GNOME), a locked key, a value the user had set.</td></tr>
+<tr><td>Backups</td><td>Damaged stored content, an unreadable backup file, a record written by a newer version, more applies than backups are kept.</td></tr>
+<tr><td>Hostile theme text</td><td>Newlines, escape sequences, direction overrides and comment terminators in every text field leave the generated file identical.</td></tr>
+<tr><td>Golden output</td><td>The exact Kitty file for both bundled themes.</td></tr>
+<tr><td>End to end</td><td>The built command against a real settings store, in a private session with a throw-away home.</td></tr>
+</table></div>
+
+<h2>Open questions answered</h2>
+<ul>
+<li><strong>Exact undo</strong> (question 9): yes, byte for byte, shown by the tests above.</li>
+<li><strong>Are the roles sufficient?</strong> (question 10): yes for both themes and for Kitty. Two things have no role and were left out: Kitty's two extra indexed colours (16 and 17), and separate tab-bar colours, which are now taken from the interface roles.</li>
+<li><strong>Kitty's automatic reload</strong> (question 8): Kitty 0.47.1 hands only the top-level settings file to its watcher, according to its source. Whether a change to an included file alone triggers a reload was not tested, because that needs a Kitty window on the desktop. The command therefore tells the user how to reload by hand if windows keep the old colours.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>"One line" is a block of three</strong>: two marker lines around the include line, so the app can find and remove exactly what it added.</li>
+<li><strong>Dependencies.</strong> Four were added: <code>toml</code> (reading theme files), <code>serde_json</code> (backups and state), <code>sha2</code> (content hashes) and <code>gio</code> (desktop settings). The command now links 41 third-party crates, most of them brought in by <code>gio</code>; the gate fails above 45. Decision <a href="../decisions.html#d38">D38</a>.</li>
+<li><strong>Size and start-up</strong>: the release binary is 1.1 MB (333 kB for the Phase 0 skeleton) and starts in under 1 ms.</li>
+<li><strong>Minimum Rust is 1.89</strong>, for the standard library's file locking.</li>
+<li><strong>Continuous integration</strong> installs the GLib development files and a private settings store, and runs the end-to-end test.</li>
+</ul>
+
+<h2>Not done in this phase</h2>
+<p>Stated plainly, with where each goes.</p>
+<ul>
+<li><strong>Nothing has been applied to the real desktop.</strong> The first real apply waits for the owner's go-ahead, together with the decision about the old timer.</li>
+<li><strong>Kitty on this machine will not show the theme yet</strong>: <code>dark-theme.auto.conf</code> exists and Kitty puts it above every other colour setting. The command detects and reports it; it does not rename the file. What to do about it is the owner's call.</li>
+<li><strong>Extended attributes, access lists and security labels</strong> are not copied when a file is replaced. A new file gets the folder's default label, which is correct for files in the home folder, but the general case is open. Phase 1b.</li>
+<li><strong>Hard-linked files</strong> are not detected; replacing one breaks the link. Phase 1b.</li>
+<li><strong>Detection of dotfile managers</strong>, of a running app, and of an editor holding the file open. Phase 1b, with the other detection work.</li>
+<li><strong>Change kinds not needed yet</strong>: links, key-level edits of structured files and generated folders arrive with the targets that need them.</li>
+<li><strong>Commands not built yet</strong>: <code>switch</code>, <code>schedule</code>, <code>disconnect</code> for a single target, theme import and export. <code>restore --original</code> covers "remove everything".</li>
+<li><strong>A fixture of a first-version backup</strong> that every later build must restore. It can only be frozen once the format has shipped; added at the end of Phase 1b.</li>
+<li><strong>Failure cases not yet tested</strong>: a really full disk, immutable files, a home folder that is itself a link, two processes racing for the lock from start to end.</li>
+<li><strong>Fuzzing of the theme parser</strong> and the licence and advisory checks on dependencies. Phase 1b.</li>
+<li><strong>A lint that forbids file access outside the host layer.</strong> The rule is followed by hand for now.</li>
+<li><strong>Translation.</strong> All text is in one module, ready for it; the machinery comes with the GUI in Phase 1c.</li>
+</ul>
+
+</main>
+</body>
+</html>

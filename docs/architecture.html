@@ -18,7 +18,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </style>
 </head>
 <body>
-<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="hig.html">Interface guidelines</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
 <main>
 <h1>Architecture</h1>
 <p class="lead">Revision 2, rewritten after the review. How the code is organised, how an apply works, how the GUI is laid out, and how distribution is kept open.</p>
@@ -159,6 +159,7 @@ enum Change {
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 
 <h2 id="cli">7. Command line</h2>
+<div class="note"><strong>Built so far (Phase 1a):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
 <pre>velatura                               status and short help
 velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
 velatura targets                       apps and desktop parts: instances, support, prerequisites
@@ -179,7 +180,7 @@ velatura theme import|export|resolve</pre>
 </ul>
 
 <h2 id="gui">8. GUI structure</h2>
-<p>A libadwaita application built only on the 1.6 interface. Widgets that need newer versions are not used.</p>
+<p>A libadwaita application built only on the 1.6 interface. Widgets that need newer versions are not used. It follows the GNOME Human Interface Guidelines; <a href="hig.html">Interface guidelines</a> holds the rules and lists where they correct this section (<a href="hig.html#changes">H1 to H8</a>).</p>
 <h3>Vocabulary</h3>
 <div class="wrap"><table>
 <tr><th>Internal</th><th>What the user sees</th></tr>
