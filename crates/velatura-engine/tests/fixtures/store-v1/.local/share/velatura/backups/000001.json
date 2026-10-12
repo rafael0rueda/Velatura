@@ -1,0 +1,42 @@
+{
+  "cause": "apply",
+  "id": 1,
+  "records": [
+    {
+      "op": "owned",
+      "path": "@HOME@/.config/kitty/velatura.conf",
+      "post": "023761be70775edf7ec163487eed88475624ba31009f0f1cdc3e2d707774291a",
+      "pre": null
+    },
+    {
+      "added_eol": true,
+      "body_after": "include velatura.conf",
+      "body_before": null,
+      "created_file": false,
+      "op": "block",
+      "path": "@HOME@/.config/kitty/kitty.conf",
+      "post": "d39507f9e9e6259e829073d3dde639aab8dea7afb95c6fcc0c9e73fdc9c86c0c",
+      "pre": "2881d5d34cc14e56f8919aaca392a57be5c78a5e2affb2d90e35c964c5326838",
+      "target": "kitty"
+    },
+    {
+      "key": "color-scheme",
+      "op": "setting",
+      "post": "prefer-dark",
+      "pre": null,
+      "schema": "org.gnome.desktop.interface"
+    },
+    {
+      "key": "accent-color",
+      "op": "setting",
+      "post": "orange",
+      "pre": null,
+      "schema": "org.gnome.desktop.interface"
+    }
+  ],
+  "state_before": "1d210ee02cd0cf2acc69cb1d10637b94fc2110f2f16f08ca8e0b144da8607147",
+  "theme": "ember/default",
+  "time": 1800000000,
+  "undone": false,
+  "version": 1
+}

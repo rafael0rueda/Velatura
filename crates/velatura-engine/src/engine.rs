@@ -70,12 +70,10 @@ pub fn plan_apply(
     for instance in targets::INSTANCES {
         let selected = (opts.only.is_empty() || matches(instance, &opts.only))
             && !matches(instance, &opts.except);
-        plans.push(if !selected {
-            TargetPlan::skip(instance, Skip::NotSelected)
-        } else if instance == targets::KITTY {
-            targets::plan_kitty(host, env, theme, &state, opts.replace_changed)
+        plans.push(if selected {
+            targets::plan(instance, host, env, theme, &state, opts.replace_changed)
         } else {
-            targets::plan_appearance(host, theme)
+            TargetPlan::skip(instance, Skip::NotSelected)
         });
     }
     let low = theme.colors.ui.fg.contrast(theme.colors.ui.bg) < CONTRAST_FLOOR;

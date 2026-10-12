@@ -14,6 +14,7 @@ gio = ["dep:gio"]
 [dependencies]
 gio = { version = "0.22", optional = true, default-features = false }
 serde_json = { version = "1", default-features = false, features = ["std"] }
+xattr = { version = "1.6", default-features = false }
 velatura-theme = { path = "../velatura-theme" }
 
 [lints]

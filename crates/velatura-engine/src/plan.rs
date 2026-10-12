@@ -66,13 +66,20 @@ pub enum Skip {
     /// A file Velatura made was changed outside Velatura since.
     ChangedOutside(PathBuf),
     SettingsUnavailable(String),
+    /// The file has more than one name; replacing it would split them.
+    HardLinked(PathBuf),
+    /// High Contrast is on, and recolouring would lower contrast.
+    HighContrast,
+    /// Older GTK apps can only be recoloured through the adw-gtk3 theme,
+    /// which is not installed.
+    NeedsAdwGtk3,
 }
 
 /// Something the user should know that does not stop the operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Note {
-    /// Lines after the include that set the same colours and so win.
-    KittyOverride {
+    /// Lines after Velatura's block that set the same colours and so win.
+    Override {
         path: PathBuf,
         lines: Vec<usize>,
     },
@@ -83,6 +90,19 @@ pub enum Note {
     /// Open Kitty windows pick the change up by themselves on recent
     /// versions; older ones need a manual reload.
     KittyReload,
+    /// Ghostty reloads its settings on a key press.
+    GhosttyReload,
+    /// GTK reads its stylesheet once, when an app starts.
+    GtkRestart,
+    /// The settings file is a link; the change lands in `real`.
+    LinkedFile {
+        path: PathBuf,
+        real: PathBuf,
+    },
+    /// A legacy GTK3 setting forces dark and would fight a light theme.
+    Gtk3DarkForced {
+        path: PathBuf,
+    },
     /// The system accent is the nearest of GNOME's fixed set.
     AccentNearest {
         wanted: String,

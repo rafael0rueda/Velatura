@@ -73,6 +73,11 @@ pub trait Fs {
 
     /// Names of the entries in a directory, sorted.
     fn list(&self, path: &Path) -> io::Result<Vec<OsString>>;
+
+    /// How many names the file at `path` has, following a final symlink.
+    /// More than one means it is hard-linked, and replacing it by rename
+    /// would silently split it from its other names.
+    fn links(&self, path: &Path) -> io::Result<u64>;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -135,6 +140,7 @@ impl Fs for StdFs {
                 .open(&tmp)?;
             file.write_all(content)?;
             file.set_permissions(fs::Permissions::from_mode(mode))?;
+            copy_attributes(&real, &tmp);
             file.sync_all()?;
             fs::rename(&tmp, &real)?;
             File::open(dir)?.sync_all()
@@ -180,6 +186,26 @@ impl Fs for StdFs {
         names.sort();
         Ok(names)
     }
+
+    fn links(&self, path: &Path) -> io::Result<u64> {
+        use std::os::unix::fs::MetadataExt;
+        Ok(fs::metadata(path)?.nlink())
+    }
+}
+
+/// Carry the extended attributes of the file being replaced over to its
+/// replacement: the security label, access lists and anything a tool has
+/// tagged it with. Best effort: an attribute the system refuses to set is
+/// skipped, because a new file already gets the folder's defaults.
+fn copy_attributes(from: &Path, to: &Path) {
+    let Ok(names) = xattr::list(from) else {
+        return;
+    };
+    for name in names {
+        if let Ok(Some(value)) = xattr::get(from, &name) {
+            let _ = xattr::set(to, &name, &value);
+        }
+    }
 }
 
 /// The state of one settings key.
@@ -200,7 +226,8 @@ pub enum SettingsError {
     Failed(String),
 }
 
-/// String-valued desktop settings. Phase 1a needs no other type.
+/// Desktop settings as text. Text keys read and write as their value;
+/// other types read in their printed form (`true`, `42`) and are not written.
 pub trait Settings {
     /// `Ok(None)` when the schema or the key does not exist on this system.
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError>;
@@ -239,6 +266,8 @@ impl MemSettings {
         Self::new(&[
             ("org.gnome.desktop.interface", "color-scheme", "default"),
             ("org.gnome.desktop.interface", "accent-color", "blue"),
+            ("org.gnome.desktop.interface", "gtk-theme", "Adwaita"),
+            ("org.gnome.desktop.a11y.interface", "high-contrast", "false"),
         ])
     }
 
@@ -362,6 +391,9 @@ impl Fs for Faults<'_> {
     }
     fn list(&self, path: &Path) -> io::Result<Vec<OsString>> {
         self.fs.list(path)
+    }
+    fn links(&self, path: &Path) -> io::Result<u64> {
+        self.fs.links(path)
     }
 }
 
@@ -597,5 +629,32 @@ mod tests {
         assert_eq!(read(&s).unwrap().unwrap().user, None);
         assert_eq!(s.read("org.gnome.desktop.interface", "nope").unwrap(), None);
         assert!(s.write("no.such.schema", "k", Some("v")).is_err());
+    }
+
+    #[test]
+    fn replacing_a_file_keeps_its_extended_attributes() {
+        let t = TempDir::new("xattr");
+        let path = t.0.join("gtk.css");
+        fs::write(&path, b"old").unwrap();
+        if xattr::set(&path, "user.velatura.test", b"kept").is_err() {
+            eprintln!("SKIPPED: this file system has no user attributes");
+            return;
+        }
+        StdFs.write_atomic(&path, b"new", 0o644).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"new");
+        assert_eq!(
+            xattr::get(&path, "user.velatura.test").unwrap().as_deref(),
+            Some(&b"kept"[..])
+        );
+    }
+
+    #[test]
+    fn counts_hard_links() {
+        let t = TempDir::new("links");
+        let a = t.0.join("a");
+        fs::write(&a, b"x").unwrap();
+        assert_eq!(StdFs.links(&a).unwrap(), 1);
+        fs::hard_link(&a, t.0.join("b")).unwrap();
+        assert_eq!(StdFs.links(&a).unwrap(), 2);
     }
 }

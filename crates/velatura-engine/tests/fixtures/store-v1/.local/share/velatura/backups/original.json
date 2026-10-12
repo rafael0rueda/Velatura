@@ -1,0 +1,24 @@
+{
+  "files": {
+    "@HOME@/.config/kitty/kitty.conf": {
+      "time": 1800000000,
+      "was": "2881d5d34cc14e56f8919aaca392a57be5c78a5e2affb2d90e35c964c5326838"
+    },
+    "@HOME@/.config/kitty/velatura.conf": {
+      "time": 1800000000,
+      "was": null
+    }
+  },
+  "note": "State before Velatura first changed each item. Never pruned.",
+  "settings": {
+    "org.gnome.desktop.interface accent-color": {
+      "time": 1800000000,
+      "was": null
+    },
+    "org.gnome.desktop.interface color-scheme": {
+      "time": 1800000000,
+      "was": null
+    }
+  },
+  "version": 1
+}

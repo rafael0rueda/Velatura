@@ -61,6 +61,9 @@ pub fn path(p: &Path, home: &Path) -> String {
 pub fn instance(id: &str) -> &str {
     match id {
         "kitty:default" => "Kitty",
+        "ghostty:default" => "Ghostty",
+        "gtk4:default" => "Apps (GTK 4 and libadwaita)",
+        "gtk3:default" => "Older Apps (GTK 3)",
         "gnome:appearance" => "Style and Accent Color",
         "" => "Changes",
         other => other,
@@ -71,6 +74,7 @@ fn setting_name(key: &str) -> &str {
     match key {
         "color-scheme" => "Style",
         "accent-color" => "Accent Color",
+        "gtk-theme" => "Legacy Application Theme",
         other => other,
     }
 }
@@ -78,6 +82,7 @@ fn setting_name(key: &str) -> &str {
 fn setting_value(key: &str, value: Option<&str>) -> String {
     match (key, value) {
         (_, None) => "the default".to_owned(),
+        ("gtk-theme", Some(v)) => v.to_owned(),
         ("color-scheme", Some("prefer-dark")) => "Dark".to_owned(),
         ("color-scheme", Some("default")) => "Default".to_owned(),
         ("color-scheme", Some("prefer-light")) => "Light".to_owned(),
@@ -162,13 +167,21 @@ pub fn skip(why: &Skip, home: &Path) -> String {
             "Left out: desktop settings are not available ({})",
             clean_text(what, 120)
         ),
+        Skip::HardLinked(p) => format!(
+            "Left out: {} has more than one name (a hard link), and replacing it would split them",
+            path(p, home)
+        ),
+        Skip::HighContrast => {
+            "Left out: High Contrast is on, and recoloring would lower contrast".to_owned()
+        }
+        Skip::NeedsAdwGtk3 => "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package".to_owned(),
     }
 }
 
 pub fn note(n: &Note, home: &Path) -> String {
     match n {
-        Note::KittyOverride { path: p, lines } => format!(
-            "{} sets colors after the Velatura block (line {}). Those lines win over the theme",
+        Note::Override { path: p, lines } => format!(
+            "{} has lines after the Velatura block that win over the theme (line {})",
             path(p, home),
             lines
                 .iter()
@@ -183,6 +196,21 @@ pub fn note(n: &Note, home: &Path) -> String {
         Note::KittyReload => {
             "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each".to_owned()
         }
+        Note::GhosttyReload => {
+            "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them".to_owned()
+        }
+        Note::GtkRestart => {
+            "Apps that are already open keep their colors until reopened".to_owned()
+        }
+        Note::LinkedFile { path: p, real } => format!(
+            "{} is a link. The change is written to {}",
+            path(p, home),
+            path(real, home)
+        ),
+        Note::Gtk3DarkForced { path: p } => format!(
+            "{} asks older apps for dark and can work against this light theme",
+            path(p, home)
+        ),
         Note::AccentNearest { wanted, used } => format!(
             "The theme's accent is {wanted}. GNOME offers nine accents; the nearest is {}",
             setting_value("accent-color", Some(used))
