@@ -11,7 +11,9 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use velatura_theme::{Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, sha256_hex};
+use velatura_theme::{
+    Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, sha256_hex, shell,
+};
 
 use crate::block;
 use crate::host::{Host, Kind, SettingsError};
@@ -25,10 +27,11 @@ pub const KITTY: &str = "kitty:default";
 pub const GHOSTTY: &str = "ghostty:default";
 pub const GTK4: &str = "gtk4:default";
 pub const GTK3: &str = "gtk3:default";
+pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 5] = [KITTY, GHOSTTY, GTK4, GTK3, APPEARANCE];
+pub const INSTANCES: [&str; 6] = [KITTY, GHOSTTY, GTK4, GTK3, SHELL, APPEARANCE];
 
 pub const INTERFACE_SCHEMA: &str = "org.gnome.desktop.interface";
 const A11Y_SCHEMA: &str = "org.gnome.desktop.a11y.interface";
@@ -469,6 +472,167 @@ pub fn plan_gtk3(
     plan
 }
 
+pub const USER_THEMES: &str = "user-theme@gnome-shell-extensions.gcampax.github.com";
+const USER_THEMES_SCHEMA: &str = "org.gnome.shell.extensions.user-theme";
+
+/// Where the system keeps shared data, the user's folder first.
+fn data_dirs(host: &Host<'_>, env: Env<'_>) -> Vec<PathBuf> {
+    let mut dirs = vec![host.dirs.data.clone()];
+    let system = env("XDG_DATA_DIRS")
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| OsString::from("/usr/local/share:/usr/share"));
+    dirs.extend(std::env::split_paths(&system).filter(|p| p.is_absolute()));
+    dirs
+}
+
+/// The uuids in the printed form of a list of strings: `['a', 'b']`.
+fn listed(printed: &str) -> Vec<&str> {
+    printed.split('\'').skip(1).step_by(2).collect()
+}
+
+/// The top bar, overview, menus and dialogs, through the User Themes
+/// extension. The generated theme is a folder holding one stylesheet; its
+/// name changes with the colours, because the Shell reloads a theme only
+/// when the name it is given changes.
+pub fn plan_shell(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+) -> TargetPlan {
+    if high_contrast(host) {
+        return TargetPlan::skip(SHELL, Skip::HighContrast);
+    }
+    let Some(extension) = data_dirs(host, env)
+        .into_iter()
+        .map(|d| d.join("gnome-shell/extensions").join(USER_THEMES))
+        .find(|d| exists(host, d))
+    else {
+        return TargetPlan::skip(SHELL, Skip::NeedsUserThemes);
+    };
+    // Installed for this user only, the extension brings its own schema.
+    let own = extension.join("schemas");
+    let schema = if exists(host, &own.join("gschemas.compiled")) {
+        format!("{USER_THEMES_SCHEMA}@{}", path_str(&own))
+    } else {
+        USER_THEMES_SCHEMA.to_owned()
+    };
+    let now = match host.settings.read(&schema, "name") {
+        Ok(Some(now)) => now,
+        Ok(None) => return TargetPlan::skip(SHELL, Skip::SettingsUnavailable(schema)),
+        Err(e) => return TargetPlan::skip(SHELL, Skip::SettingsUnavailable(format!("{e:?}"))),
+    };
+
+    let mut plan = TargetPlan::new(SHELL);
+    let themes = host.dirs.data.join("themes");
+    let name = shell::folder(theme);
+    let folder = themes.join(&name);
+    let inner = folder.join("gnome-shell");
+    let css = inner.join("gnome-shell.css");
+    let wanted = shell::render(theme).into_bytes();
+
+    let current = read_opt(host, &css).ok().flatten();
+    let pre = current.as_deref().map(sha256_hex);
+    if pre.is_some() && !state.owned.contains_key(&path_str(&css)) {
+        return TargetPlan::skip(SHELL, Skip::ForeignFile(css));
+    }
+    if !inside_home(host, &host.dirs.data) {
+        return TargetPlan::skip(SHELL, Skip::OutsideHome(themes));
+    }
+    for dir in [&themes, &folder, &inner] {
+        if !exists(host, dir) {
+            plan.changes.push(Change::CreateDir { path: dir.clone() });
+        }
+    }
+    if current.as_deref() != Some(wanted.as_slice()) {
+        plan.changes.push(Change::Owned {
+            path: css.clone(),
+            content: Some(wanted),
+            pre,
+        });
+    }
+    // Folders of earlier applies are Velatura's own and are cleared away.
+    // They stay restorable: undo puts them back from the backup.
+    for (old, written) in &state.owned {
+        let old = PathBuf::from(old);
+        let generated = old.strip_prefix(&themes).is_ok_and(|rest| {
+            rest.to_string_lossy().starts_with("Velatura-")
+                && rest.ends_with("gnome-shell/gnome-shell.css")
+        });
+        if !generated || old == css {
+            continue;
+        }
+        match read_opt(host, &old)
+            .ok()
+            .flatten()
+            .as_deref()
+            .map(sha256_hex)
+        {
+            Some(hash) if hash == *written => {
+                plan.changes.push(Change::Owned {
+                    path: old.clone(),
+                    content: None,
+                    pre: Some(hash),
+                });
+                for dir in old.ancestors().skip(1).take(2) {
+                    plan.changes.push(Change::RemoveDir {
+                        path: dir.to_path_buf(),
+                    });
+                }
+            }
+            Some(_) => plan.notes.push(Note::KeptFile { path: old }),
+            None => {}
+        }
+    }
+    if now.effective != name {
+        if now.writable {
+            plan.changes.push(Change::Setting {
+                schema,
+                key: "name".to_owned(),
+                value: Some(name),
+                pre: now.user,
+            });
+        } else {
+            plan.notes.push(Note::SettingLocked {
+                key: "name".to_owned(),
+            });
+        }
+    }
+
+    // What decides whether the theme is seen, read from the Shell's own
+    // settings. Absent keys mean an unknown state, and no note.
+    if let Ok(Some(enabled)) = host.settings.read("org.gnome.shell", "enabled-extensions") {
+        let enabled = listed(&enabled.effective);
+        let user_off = matches!(
+            host.settings.read("org.gnome.shell", "disable-user-extensions"),
+            Ok(Some(s)) if s.effective == "true"
+        );
+        if user_off || !enabled.contains(&USER_THEMES) {
+            plan.notes.push(Note::UserThemesOff);
+        }
+        let styled: Vec<String> = enabled
+            .iter()
+            .filter(|uuid| **uuid != USER_THEMES)
+            .filter(|uuid| {
+                data_dirs(host, env).iter().any(|d| {
+                    exists(
+                        host,
+                        &d.join("gnome-shell/extensions")
+                            .join(uuid)
+                            .join("stylesheet.css"),
+                    )
+                })
+            })
+            .map(|uuid| (*uuid).to_owned())
+            .collect();
+        if !styled.is_empty() {
+            plan.notes
+                .push(Note::ShellExtensionStyles { names: styled });
+        }
+    }
+    plan
+}
+
 pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>) -> TargetPlan {
     let mut plan = TargetPlan::new(APPEARANCE);
     let scheme = match theme.colors.appearance {
@@ -540,6 +704,7 @@ pub fn plan(
         GHOSTTY => plan_ghostty(host, env, theme, state, replace_changed),
         GTK4 => plan_gtk4(host, env, theme, state, replace_changed),
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
+        SHELL => plan_shell(host, env, theme, state),
         _ => plan_appearance(host, theme),
     }
 }

@@ -300,6 +300,78 @@ impl Prefs {
     }
 }
 
+// ------------------------------------------------------------- day/night
+
+/// Which theme is for the day and which for the night. Unlike the rest,
+/// this is a preference that makes sense on every machine, so it lives in
+/// the config folder, in a file a person can read and edit.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DayNight {
+    /// `theme` or `theme/variant`.
+    pub day: Option<String>,
+    pub night: Option<String>,
+}
+
+/// True for `theme` or `theme/variant` made of slugs.
+pub fn is_theme_spec(spec: &str) -> bool {
+    let mut parts = spec.split('/');
+    let ok = |p: Option<&str>| p.is_some_and(velatura_theme::model::is_slug);
+    ok(parts.next()) && parts.next().is_none_or(|v| ok(Some(v))) && parts.next().is_none()
+}
+
+impl DayNight {
+    pub fn path(host: &Host<'_>) -> PathBuf {
+        host.dirs.config.join("velatura").join("config.toml")
+    }
+
+    /// A missing or unreadable file means nothing has been chosen.
+    pub fn load(host: &Host<'_>) -> Self {
+        let text = read_opt(host, &Self::path(host))
+            .ok()
+            .flatten()
+            .and_then(|b| String::from_utf8(b).ok())
+            .unwrap_or_default();
+        let table = text.parse::<toml::Table>().unwrap_or_default();
+        let get = |key: &str| {
+            table
+                .get(key)
+                .and_then(toml::Value::as_str)
+                .filter(|s| is_theme_spec(s))
+                .map(str::to_owned)
+        };
+        Self {
+            day: get("day"),
+            night: get("night"),
+        }
+    }
+
+    /// Rewrite the two lines and keep every other line of the file.
+    pub fn save(&self, host: &Host<'_>) -> io::Result<()> {
+        let path = Self::path(host);
+        if let Some(dir) = path.parent() {
+            ensure_dir(host, dir)?;
+        }
+        let old = read_opt(host, &path)?
+            .and_then(|b| String::from_utf8(b).ok())
+            .unwrap_or_default();
+        let ours = |line: &str| {
+            let key = line.split('=').next().unwrap_or("").trim();
+            key == "day" || key == "night"
+        };
+        let mut lines: Vec<String> = Vec::new();
+        for (key, value) in [("day", &self.day), ("night", &self.night)] {
+            if let Some(spec) = value.as_ref().filter(|s| is_theme_spec(s)) {
+                lines.push(format!("{key} = \"{spec}\""));
+            }
+        }
+        // Top-level keys must come before any table, so ours go first.
+        lines.extend(old.lines().filter(|l| !ours(l)).map(str::to_owned));
+        let mut text = lines.join("\n");
+        text.push('\n');
+        host.fs.write_atomic(&path, text.as_bytes(), 0o644)
+    }
+}
+
 // ---------------------------------------------------------------- blobs
 
 fn blobs_dir(host: &Host<'_>) -> PathBuf {

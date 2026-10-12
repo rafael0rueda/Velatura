@@ -803,6 +803,7 @@ version = "0.0.0"
 dependencies = [
  "gio",
  "serde_json",
+ "toml",
  "velatura-theme",
  "xattr",
 ]

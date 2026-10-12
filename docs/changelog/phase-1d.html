@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1d – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 1d – GNOME Shell and the day/night switch</h1>
+<p class="lead">Branch <code>phase-1d-shell</code>. Completed 2026-10-12. Exit condition from the <a href="../plan.html#roadmap">roadmap</a>: the MVP's definition of done. <strong>It is not fully met</strong>: 12 of its 20 lines are met, 7 partly and 1 not. The table below says which and why.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing new was applied. The Shell target was run in a headless GNOME Shell inside a throw-away session, and previewed read-only on the real one.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Top bar, overview, menus and dialogs</strong> through the User Themes extension. The generated theme is a folder with one stylesheet of colour overrides for 17 selectors, layered over the Shell's own. It never copies the stock stylesheet.</li>
+<li><strong>A new folder name per theme</strong>, <code>Velatura-&lt;colours&gt;-&lt;format&gt;</code>, because the Shell reloads only when the name changes. The folder of the previous theme is removed in the same step and comes back with undo.</li>
+<li><strong>User Themes installed for one user</strong> keeps its setting in its own folder; that is now looked up there.</li>
+<li><strong>What hides the theme is reported</strong>: User Themes being turned off, and every enabled extension that ships its own stylesheet, since those always win.</li>
+<li><strong>Day and night.</strong> A daytime and a nighttime theme are chosen once, in the app (Themes, Day and Night) or with <code>velatura switch set day &lt;theme&gt;</code>; then one button, or <code>velatura switch day</code>, <code>night</code> or <code>toggle</code>, changes between them. The choice is kept in <code>~/.config/velatura/config.toml</code>, which a person can read and edit.</li>
+<li><strong>"Set up, but not taking effect"</strong> as a state in Apps &amp; Desktop, with the reason.</li>
+<li><strong>Recovery from a text console</strong>: without a desktop session the files are put back and each setting that could not be is listed with the command to run later.</li>
+</ul>
+
+<h2>Fixed</h2>
+<ul>
+<li><strong>A change reported as done that had not happened.</strong> Run without a desktop session, the settings store accepts a write and drops it. Since Phase 1a the command then said it had changed the setting. Now such a store counts as unavailable, and every setting written is read back before the change is recorded; a setting that did not take its value fails the operation and rolls it back.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li><strong>In a real GNOME Shell 50.5, headless</strong>, in every local gate run: the command applies Ember before the Shell starts and the panel shows Ember's colours; Aetherius is applied while it runs and the panel changes; both are undone and the panel is back to stock.</li>
+<li><strong>A libadwaita app computes all 58 opaque colours</strong> of each generated stylesheet, over conflicting definitions earlier in the same file. Local gate, needs a display.</li>
+<li><strong>Every selector used exists in the stock stylesheet</strong> of GNOME Shell 50 (1,958 selectors stored as a fixture); the shape of every generated rule is checked, because one syntax error makes the Shell drop the whole file.</li>
+<li><strong>Transaction tests</strong> for the Shell target, and the exhaustive crash test now runs over all six targets. 84 tests.</li>
+</ul>
+
+<h2>The MVP's definition of done</h2>
+<div class="wrap"><table>
+<tr><th>Line</th><th>State</th><th>Notes</th></tr>
+<tr><td>Applying leaves every target in the expected state, and a probe confirms GTK and the Shell compute the colours</td><td><span class="tag wa">Partly</span></td><td>Yes on GNOME 50: the gate applies themes in a sandbox and reads the colours back from a libadwaita app and from a headless GNOME Shell. Not run on GNOME 51. GTK 3 with adw-gtk3 is tested with a stand-in folder, not the real theme.</td></tr>
+<tr><td>Missing apps and prerequisites are skipped with a reason and do not fail the apply</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Overridden targets are reported as "set up but not taking effect"</td><td><span class="tag wa">Partly</span></td><td>The app shows that state for Kitty, GTK and the Shell with the reason. <code>velatura status</code> does not; <code>doctor</code> and the preview list the cause.</td></tr>
+<tr><td>Day and night switching from the app and the command</td><td><span class="tag ok">Met</span></td><td>Manual only; scheduling is Phase 2.</td></tr>
+<tr><td>Preview lists everything and changes nothing; a stale plan is refused</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Undo restores content, permissions, security label and settings; later edits are kept</td><td><span class="tag wa">Partly</span></td><td>Content and settings: byte for byte, tested. Permissions and extended attributes are kept when a file is replaced; a file that undo recreates gets the folder defaults.</td></tr>
+<tr><td>Restore original returns everything to its first recorded state</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Recovery after an interruption at any step</td><td><span class="tag ok">Met</span></td><td>Exhaustive crash test over all six targets.</td></tr>
+<tr><td>Nothing outside the app's own files and spans; no elevated rights</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Hostile-theme tests pass for every target</td><td><span class="tag ok">Met</span></td><td>One mutation test over all four renderers, plus the per-renderer checks.</td></tr>
+<tr><td>Recovery from a text console without a session bus</td><td><span class="tag ok">Met</span></td><td>New in this phase, with a test: files are put back, and each setting that could not be is listed with the exact command.</td></tr>
+<tr><td>Other theming tools and timers are reported before the first apply</td><td><span class="tag wa">Partly</span></td><td>Reported by <code>doctor</code> and the app's Troubleshooting. Not shown in the apply confirmation itself.</td></tr>
+<tr><td>First apply in four interactions or fewer</td><td><span class="tag ok">Met</span></td><td>Three.</td></tr>
+<tr><td>Theme in use always visible; Undo always in the menu</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>The app's own window stays readable under any theme; contrast floor; High Contrast</td><td><span class="tag wa">Partly</span></td><td>Low-contrast themes need Apply Anyway, and recolouring is skipped in High Contrast. The app's own window is not kept in stock colours.</td></tr>
+<tr><td>States what took effect and what the user must reload, and does none of it itself</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Each failure class has a designed, translated message</td><td><span class="tag wa">Partly</span></td><td>Designed, yes. Translated, no: the shared sentences are English only.</td></tr>
+<tr><td>All text translatable; the manual checklist passes</td><td><span class="tag no">Not met</span></td><td>The app's own strings are collected for translation; the shared sentences are not. The manual checklist (keyboard only, screen reader, large text, lock screen and others) has not been run.</td></tr>
+<tr><td>One-step removal in the app and the command</td><td><span class="tag ok">Met</span></td><td></td></tr>
+<tr><td>Automated tests pass in CI and the docs match</td><td><span class="tag wa">Partly</span></td><td>The unit and transaction tests run in CI. The three checks that need a display or a Shell (app flow, colour probe, Shell colours) run in the local gate only.</td></tr>
+</table></div>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Velatura does not turn User Themes on itself</strong> (<a href="../decisions.html#d44">D44</a>). It writes the theme and the name, and says that the extension is off and where to turn it on. The plan had it ask the Shell to enable the extension.</li>
+<li><strong>The accent is still the system's.</strong> As planned, the Shell shows the nearest of GNOME's nine accents, not the theme's exact one.</li>
+</ul>
+
+<h2>Not done in this phase</h2>
+<ul>
+<li><strong>GNOME 51</strong> and GNOME 47 to 49: selector fixtures and Shell runs exist for 50 only.</li>
+<li><strong>The lock screen</strong> is not themed and was not tested: User Themes is not active while the screen is locked, and checking what happens on lock and unlock needs the owner's real session.</li>
+<li><strong>Installing User Themes</strong> through the Shell's own installer. The app says where to get it.</li>
+<li><strong>Coverage</strong> is the main surfaces: panel, overview, menus, dialogs, notifications, on-screen displays, search, dash. Buttons, sliders, the calendar's inner parts and the on-screen keyboard keep stock colours.</li>
+<li><strong>The remaining lines of the definition of done</strong>, above: the app's own window in stock colours, translation of the shared sentences, the manual checklist, GNOME 51.</li>
+</ul>
+
+</main>
+</body>
+</html>

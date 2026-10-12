@@ -228,6 +228,8 @@ pub enum SettingsError {
 
 /// Desktop settings as text. Text keys read and write as their value;
 /// other types read in their printed form (`true`, `42`) and are not written.
+/// A schema given as `id@/folder` is looked up in that folder's compiled
+/// schemas, where an extension installed for one user keeps its own.
 pub trait Settings {
     /// `Ok(None)` when the schema or the key does not exist on this system.
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError>;
@@ -268,6 +270,7 @@ impl MemSettings {
             ("org.gnome.desktop.interface", "accent-color", "blue"),
             ("org.gnome.desktop.interface", "gtk-theme", "Adwaita"),
             ("org.gnome.desktop.a11y.interface", "high-contrast", "false"),
+            ("org.gnome.shell.extensions.user-theme", "name", ""),
         ])
     }
 

@@ -7,12 +7,20 @@ use crate::host::{SettingState, Settings, SettingsError};
 /// The settings of the running session.
 pub struct GioSettings {
     backend: String,
+    /// Whether there is a session bus. Without one the store can be read
+    /// but a write is silently lost, so it is treated as unavailable.
+    bus: bool,
 }
 
 impl GioSettings {
     pub fn new() -> Self {
+        let var = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty());
+        let bus = var("DBUS_SESSION_BUS_ADDRESS").is_some()
+            || var("XDG_RUNTIME_DIR")
+                .is_some_and(|dir| std::path::Path::new(&dir).join("bus").exists());
         Self {
             backend: gio::SettingsBackend::default().type_().name().to_owned(),
+            bus,
         }
     }
 
@@ -23,7 +31,9 @@ impl GioSettings {
     }
 
     fn usable(&self) -> Result<(), SettingsError> {
-        if self.backend == "DConfSettingsBackend" {
+        if !self.bus {
+            Err(SettingsError::Unavailable("no desktop session".to_owned()))
+        } else if self.backend == "DConfSettingsBackend" {
             Ok(())
         } else {
             Err(SettingsError::Unavailable(self.backend.clone()))
@@ -32,9 +42,23 @@ impl GioSettings {
 
     /// `None` if the schema or key is not installed. Looked up first because
     /// GIO aborts the process when asked for a schema that does not exist.
+    ///
+    /// `schema` may be `id@/folder`: the schema is then taken from the
+    /// compiled schemas in that folder, which is where an extension
+    /// installed for one user keeps its own.
     fn open(schema: &str, key: &str) -> Option<gio::Settings> {
-        let found = gio::SettingsSchemaSource::default()?.lookup(schema, true)?;
-        found.has_key(key).then(|| gio::Settings::new(schema))
+        let default = gio::SettingsSchemaSource::default()?;
+        let found = match schema.split_once('@') {
+            Some((id, dir)) => {
+                gio::SettingsSchemaSource::from_directory(dir, Some(&default), false)
+                    .ok()?
+                    .lookup(id, false)?
+            }
+            None => default.lookup(schema, true)?,
+        };
+        found
+            .has_key(key)
+            .then(|| gio::Settings::new_full(&found, None::<&gio::SettingsBackend>, None))
     }
 }
 

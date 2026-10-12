@@ -10,8 +10,8 @@ use velatura_engine::engine::{self, ApplyOpts};
 use velatura_engine::gio_settings::GioSettings;
 use velatura_engine::host::{Dirs, Host, StdFs};
 use velatura_engine::library::{self, Entry};
-use velatura_engine::plan::Skip;
-use velatura_engine::store::Manifest;
+use velatura_engine::plan::{Note, Skip};
+use velatura_engine::store::{DayNight, Manifest};
 use velatura_engine::targets::INSTANCES;
 use velatura_theme::Resolved;
 
@@ -57,6 +57,8 @@ pub enum RowState {
     Themed,
     /// It can be themed; the next apply will include it.
     Ready,
+    /// The theme is set up, but something else wins over it.
+    Shadowed(Note),
     /// It cannot be themed now, for this reason.
     Unavailable(Skip),
 }
@@ -80,6 +82,7 @@ pub struct Snapshot {
     pub history: Vec<Manifest>,
     pub rows: Vec<AppRow>,
     pub window: Option<(i32, i32)>,
+    pub day_night: DayNight,
     /// Set when Velatura's own records could not be read.
     pub problem: Option<String>,
 }
@@ -89,6 +92,7 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
     let mut snap = Snapshot {
         home: host.dirs.home.clone(),
         window: engine::window_size(host),
+        day_night: DayNight::load(host),
         ..Snapshot::default()
     };
     match engine::status(host) {
@@ -127,10 +131,22 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
                 let Some(t) = plan.targets.iter().find(|t| t.instance == instance) else {
                     continue;
                 };
-                let state = match &t.skipped {
-                    Some(why) => RowState::Unavailable(why.clone()),
-                    None if t.changes.is_empty() && snap.applied.is_some() => RowState::Themed,
-                    None => RowState::Ready,
+                let shadow = t.notes.iter().find(|n| {
+                    matches!(
+                        n,
+                        Note::Override { .. } | Note::KittyAutoTheme { .. } | Note::UserThemesOff
+                    )
+                });
+                let state = match (&t.skipped, shadow) {
+                    (Some(why), _) => RowState::Unavailable(why.clone()),
+                    (None, Some(note)) if snap.applied.is_some() => {
+                        RowState::Shadowed(note.clone())
+                    }
+                    _ => match &t.skipped {
+                        Some(why) => RowState::Unavailable(why.clone()),
+                        None if t.changes.is_empty() && snap.applied.is_some() => RowState::Themed,
+                        None => RowState::Ready,
+                    },
                 };
                 snap.rows.push(AppRow {
                     instance,

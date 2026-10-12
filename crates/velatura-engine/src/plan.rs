@@ -73,6 +73,9 @@ pub enum Skip {
     /// Older GTK apps can only be recoloured through the adw-gtk3 theme,
     /// which is not installed.
     NeedsAdwGtk3,
+    /// The Shell can only load a stylesheet through the User Themes
+    /// extension, which is not installed.
+    NeedsUserThemes,
 }
 
 /// Something the user should know that does not stop the operation.
@@ -100,6 +103,22 @@ pub enum Note {
         real: PathBuf,
     },
     /// A legacy GTK3 setting forces dark and would fight a light theme.
+    /// A setting could not be put back because the settings store cannot
+    /// be written from here (a text console with no desktop session).
+    /// `value` is what it should be set to; `None` means its default.
+    SettingNeedsSession {
+        schema: String,
+        key: String,
+        value: Option<String>,
+    },
+    /// User Themes is installed but turned off, so the Shell does not load
+    /// the theme until it is turned on.
+    UserThemesOff,
+    /// Enabled extensions that ship their own stylesheet, which always wins
+    /// over a user theme.
+    ShellExtensionStyles {
+        names: Vec<String>,
+    },
     Gtk3DarkForced {
         path: PathBuf,
     },
