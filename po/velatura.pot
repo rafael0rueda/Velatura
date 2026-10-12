@@ -1,0 +1,385 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Rafael Rueda
+# This file is distributed under the same license as the velatura package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: velatura\n"
+"Report-Msgid-Bugs-To: https://github.com/rafael0rueda/Velatura/issues\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid "_Themes"
+msgstr ""
+
+msgid "_Apps & Desktop"
+msgstr ""
+
+msgid "_History"
+msgstr ""
+
+msgid "_Undo Last Apply"
+msgstr ""
+
+msgid "_Troubleshooting"
+msgstr ""
+
+msgid "_Keyboard Shortcuts"
+msgstr ""
+
+msgid "_About Velatura"
+msgstr ""
+
+msgid "Main Menu"
+msgstr ""
+
+msgid "General"
+msgstr ""
+
+msgid "Undo Last Apply"
+msgstr ""
+
+msgid "Back"
+msgstr ""
+
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+msgid "Close Window"
+msgstr ""
+
+msgid "Quit"
+msgstr ""
+
+msgid "_Undo"
+msgstr ""
+
+msgid "No Home Folder"
+msgstr ""
+
+msgid "Velatura needs a home folder to work in"
+msgstr ""
+
+msgid "An earlier change was interrupted"
+msgstr ""
+
+msgid "_Roll Back"
+msgstr ""
+
+msgid "High Contrast is on ‒ apps are not recolored"
+msgstr ""
+
+msgid "Light"
+msgstr ""
+
+msgid "Dark"
+msgstr ""
+
+msgid "In use"
+msgstr ""
+
+msgid "In Use"
+msgstr ""
+
+msgid "Style"
+msgstr ""
+
+msgid "System Accent"
+msgstr ""
+
+#, rust-format
+msgid "{accent}, the nearest to {color}"
+msgstr ""
+
+msgid "Text Contrast"
+msgstr ""
+
+#, rust-format
+msgid "{ratio} to 1"
+msgstr ""
+
+msgid "Author"
+msgstr ""
+
+msgid "Applied"
+msgstr ""
+
+msgid "_Apply Theme"
+msgstr ""
+
+msgid "Still working on the last change"
+msgstr ""
+
+msgid "Another Velatura is making changes"
+msgstr ""
+
+msgid "Nothing to undo"
+msgstr ""
+
+msgid ""
+"An earlier interrupted change could not be fully rolled back, so nothing new "
+"was changed."
+msgstr ""
+
+msgid "Velatura's own records cannot be read. Nothing was changed."
+msgstr ""
+
+msgid "That theme is no longer available"
+msgstr ""
+
+msgid "Theme Not Applied"
+msgstr ""
+
+msgid "Nothing to change"
+msgstr ""
+
+msgid "The change could not be started"
+msgstr ""
+
+msgid "Text in this theme has low contrast and may be hard to read."
+msgstr ""
+
+#, rust-format
+msgid "Apply {name}?"
+msgstr ""
+
+msgid "Show _Details"
+msgstr ""
+
+msgid "Apply _Anyway"
+msgstr ""
+
+msgid "_Cancel"
+msgstr ""
+
+msgid "Nothing Was Changed"
+msgstr ""
+
+#, rust-format
+msgid "{name} applied"
+msgstr ""
+
+#, rust-format
+msgid "{name} Applied"
+msgstr ""
+
+msgid "A few things to know"
+msgstr ""
+
+msgid "Last apply undone"
+msgstr ""
+
+msgid "Undone, With Exceptions"
+msgstr ""
+
+msgid "Not Undone"
+msgstr ""
+
+msgid "The interrupted change was rolled back"
+msgstr ""
+
+msgid "Rolled Back"
+msgstr ""
+
+msgid "Not Fully Rolled Back"
+msgstr ""
+
+msgid "Desktop"
+msgstr ""
+
+msgid "Terminals"
+msgstr ""
+
+msgid "Apps"
+msgstr ""
+
+msgid "Themed"
+msgstr ""
+
+msgid "Themed, and left out of the next apply"
+msgstr ""
+
+msgid "Included in the next apply"
+msgstr ""
+
+msgid "Left out"
+msgstr ""
+
+msgid "Unofficial: may stop working after a GNOME update"
+msgstr ""
+
+msgid "The choice could not be saved"
+msgstr ""
+
+msgid "_Remove Everything Velatura Added"
+msgstr ""
+
+msgid "Nothing to remove"
+msgstr ""
+
+msgid "Everything Velatura added was removed"
+msgstr ""
+
+msgid "Not Removed"
+msgstr ""
+
+msgid "No Backups Yet"
+msgstr ""
+
+msgid "A backup is made each time a theme is applied"
+msgstr ""
+
+msgid "Restoring goes back to how things were just before that change"
+msgstr ""
+
+#, rust-format
+msgid "Applied {theme}"
+msgstr ""
+
+msgid "Removed everything Velatura added"
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
+msgid "Undone"
+msgstr ""
+
+msgid "Restore…"
+msgstr ""
+
+msgid "Go Back to Before This Change?"
+msgstr ""
+
+#, rust-format
+msgid "{n} change is undone. Files edited by hand since then are kept."
+msgid_plural ""
+"{n} changes are undone, newest first. Files edited by hand since then are "
+"kept."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "_Restore"
+msgstr ""
+
+msgid "Restored"
+msgstr ""
+
+msgid "Not Restored"
+msgstr ""
+
+msgid "Apps and Desktop"
+msgstr ""
+
+msgid "Can be themed"
+msgstr ""
+
+msgid "Other Tools That Change Colors"
+msgstr ""
+
+#, rust-format
+msgid "Found at {path}. It may write the same colors"
+msgstr ""
+
+msgid "A timer that may change the theme is turned on"
+msgstr ""
+
+#, rust-format
+msgid "Found at {path}. It can overwrite changes made here"
+msgstr ""
+
+msgid "None found"
+msgstr ""
+
+msgid "If the Desktop Becomes Unreadable"
+msgstr ""
+
+msgid ""
+"Switch to a text console with Ctrl+Alt+F3, sign in, and run this command"
+msgstr ""
+
+msgid "Troubleshooting"
+msgstr ""
+
+msgid "One color theme for the whole desktop"
+msgstr ""
+
+msgid "background"
+msgstr ""
+
+msgid "surface"
+msgstr ""
+
+msgid "accent"
+msgstr ""
+
+msgid "text"
+msgstr ""
+
+msgid "red"
+msgstr ""
+
+msgid "green"
+msgstr ""
+
+msgid "blue"
+msgstr ""
+
+msgid "Colors"
+msgstr ""
+
+msgid "Illustration of a terminal in this theme"
+msgstr ""
+
+msgid "Window"
+msgstr ""
+
+msgid "Text in this theme"
+msgstr ""
+
+msgid "Secondary text"
+msgstr ""
+
+msgid "Button"
+msgstr ""
+
+msgid "Illustration. Some apps keep their own colors"
+msgstr ""
+
+#, rust-format
+msgid "Adds one line to a settings file."
+msgid_plural "Adds one line to each of {n} settings files."
+msgstr[0] ""
+msgstr[1] ""
+
+#, rust-format
+msgid "Creates {n} file."
+msgid_plural "Creates {n} files."
+msgstr[0] ""
+msgstr[1] ""
+
+#, rust-format
+msgid "Updates {n} file made by Velatura."
+msgid_plural "Updates {n} files made by Velatura."
+msgstr[0] ""
+msgstr[1] ""
+
+#, rust-format
+msgid "Changes {n} system setting."
+msgid_plural "Changes {n} system settings."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Nothing is deleted."
+msgstr ""
+
+msgid "This can be undone at any time."
+msgstr ""

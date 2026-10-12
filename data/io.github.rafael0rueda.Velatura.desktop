@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Velatura
+Comment=One color theme for the whole desktop
+Exec=velatura-app
+Icon=io.github.rafael0rueda.Velatura
+Terminal=false
+Categories=GNOME;GTK;Settings;DesktopSettings;
+Keywords=theme;color;colour;appearance;dark;terminal;
+StartupNotify=true

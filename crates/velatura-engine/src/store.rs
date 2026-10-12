@@ -252,6 +252,54 @@ impl State {
     }
 }
 
+// ---------------------------------------------------------------- prefs
+
+/// Choices that are about this machine, not about any one theme.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Prefs {
+    /// Instances the user turned off: left out when a theme is applied.
+    pub excluded: BTreeSet<String>,
+    /// Width and height of the app window when it was last closed.
+    pub window: Option<(i32, i32)>,
+}
+
+impl Prefs {
+    pub fn path(host: &Host<'_>) -> PathBuf {
+        host.state_dir().join("prefs.json")
+    }
+
+    pub fn load(host: &Host<'_>) -> Result<Self> {
+        let path = Self::path(host);
+        let Some(v) = read_json(host, &path)? else {
+            return Ok(Self::default());
+        };
+        let excluded = v
+            .get("excluded")
+            .and_then(Value::as_array)
+            .and_then(|a| a.iter().map(|x| x.as_str().map(str::to_owned)).collect())
+            .ok_or(StoreError::Damaged(path))?;
+        let size = |k: &str| v.get(k).and_then(Value::as_i64).map(|n| n as i32);
+        Ok(Self {
+            excluded,
+            window: size("window_width").zip(size("window_height")),
+        })
+    }
+
+    pub fn save(&self, host: &Host<'_>) -> io::Result<()> {
+        ensure_dir(host, &host.state_dir())?;
+        host.fs.write_atomic(
+            &Self::path(host),
+            &to_bytes(&json!({
+                "version": VERSION,
+                "excluded": self.excluded,
+                "window_width": self.window.map(|w| w.0),
+                "window_height": self.window.map(|w| w.1),
+            })),
+            0o600,
+        )
+    }
+}
+
 // ---------------------------------------------------------------- blobs
 
 fn blobs_dir(host: &Host<'_>) -> PathBuf {

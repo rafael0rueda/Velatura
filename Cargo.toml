@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/velatura-theme", "crates/velatura-engine", "crates/velatura-cli"]
+members = ["crates/velatura-theme", "crates/velatura-engine", "crates/velatura-text", "crates/velatura-cli", "crates/velatura-gui"]
 
 [workspace.package]
 version = "0.0.0"

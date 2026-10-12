@@ -3,8 +3,6 @@
 //! Arguments in, typed engine calls, text or JSON out. No logic that the
 //! GUI would have to repeat lives here.
 
-mod text;
-
 use std::io::{IsTerminal, Write};
 use std::path::Path;
 use std::process::ExitCode;
@@ -16,6 +14,7 @@ use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs};
 use velatura_engine::library;
 use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
 use velatura_engine::targets;
+use velatura_text as text;
 use velatura_theme::model::{ANSI_NAMES, clean_text};
 use velatura_theme::{Resolved, nearest_accent, parse_theme};
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- A panel with a translucent glaze of colour being laid over it by a
+       flat brush. Colours from the GNOME palette. -->
+  <!-- panel: front face, then top face -->
+  <rect x="14" y="26" width="100" height="90" rx="10" fill="#c0bfbc"/>
+  <rect x="14" y="22" width="100" height="88" rx="10" fill="#f6f5f4"/>
+  <!-- underpainting -->
+  <rect x="24" y="32" width="80" height="68" rx="4" fill="#deddda"/>
+  <path d="M24 86 L50 58 L66 74 L82 54 L104 80 V96 a4 4 0 0 1 -4 4 H28 a4 4 0 0 1 -4 -4 Z" fill="#9a9996"/>
+  <circle cx="44" cy="48" r="8" fill="#ffffff"/>
+  <!-- the glaze: three translucent bands, the last still being laid -->
+  <rect x="24" y="32" width="80" height="24" rx="4" fill="#3584e4" opacity="0.62"/>
+  <rect x="24" y="56" width="80" height="22" fill="#9141ac" opacity="0.56"/>
+  <path d="M24 78 H78 V100 H28 a4 4 0 0 1 -4 -4 Z" fill="#e66100" opacity="0.6"/>
+  <!-- brush: ferrule, bristles, handle -->
+  <g transform="rotate(38 90 86)">
+    <rect x="78" y="76" width="14" height="24" rx="2" fill="#e66100"/>
+    <rect x="78" y="76" width="14" height="6" fill="#c64600"/>
+    <rect x="77" y="58" width="16" height="20" rx="2" fill="#9a9996"/>
+    <rect x="77" y="58" width="16" height="5" fill="#c0bfbc"/>
+    <rect x="80" y="14" width="10" height="46" rx="5" fill="#865e3c"/>
+    <rect x="80" y="14" width="4" height="46" rx="2" fill="#986a44"/>
+  </g>
+</svg>

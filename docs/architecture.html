@@ -28,6 +28,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 ├── crates/
 │   ├── velatura-theme/    theme model, parsing, derivation, contrast, renderers. No I/O at all.
 │   ├── velatura-engine/   plans, connectors, transactions, backups, host-access layer
+│   ├── velatura-text/     the sentences about plans and outcomes, shared by command and app
 │   ├── velatura-cli/      the "velatura" command
 │   └── velatura-gui/      GTK4 + libadwaita application
 ├── extension/             optional GNOME Shell companion extension (JavaScript)
@@ -159,7 +160,7 @@ enum Change {
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 
 <h2 id="cli">7. Command line</h2>
-<div class="note"><strong>Built so far (Phases 1a and 1b):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
+<div class="note"><strong>Built so far (Phases 1a to 1c):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
 <pre>velatura                               status and short help
 velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
 velatura targets                       apps and desktop parts: instances, support, prerequisites
