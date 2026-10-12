@@ -428,7 +428,13 @@ impl Cx<'_> {
                 p(h.dirs.config.join("gtk-3.0/gtk.css")),
             ),
             (
-                "gnome",
+                "gnome:shell",
+                "Top Bar and Overview",
+                "unofficial",
+                "User Themes extension".to_owned(),
+            ),
+            (
+                "gnome:appearance",
                 "Style and Accent Color",
                 "official",
                 "desktop settings".to_owned(),

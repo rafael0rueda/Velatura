@@ -121,6 +121,17 @@ fn apply_and_undo_against_a_private_settings_store() {
     assert_eq!(code, 0);
     assert!(out.contains("aetherius") && out.contains("ember"), "{out}");
 
+    // Every part the engine knows is listed, under the name --only takes.
+    let (code, out, _) = sb.velatura(&["targets"]);
+    assert_eq!(code, 0);
+    for instance in velatura_engine::targets::INSTANCES {
+        let id = instance.strip_suffix(":default").unwrap_or(instance);
+        assert!(
+            out.lines().any(|l| l.split_whitespace().next() == Some(id)),
+            "{id} missing from:\n{out}"
+        );
+    }
+
     // Preview changes nothing.
     let (code, out, _) = sb.velatura(&["apply", "ember", "--preview"]);
     assert_eq!(code, 0, "{out}");
