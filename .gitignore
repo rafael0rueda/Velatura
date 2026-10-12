@@ -1,0 +1,6 @@
+/target/
+/build/
+/_build/
+*.swp
+__pycache__/
+/spikes/tmp/
