@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interface guidelines – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}h3{font-size:17px;margin-top:1.4em}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code,pre{font-family:ui-monospace,monospace;font-size:13.5px}pre{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="hig.html">Interface guidelines</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Interface guidelines</h1>
+<p class="lead">The GNOME Human Interface Guidelines, as they apply to Velatura. Read in full on 2026-10-12 from <code>developer.gnome.org/hig</code>: the principles, all eleven guidelines, the patterns Velatura uses, and the keyboard reference. This page is the working checklist for the GUI phase (1c) and for every user-facing text written before it, including the command line.</p>
+<div class="note"><strong>How this page is used.</strong> Section 2 lists what the reading changed in the plan. Sections 3 to 9 are rules to build by. Section 10 is the acceptance checklist that the GUI pull request must tick off. Where the guidelines and a safety requirement pull in different directions, the conflict is named and the decision is the owner's.</div>
+
+<h2 id="principles">1. The four principles</h2>
+<div class="wrap"><table>
+<tr><th>Principle</th><th>What it asks</th><th>What it means here</th></tr>
+<tr><td><strong>Design for People</strong></td><td>Little specialist knowledge; all abilities, languages and device sizes.</td><td>No file paths, CSS or setting keys in the main flow. They sit behind "Show Details". Works by keyboard alone, with a screen reader, in High Contrast and with large text.</td></tr>
+<tr><td><strong>Make it Simple</strong></td><td>Do one thing well; reveal detail progressively; common actions close at hand.</td><td>The app applies a theme. Pick a theme, press one button. The editor, history and per-app set-up are further away and never in the way of that.</td></tr>
+<tr><td><strong>Reduce User Effort</strong></td><td>Automate; fewer steps; less to remember; short text.</td><td>Apps are detected, not configured by hand. The nearest accent is chosen automatically. The theme in use is always marked. Any step left to the user (restart an app) comes with a copy button.</td></tr>
+<tr><td><strong>Be Considerate</strong></td><td>Prevent mistakes; prefer undo to confirmation; do not interrupt.</td><td>Every apply can be undone and the original setup restored. No dialog appears unless the user started the action. A scheduled switch never asks anything.</td></tr>
+</table></div>
+
+<h2 id="changes">2. What this reading changes in the plan</h2>
+<p>Checked against <a href="architecture.html#gui">Architecture, section 8</a>. Items marked <span class="tag ok">Adopted</span> are corrections with no trade-off. Items marked <span class="tag wa">Proposed</span> change behaviour the owner approved and wait for an answer; nothing in Phase 1a or 1b depends on them.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Plan said</th><th>Guideline</th><th>Change</th><th>Status</th></tr>
+<tr id="h1"><td>H1</td><td>Docs and draft strings use British spelling ("colour").</td><td>Source text is US English so it translates easily.</td><td>Every user-facing string in the code, CLI included, is US English ("color"). The docs stay as they are. A British translation can be added like any other.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h2"><td>H2</td><td>"You changed Kitty's theme file", "You can undo this at any time", "Keep My Changes".</td><td>Neutral tone; avoid "you" and "my".</td><td>"Kitty's theme file was changed outside Velatura", "This can be undone at any time", "Keep Changes".</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h3"><td>H3</td><td>Apps &amp; Desktop row: status, set-up action, switch and Stop Theming in one row.</td><td>A list row has one control, two at most.</td><td>Row shows name, a status line and one switch, and opens a page for that app. Set Up, Stop Theming and details live on that page.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h4"><td>H4</td><td>"Apply Theme" position not stated.</td><td>No label-only or suggested-style buttons in a primary header bar; one suggested button per view; pill style for a view's primary action.</td><td>Apply Theme is a pill button with the suggested style in the theme page content, not in the header bar.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h5"><td>H5</td><td>Undo "in the primary menu".</td><td>Standard shortcut for Undo is Ctrl+Z; primary menu ends with Preferences, Keyboard Shortcuts, Help, About.</td><td>Undo Last Apply is the first item of the primary menu and has Ctrl+Z. The standard four items close the menu. No Quit item.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h6"><td>H6</td><td>Outside changes and the scheduled-switch state had no named pattern.</td><td>Banners for lasting states, toasts for single events, notifications only for events that matter while the app is closed.</td><td>Banner: High Contrast is on, a scheduled switch is running, the accent was changed elsewhere (with a Reapply button). Toast: "Theme applied" with Undo. Notification: only a failed scheduled switch (Phase 2), and the same message is shown in the window.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h7"><td>H7</td><td>The app keeps its own window in stock colours with an extra stylesheet.</td><td>Keep custom styling to a minimum; follow the system light or dark style.</td><td>Kept, as a recorded exception: it exists so the app stays readable when a theme goes wrong. It contains only the stock colour definitions, follows the system style and High Contrast, and adds no other styling.</td><td><span class="tag ok">Adopted</span></td></tr>
+<tr id="h8"><td>H8</td><td>Every apply shows one confirmation dialog.</td><td>Offer undo in place of confirmation; people click through confirmations without reading.</td><td>Show the confirmation with its preview the first time, and whenever an apply would touch a file or setting it has not touched before or one that was changed outside the app. Otherwise apply at once and show a toast with Undo. Preview Changes stays available at all times.</td><td><span class="tag wa">Proposed</span>, see <a href="decisions.html#d37">D37</a></td></tr>
+</table></div>
+<p><strong>Checked and found consistent:</strong> the name (one noun, eight letters, a real word from the app's subject, pairs with an icon); three top-level views; the 360 px minimum width; status never by colour alone; no restarts without the user; failures shown on the result page and not in error dialogs.</p>
+
+<h2 id="structure">3. Window structure and navigation</h2>
+<ul>
+<li><strong>One primary window</strong>, resizable, opening at a size that fits its content, and remembering its size.</li>
+<li><strong>Three top-level views in a view switcher:</strong> Themes, Apps &amp; Desktop, History. Labels are nouns in header capitalisation. Three to five views is the range for a view switcher, so Phase 2 can add one before a sidebar is needed. Below the width where the switcher fits the header bar, it moves to a bar at the bottom edge.</li>
+<li><strong>One level of depth below a view:</strong> a theme page, an app page, the editor. Moving in and out uses the browsing pattern: back button at the top left, header bar title and controls change with the view, Alt+Left goes back.</li>
+<li><strong>Secondary windows</strong> only for Preferences, About, Keyboard Shortcuts and dialogs. Always attached to the main window, never stacked on one another, never larger than it.</li>
+<li><strong>Header bar:</strong> main actions at the start, title or view switcher in the centre, menus at the end. Few controls, free space left for dragging, a tooltip on every control. The primary menu button uses the standard menu icon and the tooltip "Main Menu", and is shown on top-level views only.</li>
+<li><strong>Content width is capped</strong> so lists and text do not stretch across a wide window.</li>
+<li><strong>Sizes to hold:</strong> 360×294 for narrow, 1024×600 as the smallest desktop screen. Layout changes at a breakpoint are animated, and nothing jumps or vanishes.</li>
+</ul>
+
+<h2 id="widgets">4. Which pattern for which part</h2>
+<div class="wrap"><table>
+<tr><th>Part of Velatura</th><th>Pattern</th><th>Rules that matter</th></tr>
+<tr><td>Theme list</td><td>Boxed list with a swatch strip per row; a grid can be offered later</td><td>Row leads to the theme page and carries the go-next arrow. "In use" is text plus a check mark. Sorted with the theme in use first, then most recently used.</td></tr>
+<tr><td>Apps &amp; Desktop</td><td>Boxed lists in titled groups (Desktop, Terminals, Apps)</td><td>One switch per row. Switch labels are nouns in header capitalisation. A switch that cannot work is insensitive, with the reason in the subtitle.</td></tr>
+<tr><td>History</td><td>Boxed list; a list view if it grows large</td><td>Restore is one button at the end of each row. Original Setup is a separate group at the top.</td></tr>
+<tr><td>Empty History, empty search, no themes</td><td>Status page with a symbolic icon</td><td>Heading states the empty state, one line says what to do, neutral tone.</td></tr>
+<tr><td>Theme search (once there are many)</td><td>Search bar under the header bar</td><td>Hidden until used. Opens by typing, by Ctrl+F and by a header bar button. Results update while typing. "No Results" placeholder.</td></tr>
+<tr><td>Apply confirmation, conflict prompt, Apply Anyway</td><td>Alert dialog</td><td>Cancel first, then the action. The action is a specific verb, never OK. Return triggers the action unless it is destructive or cannot be undone; then there is no default. Esc cancels.</td></tr>
+<tr><td>Import, Save As in the editor</td><td>Action dialog or the system file chooser</td><td>Heading names the action. Affirmative button insensitive until the input is valid.</td></tr>
+<tr><td>"Theme applied", "Theme imported", small errors</td><td>Toast</td><td>Short title in the informal heading style. A button only when it is directly useful (Undo).</td></tr>
+<tr><td>Lasting states</td><td>Banner</td><td>One short title, one optional button. Used sparingly.</td></tr>
+<tr><td>Progress</td><td>None under about 3 seconds; a spinner beside the control after that; a progress bar with a text label past about 30 seconds</td><td>An apply is expected to finish well under 3 seconds, so no indicator is shown unless it runs long. No separate progress window.</td></tr>
+<tr><td>Editor colours</td><td>Entry rows and the standard colour dialog</td><td>Changes apply on Return or when focus leaves. Feedback while typing. Positive confirmation of a valid value in preference to an error on every keystroke.</td></tr>
+<tr><td>Schedule (Phase 2)</td><td>Combo row with three or more choices; switch row for on and off</td><td>A drop-down never has fewer than three items. Items in sentence capitalisation.</td></tr>
+<tr><td>Preferences, About</td><td>The libadwaita preferences and about dialogs</td><td>Menu items "Preferences" and "About Velatura". A control in one preferences page never changes a control in another.</td></tr>
+</table></div>
+<p>All of the above exist in libadwaita 1.6, the floor set in the plan.</p>
+
+<h2 id="writing">5. Writing</h2>
+<ul>
+<li><strong>US English</strong> in source strings. Short. Neutral. No "you" or "my"; "your" only where ownership has to be said.</li>
+<li><strong>Words the user knows:</strong> app, backup, settings file. Never target, snapshot, managed block, dconf, GSettings or CSS in the main flow. The vocabulary table in the architecture stays the reference.</li>
+<li><strong>Header capitalisation</strong> for headings, view titles, buttons, switch labels, menu items and tooltips: "Apply Theme", "Stop Theming", "Restore Original Setup".</li>
+<li><strong>Sentence capitalisation</strong> for body text, descriptions, check box and radio labels, drop-down labels and items.</li>
+<li><strong>Headings are not sentences:</strong> "Theme Applied", not "The Theme Has Been Applied". Toasts and banners use the informal form: "Theme applied", "High Contrast is on".</li>
+<li><strong>Ellipsis</strong> (the single character …) on a label when more input or a confirmation follows: "Import…", "Restore…". Not on "Preferences" or "About Velatura".</li>
+<li><strong>No full stop</strong> at the end of a heading, a label or a single-sentence description. Full stops only between sentences.</li>
+<li><strong>Buttons are imperative verbs:</strong> Apply, Restore, Undo, Import. No OK, Yes or Done as the affirmative.</li>
+<li><strong>Typography:</strong> curly quotes and apostrophes, × for dimensions, an en dash for ranges, a narrow no-break space before a unit. No all-capitals, no italics, no hard-coded fonts or sizes; the standard text styles only.</li>
+<li><strong>Translation:</strong> no sentence built across several controls; no "e.g." or "i.e."; access keys are part of the translated string.</li>
+<li><strong>No device words:</strong> "select", not "click"; nothing essential shown only on hover; no double-click or right-click actions without another way to reach them.</li>
+</ul>
+<p><strong>For the command line (Phase 1a onward).</strong> The guidelines are written for windows, but the writing rules carry over: US English, short neutral sentences, the same vocabulary as the GUI, a plain statement of what was changed and how to undo it.</p>
+
+<h2 id="keyboard">6. Keyboard</h2>
+<div class="wrap"><table>
+<tr><th>Action</th><th>Keys</th><th>Action</th><th>Keys</th></tr>
+<tr><td>Undo Last Apply</td><td>Ctrl+Z</td><td>Preferences</td><td>Ctrl+,</td></tr>
+<tr><td>Search Themes</td><td>Ctrl+F</td><td>Keyboard Shortcuts</td><td>Ctrl+?</td></tr>
+<tr><td>Import Theme</td><td>Ctrl+O</td><td>Help</td><td>F1</td></tr>
+<tr><td>New Theme (editor, Phase 2)</td><td>Ctrl+N</td><td>Main Menu</td><td>F10</td></tr>
+<tr><td>Save (editor)</td><td>Ctrl+S</td><td>Back</td><td>Alt+Left</td></tr>
+<tr><td>Close Window</td><td>Ctrl+W</td><td>Quit</td><td>Ctrl+Q</td></tr>
+</table></div>
+<ul>
+<li>Only standard shortcuts are used. No Alt or Super combinations of the app's own.</li>
+<li>Every labelled control has an access key; no letter repeats inside one dialog or menu; thin letters and letters with descenders are avoided.</li>
+<li>Everything is reachable with Tab and the arrow keys in a sensible order. Return activates, Space toggles, Esc closes dialogs, popovers and menus.</li>
+<li>In a list of rows with controls, focus goes to the controls.</li>
+</ul>
+
+<h2 id="style">7. Style and colour</h2>
+<ul>
+<li>The app follows the system light or dark style. It has no style preference of its own.</li>
+<li>Built-in style classes and colour variables only, each for its intended purpose: suggested for Apply Theme, destructive for Apply Anyway and for removing a generated folder, the standard title and caption text styles.</li>
+<li>One suggested or destructive button per view.</li>
+<li>The one stylesheet of its own is the stock-colours exception (<a href="#h7">H7</a>), plus the scoped colours of the preview.</li>
+<li>A theme's colours appear only in swatches and in the preview. A swatch always has its name and value as text beside it or as its accessible name.</li>
+<li>No flashing or blinking. No text drawn over images.</li>
+<li>Interface icons are symbolic and taken from the existing sets before any is drawn. A control has an icon or a label, not both, except in the view switcher. Icon-only buttons are limited to icons people already know: menu, search, back.</li>
+</ul>
+
+<h2 id="a11y">8. Accessibility</h2>
+<ul>
+<li>Every control and every swatch has a short accessible name.</li>
+<li>The whole app can be used with the keyboard alone, and with the screen reader with the display off.</li>
+<li>Correct in High Contrast and with large text; no label cut off.</li>
+<li>Text entries work with the on-screen keyboard.</li>
+<li>Targets are large enough for touch; a row can be activated anywhere on its surface.</li>
+</ul>
+
+<h2 id="icon">9. Name and icon</h2>
+<ul>
+<li><strong>Name:</strong> "Velatura", capitalised, in every title, menu and store entry.</li>
+<li><strong>App icon:</strong> one simple object tied to the name, for example a brush laying a translucent band of colour over a surface. Drawn on the 128 px template with its 2 px grid, in the GNOME palette, with slight depth (top and front faces), flat colours on flat surfaces, and no shadow outside the outline. It must read at 64 and 32 px.</li>
+<li><strong>Symbolic icon:</strong> same idea in one colour on the 16 px grid with 2 px strokes, kept in the same file.</li>
+<li><strong>Development builds</strong> get the nightly variant so they are not mistaken for a release.</li>
+<li>Checked with App Icon Preview and Symbolic Preview. Neither is installed yet; both are available as Flatpaks and will be asked for before Phase 1c.</li>
+</ul>
+
+<h2 id="checklist">10. Acceptance checklist for the GUI phase</h2>
+<p>The Phase 1c pull request copies this list into its description and ticks each line, or states why a line is not met.</p>
+<ol>
+<li>Primary menu holds, last and in this order: Preferences, Keyboard Shortcuts, Help, About Velatura. No Quit.</li>
+<li>Every header bar control has a tooltip. No label-only or suggested button in the header bar.</li>
+<li>At most one suggested or destructive button per view.</li>
+<li>No list row holds more than two controls.</li>
+<li>Every dialog was opened by a user action, has the main window as parent, puts Cancel first, and names its action with a verb.</li>
+<li>No error dialog where a toast or the result page will do.</li>
+<li>Every destructive action can be undone, or is confirmed where undo is impossible.</li>
+<li>All shortcuts are from the standard set and are listed in the Keyboard Shortcuts window.</li>
+<li>All labelled controls have access keys with no conflicts, in English and Spanish.</li>
+<li>Text follows section 5: capitalisation, ellipsis, full stops, typography, no "you" or "my", no internal terms.</li>
+<li>Usable at 360×294 and at 1024×600; content capped on a wide window; window size remembered.</li>
+<li>Passes in High Contrast, with large text, with the screen reader, with the keyboard alone, and with animations off.</li>
+<li>No status carried by colour alone.</li>
+<li>No custom styling beyond the two recorded exceptions.</li>
+<li>App icon and symbolic icon follow section 9.</li>
+<li>A right-to-left run and a pseudo-locale run show no broken layout.</li>
+</ol>
+
+</main>
+</body>
+</html>

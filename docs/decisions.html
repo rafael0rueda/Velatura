@@ -18,7 +18,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </style>
 </head>
 <body>
-<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="hig.html">Interface guidelines</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
 <main>
 <h1>Decisions log</h1>
 <p class="lead">Status values: <span class="tag ok">Decided</span> by the owner's answers of 2026-10-11. <span class="tag wa">Proposed</span> by the plan or the review and adopted in revision 2 unless the owner objects. <span class="tag no">Needs answer</span>: the plan cannot proceed on this point without the owner.</p>
@@ -61,6 +61,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr id="d33"><td>D33</td><td>Safety rules added by the review: no text from a theme file in any generated file; a contrast floor with auto-revert; recovery never overwrites newer edits; unattended runs never cross a consent boundary.</td><td><span class="tag wa">Proposed</span></td><td>See <a href="plan.html#safety">Plan, section 4</a>.</td></tr>
 <tr id="d34"><td>D34</td><td>Ptyxis and GNOME Text Editor are Phase 3 candidates. Cursor and bitmap icon recolouring stay as Phase 4 experiments. The full app is not planned for Flathub.</td><td><span class="tag ok">Decided</span></td><td>Owner's answers of 2026-10-11 to the review questions.</td></tr>
 <tr id="d35"><td>D35</td><td>Workflow: one branch and one pull request per phase; commit, merge and push only when the tests pass; one HTML changelog per phase.</td><td><span class="tag ok">Decided</span></td><td>See <a href="workflow.html">Workflow</a>.</td></tr>
+<tr id="d36"><td>D36</td><td>The GNOME Human Interface Guidelines are followed when building the app. The rules that apply and the GUI acceptance checklist are in <a href="hig.html">Interface guidelines</a>. User-facing text in the code is US English.</td><td><span class="tag ok">Decided</span></td><td>Owner's instruction of 2026-10-12.</td></tr>
+<tr id="d37"><td>D37</td><td>When to show the apply confirmation. The guidelines prefer undo to confirmation. Proposal: confirm with the preview on the first apply and whenever an apply touches something new or something changed outside the app; otherwise apply at once and offer Undo. Preview Changes stays available at all times.</td><td><span class="tag wa">Proposed</span></td><td>Changes the approved "one confirmation on every apply". Affects Phase 1c only. See <a href="hig.html#h8">H8</a>.</td></tr>
 </table></div>
 </main>
 </body>

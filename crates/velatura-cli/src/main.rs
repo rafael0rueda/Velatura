@@ -13,7 +13,7 @@ velatura (phase 0 skeleton)
 
 Usage:
   velatura --version
-  velatura accent <#RRGGBB>   show the nearest GNOME accent colour
+  velatura accent <#RRGGBB>   show the nearest GNOME accent color
   velatura dirs               show the directories velatura would use
 ";
 
