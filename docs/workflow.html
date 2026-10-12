@@ -52,15 +52,15 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>The plan and decisions log are corrected where the phase showed an assumption to be wrong.</li>
 </ol>
 
-<h2 id="ideas">4. Additions proposed to the owner</h2>
-<p>The first three are in place. The others need the owner's go-ahead because they change repository settings or add a file type the owner excluded.</p>
+<h2 id="ideas">4. Additions</h2>
+<p>All agreed with the owner and in place.</p>
 <ul>
-<li><strong>In place:</strong> a single gate script shared by local runs and CI.</li>
-<li><strong>In place:</strong> a tag per merged phase, so any phase can be checked out or compared later.</li>
-<li><strong>In place:</strong> a written result for every experiment in <a href="spikes.html">Spike results</a>, so a decision can be traced to its evidence.</li>
-<li><strong>Proposed:</strong> protect <code>main</code> on GitHub so that it only accepts pull requests whose checks passed. This makes rule 2 enforced by GitHub, not only by habit.</li>
-<li><strong>Proposed:</strong> a short <code>README.md</code> that only points to the HTML docs. GitHub shows nothing on the repository page without one.</li>
-<li><strong>Proposed:</strong> publish <code>docs/</code> with GitHub Pages so the HTML can be read in a browser from the repository.</li>
+<li>A single gate script shared by local runs and CI.</li>
+<li>A tag per merged phase, so any phase can be checked out or compared later.</li>
+<li>A written result for every experiment in <a href="spikes.html">Spike results</a>, so a decision can be traced to its evidence.</li>
+<li><code>main</code> is protected on GitHub: it only accepts pull requests whose check passed, which makes rule 2 enforced by GitHub and not only by habit. Small changes that are not a phase, such as a docs correction, go through their own short pull request.</li>
+<li>A short <code>README.md</code> that only points to the HTML docs.</li>
+<li><code>docs/</code> is published with GitHub Pages at <code>rafael0rueda.github.io/Velatura</code>.</li>
 </ul>
 
 </main>
