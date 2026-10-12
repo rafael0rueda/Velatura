@@ -241,12 +241,19 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::ForeignFile(_) => "foreign-file",
         Skip::ChangedOutside(_) => "changed-outside",
         Skip::SettingsUnavailable(_) => "settings-unavailable",
+        Skip::HardLinked(_) => "hard-linked",
+        Skip::HighContrast => "high-contrast",
+        Skip::NeedsAdwGtk3 => "needs-adw-gtk3",
     }
 }
 
 fn note_code(n: &Note) -> &'static str {
     match n {
-        Note::KittyOverride { .. } => "kitty-override",
+        Note::Override { .. } => "override",
+        Note::GhosttyReload => "ghostty-reload",
+        Note::GtkRestart => "gtk-restart",
+        Note::LinkedFile { .. } => "linked-file",
+        Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
         Note::KittyAutoTheme { .. } => "kitty-auto-theme",
         Note::KittyReload => "kitty-reload",
         Note::AccentNearest { .. } => "accent-nearest",
@@ -380,13 +387,46 @@ impl Cx<'_> {
     }
 
     fn targets(&self) -> Outcome {
-        let kitty = targets::kitty_dir(&self.host, &env);
+        let h = &self.host;
+        let p = |path: std::path::PathBuf| text::path(&path, self.home);
+        let rows = [
+            (
+                "kitty",
+                "Kitty",
+                "official",
+                p(targets::kitty_dir(h, &env).join("kitty.conf")),
+            ),
+            (
+                "ghostty",
+                "Ghostty",
+                "official",
+                p(targets::ghostty_dir(h).join(targets::ghostty_conf(h))),
+            ),
+            (
+                "gtk4",
+                "Apps (GTK 4 and libadwaita)",
+                "unofficial",
+                p(h.dirs.config.join("gtk-4.0/gtk.css")),
+            ),
+            (
+                "gtk3",
+                "Older Apps (GTK 3)",
+                "unofficial",
+                p(h.dirs.config.join("gtk-3.0/gtk.css")),
+            ),
+            (
+                "gnome",
+                "Style and Accent Color",
+                "official",
+                "desktop settings".to_owned(),
+            ),
+        ];
+        for (id, name, support, place) in rows {
+            println!("{id:<9} {name:<28} {support:<11} {place}");
+        }
         println!(
-            "kitty     Kitty                   official    {}",
-            text::path(&kitty.join("kitty.conf"), self.home)
+            "\nUnofficial: not supported by GNOME; may stop working after an update.\nGNOME Shell arrives in a later version."
         );
-        println!("gnome     Style and Accent Color  official    desktop settings");
-        println!("\nMore arrive in later versions: Ghostty, GTK apps, GNOME Shell.");
         Ok(OK)
     }
 
@@ -547,7 +587,10 @@ impl Cx<'_> {
                 print!("{}", text::rollback(r));
             }
             for (instance, why) in &report.skipped {
-                if !matches!(why, Skip::NotSelected | Skip::NotInstalled) {
+                if !matches!(
+                    why,
+                    Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3
+                ) {
                     println!(
                         "{}: {}",
                         text::instance(instance),
@@ -574,14 +617,15 @@ impl Cx<'_> {
                 println!("To undo: velatura undo");
             }
         }
-        let left_out = report
-            .skipped
+        let left_out = report.skipped.iter().any(|(_, why)| {
+            !matches!(
+                why,
+                Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3
+            )
+        }) || report
+            .notes
             .iter()
-            .any(|(_, why)| !matches!(why, Skip::NotSelected | Skip::NotInstalled))
-            || report
-                .notes
-                .iter()
-                .any(|(_, n)| matches!(n, Note::KeptFile { .. } | Note::KeptSetting { .. }));
+            .any(|(_, n)| matches!(n, Note::KeptFile { .. } | Note::KeptSetting { .. }));
         Ok(if left_out { PARTIAL } else { OK })
     }
 
@@ -709,6 +753,22 @@ impl Cx<'_> {
             println!("Damaged backup: {}", text::path(p, self.home));
             code = PARTIAL;
         }
+        for tool in targets::other_tools(&self.host) {
+            match tool {
+                targets::OtherTool::Known { name, path } => println!(
+                    "Another theming tool: {name} ({}). It may write the same colors",
+                    text::path(&path, self.home)
+                ),
+                targets::OtherTool::Timer { unit } => println!(
+                    "A timer that may change the theme is enabled: {}",
+                    clean_text(&unit, 120)
+                ),
+                targets::OtherTool::Dotfiles { name, path } => println!(
+                    "Settings files may be managed by {name} ({}). It can overwrite changes made here",
+                    text::path(&path, self.home)
+                ),
+            }
+        }
         // What applying would run into, using a bundled theme as the probe.
         let themes = velatura_theme::bundled::themes();
         if let Some(r) = themes.first().and_then(|t| Resolved::new(t, None)) {
@@ -722,7 +782,8 @@ impl Cx<'_> {
                 for n in &t.notes {
                     if matches!(
                         n,
-                        Note::KittyOverride { .. }
+                        Note::Override { .. }
+                            | Note::LinkedFile { .. }
                             | Note::KittyAutoTheme { .. }
                             | Note::SettingLocked { .. }
                     ) {

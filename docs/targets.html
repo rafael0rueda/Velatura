@@ -130,8 +130,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </ul>
 <h3>Ghostty</h3>
 <ul>
-<li>The app creates <code>~/.config/ghostty/themes/velatura</code> and adds one line, <code>theme = velatura</code>, to Ghostty's config (either of its two file names).</li>
-<li>Detected and reported: an existing <code>theme</code> line (there is one here) and explicit colour keys, both of which override the theme.</li>
+<li>The app creates <code>~/.config/ghostty/velatura.conf</code> and connects it with one line, <code>config-file = velatura.conf</code>, in a marked block at the end of Ghostty's settings file (either of its two file names). Ghostty loads such a file after the whole settings file that names it, so its colours win over a <code>theme</code> line and over colour keys anywhere in the user's file. Changed in Phase 1b from the first plan, which used a theme file and lost to both (<a href="decisions.html#d41">D41</a>).</li>
+<li>Detected and reported: another <code>config-file</code> line after the block, which is the one thing that can override it.</li>
 <li>The user reloads with Ctrl+Shift+Comma.</li>
 </ul>
 

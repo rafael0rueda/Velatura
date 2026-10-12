@@ -7,12 +7,24 @@
 /// Bumped if the marker text ever changes.
 pub const FORMAT: u32 = 1;
 
+/// How a comment is written in the file a target's block lives in: CSS for
+/// the GTK targets, a leading `#` everywhere else.
+fn comment(target: &str) -> (&'static str, &'static str) {
+    if target.starts_with("gtk") {
+        ("/* ", " */")
+    } else {
+        ("# ", "")
+    }
+}
+
 fn begin(target: &str) -> String {
-    format!("# >>> velatura {target} {FORMAT} >>>")
+    let (open, close) = comment(target);
+    format!("{open}>>> velatura {target} {FORMAT} >>>{close}")
 }
 
 fn end(target: &str) -> String {
-    format!("# <<< velatura {target} {FORMAT} <<<")
+    let (open, close) = comment(target);
+    format!("{open}<<< velatura {target} {FORMAT} <<<{close}")
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -272,5 +284,17 @@ mod tests {
             find(indented.as_bytes(), "kitty"),
             Found::Present { start: 0, .. }
         ));
+    }
+
+    #[test]
+    fn css_files_get_css_comments() {
+        let original = b"@define-color window_bg_color #000;\n";
+        let up = upsert(original, "gtk4", "@import url(\"velatura.css\");").unwrap();
+        assert_eq!(
+            String::from_utf8(up.content.clone()).unwrap(),
+            "@define-color window_bg_color #000;\n/* >>> velatura gtk4 1 >>> */\n@import url(\"velatura.css\");\n/* <<< velatura gtk4 1 <<< */\n"
+        );
+        assert_eq!(remove(&up.content, "gtk4", up.added_eol).unwrap(), original);
+        assert_eq!(find(&up.content, "gtk3"), Found::Absent);
     }
 }

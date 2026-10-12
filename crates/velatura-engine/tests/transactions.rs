@@ -122,9 +122,23 @@ fn themes() -> Vec<Theme> {
     bundled::themes()
 }
 
+/// The two targets of phase 1a, which most tests below are written around.
+fn two() -> ApplyOpts {
+    ApplyOpts {
+        only: vec!["kitty".to_owned(), "gnome".to_owned()],
+        ..ApplyOpts::default()
+    }
+}
+
 fn plan(host: &Host<'_>, theme: &Theme) -> Plan {
     let resolved = Resolved::new(theme, None).unwrap();
-    engine::plan_apply(host, &no_env, &resolved, &ApplyOpts::default()).unwrap()
+    let mut p = engine::plan_apply(host, &no_env, &resolved, &two()).unwrap();
+    p.targets.retain(|t| t.skipped != Some(Skip::NotSelected));
+    p
+}
+
+fn target<'a>(p: &'a Plan, instance: &str) -> &'a velatura_engine::plan::TargetPlan {
+    p.targets.iter().find(|t| t.instance == instance).unwrap()
 }
 
 fn yes() -> Vec<String> {
@@ -301,7 +315,7 @@ fn undo_leaves_an_owned_file_the_user_changed() {
     let resolved = Resolved::new(&t[1], None).unwrap();
     let forced = ApplyOpts {
         replace_changed: true,
-        ..ApplyOpts::default()
+        ..two()
     };
     let replace = engine::plan_apply(&host, &no_env, &resolved, &forced).unwrap();
     assert!(replace.targets[0].skipped.is_none());
@@ -380,15 +394,15 @@ fn only_and_except_select_targets() {
         ..ApplyOpts::default()
     };
     let p = engine::plan_apply(&host, &no_env, &resolved, &only).unwrap();
-    assert_eq!(p.targets[0].skipped, Some(Skip::NotSelected));
-    assert!(p.targets[1].skipped.is_none());
+    assert_eq!(target(&p, KITTY).skipped, Some(Skip::NotSelected));
+    assert!(target(&p, APPEARANCE).skipped.is_none());
     let except = ApplyOpts {
         except: vec![APPEARANCE.to_owned()],
         ..ApplyOpts::default()
     };
     let p = engine::plan_apply(&host, &no_env, &resolved, &except).unwrap();
-    assert!(p.targets[0].skipped.is_none());
-    assert_eq!(p.targets[1].skipped, Some(Skip::NotSelected));
+    assert!(target(&p, KITTY).skipped.is_none());
+    assert_eq!(target(&p, APPEARANCE).skipped, Some(Skip::NotSelected));
 }
 
 /// Stop an apply at every step in turn, as if the process had died there,
@@ -750,7 +764,7 @@ fn reports_what_overrides_the_theme() {
     fs::write(home.conf(), conf).unwrap();
     let p = plan(&host, &t[1]);
     let lines = p.targets[0].notes.iter().find_map(|n| match n {
-        Note::KittyOverride { lines, .. } => Some(lines.clone()),
+        Note::Override { lines, .. } => Some(lines.clone()),
         _ => None,
     });
     assert_eq!(lines, Some(vec![8, 9]));

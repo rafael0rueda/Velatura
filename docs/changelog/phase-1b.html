@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1b – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 1b – more targets</h1>
+<p class="lead">Branch <code>phase-1b-targets</code>. Completed 2026-10-12. Exit condition from the <a href="../plan.html#roadmap">roadmap</a>: the transaction tests pass for each new target. They do.</p>
+<div class="note"><strong>On the owner's desktop</strong> only what was agreed on 2026-10-12 is applied: Aetherius on Kitty and the appearance settings (<a href="../decisions.html#d39">D39</a>). The three new targets were exercised in throw-away folders and with the read-only preview. They are not applied until the owner says so.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Ghostty.</strong> A colour file Velatura creates, <code>velatura.conf</code>, and a marked block at the end of Ghostty's settings file with the line <code>config-file = velatura.conf</code>. Either of Ghostty's two file names is used, whichever exists.</li>
+<li><strong>GTK 4 and libadwaita apps.</strong> <code>~/.config/gtk-4.0/velatura.css</code> with 65 named colours, connected by an import line in a marked block at the end of <code>gtk.css</code>. The file holds colour definitions only: no selectors, so shapes and spacing cannot change, and nothing an older GTK would reject.</li>
+<li><strong>GTK 3 apps</strong>, through the adw-gtk3 theme: the same colour file in <code>~/.config/gtk-3.0/</code> and the legacy theme setting switched to <code>adw-gtk3</code> or <code>adw-gtk3-dark</code>. The theme is looked for in the user's and the system's theme folders. Without it GTK 3 is left out with an explanation and does not count as a failure.</li>
+<li><strong>What would override the theme</strong> is reported for every target: lines after Velatura's block that set the same colours (Kitty, GTK), another <code>config-file</code> line (Ghostty), Kitty's automatic theme files, and a legacy GTK 3 setting that forces dark while a light theme is applied.</li>
+<li><strong>High Contrast.</strong> While it is on, GTK recolouring is left out, because the overrides would lower contrast. Terminals are not affected.</li>
+<li><strong>Other theming tools</strong> are listed by <code>velatura doctor</code>: Gradience, pywal, matugen, darkman, Night Theme Switcher, any enabled user timer with "theme" in its name, and the dotfile managers chezmoi, yadm and Home Manager. Detection looks only at whether their files exist; nothing is run.</li>
+<li><strong>Linked settings files</strong> are written through and the link kept, and the preview now says where the change really lands.</li>
+<li><strong>Hard-linked files</strong> are detected and left alone, since replacing one would split it from its other names.</li>
+<li><strong>Extended attributes</strong> (security label, access lists, tags) are carried over when a file is replaced.</li>
+<li><strong>Install script</strong>, <code>scripts/install-local.sh</code>: builds the command and copies it to <code>~/.local/bin</code>. The owner's copy is refreshed after every merge.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<p>73 tests. New in this phase:</p>
+<div class="wrap"><table>
+<tr><th>What</th><th>How</th></tr>
+<tr><td>All five targets together</td><td>Apply, apply a second theme, undo twice: every file equals the start byte for byte and every setting is back at its default.</td></tr>
+<tr><td>Exhaustive crash test over all targets</td><td>An apply to all five is stopped at every step, from a clean start and on top of an applied theme; recovery restores the state before.</td></tr>
+<tr><td>Each new target</td><td>Ghostty's two file names and its one override case; GTK definitions after the block; High Contrast; adw-gtk3 missing, in the user's folder, in a system folder, and the light variant missing; the legacy dark setting.</td></tr>
+<tr><td>Hard links and links</td><td>A hard-linked file keeps both names and its content; a linked file is written through and reported.</td></tr>
+<tr><td>First-version backup</td><td>A stored backup in today's format is undone by the current build. The stored copy is frozen: if a later build cannot undo it, the format was broken.</td></tr>
+<tr><td>Damaged theme files</td><td>30,000 damaged copies of the bundled themes go through the parser; about 2,000 still load and go through all three renderers. Nothing may panic and all output must be well formed.</td></tr>
+<tr><td>The apps accept the output</td><td>GTK 3 and GTK 4 parse the generated stylesheets without error or warning, in the gate and in CI. Ghostty's own validator accepts the generated file where Ghostty is installed (not in CI).</td></tr>
+<tr><td>Licences</td><td>Every third-party crate must carry a licence compatible with GPL-3.0; the gate fails otherwise.</td></tr>
+</table></div>
+<p>Checked by hand, in a throw-away settings folder on libadwaita 1.9.4: a libadwaita app resolves the generated colours, and they win over definitions earlier in the same <code>gtk.css</code>.</p>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Ghostty is connected with <code>config-file</code>, not with a theme file and a <code>theme</code> line</strong> (<a href="../decisions.html#d41">D41</a>). Ghostty loads such a file after the whole settings file that names it, so its colours win over a <code>theme</code> line and over colour keys anywhere in the user's file. The planned method would have lost to both, and this machine's file has a <code>theme</code> line.</li>
+<li><strong>Agreement is asked only for a file that already exists.</strong> Creating a settings file where there was none is not an edit of the user's file.</li>
+<li><strong>A missing adw-gtk3 is treated like an app that is not installed</strong>: shown in the preview and in <code>doctor</code>, not repeated after every apply, and not a reason for exit code 5.</li>
+<li><strong>Dependencies</strong>: <code>xattr</code> was added for the attribute copying. The command links 44 third-party crates; the cap is 45.</li>
+</ul>
+
+<h2>Not done in this phase</h2>
+<ul>
+<li><strong>The new targets are not applied on the owner's desktop.</strong> On this machine the preview shows Ghostty and GTK 4 ready, and GTK 3 left out because adw-gtk3 is not installed.</li>
+<li><strong>Colours that exist only as CSS variables</strong> in newer libadwaita are not set. Their names need checking against each libadwaita version first; until then those few elements keep the stock colour.</li>
+<li><strong>libadwaita 1.6 to 1.8</strong> remain unverified; the check above was on 1.9.4. Phase 2, in containers.</li>
+<li><strong>A running app and an editor holding the file open</strong> are not detected.</li>
+<li><strong>Whether a dotfile manager actually manages a given file</strong> is not determined; its presence is reported.</li>
+<li><strong>Real fuzzing</strong> with a coverage-guided fuzzer, and a check of dependencies against a security advisory database. The mutation test and the licence check are the cheaper stand-ins.</li>
+<li><strong>Failure cases still untested</strong>: a really full disk, immutable files, a home folder that is itself a link.</li>
+<li><strong>A lint that forbids file access outside the host layer.</strong></li>
+<li><strong>Flatpak apps</strong> see the GTK files only where an override already grants access (this machine has one). Managing that is Phase 2.</li>
+</ul>
+
+</main>
+</body>
+</html>

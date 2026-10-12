@@ -3,7 +3,7 @@
 //!
 //!   cargo run -p velatura-theme --example render -- kitty aetherius
 
-use velatura_theme::{Resolved, bundled, kitty};
+use velatura_theme::{Resolved, bundled, ghostty, gtk, kitty};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -13,7 +13,7 @@ fn main() {
         args.get(1)
             .and_then(|id| themes.iter().find(|t| &t.id == id)),
     ) else {
-        eprintln!("usage: render kitty <bundled theme id>");
+        eprintln!("usage: render kitty|ghostty|gtk <bundled theme id>");
         std::process::exit(2);
     };
     let Some(resolved) = Resolved::new(theme, None) else {
@@ -21,6 +21,8 @@ fn main() {
     };
     match target.as_str() {
         "kitty" => print!("{}", kitty::render(&resolved)),
+        "ghostty" => print!("{}", ghostty::render(&resolved)),
+        "gtk" => print!("{}", gtk::render(&resolved)),
         _ => std::process::exit(2),
     }
 }

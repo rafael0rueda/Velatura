@@ -14,7 +14,7 @@ jobs:
     container: fedora:44
     steps:
       - name: Install tools
-        run: dnf install -y --setopt=install_weak_deps=False git cargo rustfmt clippy gcc python3 pkgconf-pkg-config glib2-devel dbus-daemon dconf gsettings-desktop-schemas
+        run: dnf install -y --setopt=install_weak_deps=False git cargo rustfmt clippy gcc python3 pkgconf-pkg-config glib2-devel dbus-daemon dconf gsettings-desktop-schemas gtk3 gtk4 python3-gobject gobject-introspection
       - uses: actions/checkout@v4
       - name: Gate
         run: VELATURA_CI=1 scripts/check.sh

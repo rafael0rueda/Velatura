@@ -1,0 +1,25 @@
+{
+  "applied": {
+    "fingerprint": "df096941afbb3aa8",
+    "theme": "ember/default"
+  },
+  "blocks": {
+    "@HOME@/.config/kitty/kitty.conf": {
+      "added_eol": true,
+      "created_file": false,
+      "target": "kitty"
+    }
+  },
+  "consents": [
+    "kitty:default"
+  ],
+  "dirs": [],
+  "owned": {
+    "@HOME@/.config/kitty/velatura.conf": "023761be70775edf7ec163487eed88475624ba31009f0f1cdc3e2d707774291a"
+  },
+  "settings": {
+    "org.gnome.desktop.interface accent-color": "orange",
+    "org.gnome.desktop.interface color-scheme": "prefer-dark"
+  },
+  "version": 1
+}

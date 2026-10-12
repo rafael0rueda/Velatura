@@ -50,12 +50,13 @@ impl Settings for GioSettings {
         let Some(settings) = Self::open(schema, key) else {
             return Ok(None);
         };
-        let text = |v: gio::glib::Variant| v.str().map(str::to_owned);
-        let Some(effective) = text(settings.value(key)) else {
-            return Err(SettingsError::Failed("not a text setting".to_owned()));
+        let text = |v: gio::glib::Variant| match v.str() {
+            Some(s) => s.to_owned(),
+            None => v.print(false).to_string(),
         };
+        let effective = text(settings.value(key));
         Ok(Some(SettingState {
-            user: settings.user_value(key).and_then(text),
+            user: settings.user_value(key).map(text),
             effective,
             writable: settings.is_writable(key),
         }))

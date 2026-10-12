@@ -34,6 +34,28 @@ count=$(cargo tree -p velatura-cli -e normal --prefix none --locked | sed 's/ (.
 echo "third-party crates in the velatura binary: $count (cap $cap)"
 [ "$count" -le "$cap" ] || { echo "crate count is over the cap"; exit 1; }
 
+python3 scripts/check_licenses.py
+
+step "generated files"
+# The apps themselves must accept what the renderers produce.
+golden=crates/velatura-theme/tests/golden
+for major in 3 4; do
+    if python3 -c "import gi; gi.require_version('Gtk', '$major.0'); from gi.repository import Gtk" 2>/dev/null; then
+        python3 scripts/gtk_accept.py "$major" "$golden"/*.gtk.css
+    elif [ -n "${VELATURA_CI:-}" ]; then
+        echo "GTK $major and PyGObject are required in CI"; exit 1
+    else
+        echo "SKIPPED: GTK $major is not available to Python"; skipped+=("gtk$major")
+    fi
+done
+if command -v ghostty >/dev/null 2>&1; then
+    for f in "$golden"/*.ghostty.conf; do
+        ghostty +validate-config --config-file="$f" && echo "Ghostty accepts $f"
+    done
+else
+    echo "NOT RUN: Ghostty is not installed (it is not packaged for the CI image)"
+fi
+
 step "docs"
 python3 scripts/check_docs.py
 
