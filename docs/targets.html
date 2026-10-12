@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theming targets – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}h3{font-size:17px;margin-top:1.4em}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code,pre{font-family:ui-monospace,monospace;font-size:13.5px}pre{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Theming targets and how each is applied</h1>
+<p class="lead">Revision 2, corrected after the platform review. <span class="tag ok">Official</span> uses a documented, supported mechanism. <span class="tag wa">Workaround</span> works today but is not promised by the upstream project and can break on an update. <span class="tag no">Not feasible</span> cannot be done within the project's rules. Results of the Phase 0 experiments are in <a href="spikes.html">Spike results</a>.</p>
+
+<h2 id="summary">1. Summary</h2>
+<div class="wrap"><table>
+<tr><th>Target</th><th>Mechanism</th><th>Class</th><th>Takes effect</th><th>Phase</th></tr>
+<tr><td>Dark/light style</td><td>GSettings <code>org.gnome.desktop.interface color-scheme</code></td><td><span class="tag ok">Official</span></td><td>Immediately</td><td>1a</td></tr>
+<tr><td>Accent colour</td><td>GSettings <code>accent-color</code>: the nearest of nine fixed values</td><td><span class="tag ok">Official</span></td><td>Immediately</td><td>1a</td></tr>
+<tr><td>Kitty</td><td>A colour file the app creates, connected by one <code>include</code> line</td><td><span class="tag ok">Official</span></td><td>Automatically on recent Kitty; after a manual reload on older ones</td><td>1a</td></tr>
+<tr><td>Ghostty</td><td>A theme file in Ghostty's themes directory, selected by one <code>theme</code> line</td><td><span class="tag ok">Official</span></td><td>After a config reload</td><td>1b</td></tr>
+<tr><td>GTK4 / libadwaita</td><td>Colour overrides loaded from the user's <code>gtk-4.0/gtk.css</code></td><td><span class="tag wa">Workaround</span></td><td>When each app is restarted</td><td>1b</td></tr>
+<tr><td>GTK3</td><td>The adw-gtk3 theme plus colour overrides from <code>gtk-3.0/gtk.css</code>. Requires adw-gtk3.</td><td><span class="tag wa">Workaround</span></td><td>When each app is restarted</td><td>1b</td></tr>
+<tr><td>GNOME Shell</td><td>Colour overrides layered on the stock stylesheet through the User Themes extension</td><td><span class="tag wa">Workaround</span></td><td>Immediately</td><td>1d</td></tr>
+<tr><td>GNOME Shell (companion extension)</td><td>An extension that loads one stylesheet at the same priority as other extensions</td><td><span class="tag wa">Workaround</span></td><td>Immediately once installed</td><td>2</td></tr>
+<tr><td>Flatpak apps</td><td>An edit of Flatpak's per-user override file, granting read-only access to the GTK config directories</td><td><span class="tag wa">Workaround</span></td><td>When each app is restarted</td><td>2</td></tr>
+<tr><td>Icons, cursor, wallpaper, fonts (select)</td><td>GSettings</td><td><span class="tag ok">Official</span></td><td>Immediately for most apps</td><td>2</td></tr>
+<tr><td>Neovim</td><td>A colourscheme file the app creates; the user selects it</td><td><span class="tag ok">Official</span></td><td>On <code>:colorscheme</code> or next start</td><td>3</td></tr>
+<tr><td>Starship</td><td>A named palette in <code>starship.toml</code> (key-level edit)</td><td><span class="tag ok">Official</span></td><td>Next prompt</td><td>3</td></tr>
+<tr><td>tmux</td><td>A file the app creates, loaded by one <code>source-file</code> line</td><td><span class="tag ok">Official</span></td><td>After the user reloads the config</td><td>3</td></tr>
+<tr><td>Obsidian</td><td>A CSS snippet in each chosen vault</td><td><span class="tag ok">Official</span></td><td>Once the user enables the snippet</td><td>3</td></tr>
+<tr><td>Icons (recolour, vector themes)</td><td>A generated per-user icon theme derived from an installed one</td><td><span class="tag wa">Workaround</span></td><td>Immediately for most apps</td><td>3</td></tr>
+<tr><td>Ptyxis, GNOME Text Editor</td><td>User palettes and style schemes (to verify)</td><td>Candidate</td><td>—</td><td>3</td></tr>
+<tr><td>Firefox</td><td><code>userChrome.css</code> in each chosen profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4</td></tr>
+<tr><td>Icons (recolour, bitmap themes); cursor (recolour)</td><td>Pixel processing of bitmaps</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>—</td><td>4</td></tr>
+<tr><td>Exact accent and full coverage in the Shell</td><td>Compiling the Shell's own style sources with changed colours</td><td><span class="tag wa">Workaround</span></td><td>—</td><td>4</td></tr>
+<tr><td>Qt apps</td><td>Would need extra system packages and a session variable</td><td>Deferred</td><td>—</td><td>4+</td></tr>
+<tr><td>Lock screen</td><td>User Themes is not active while the screen is locked</td><td><span class="tag no">Not feasible</span></td><td>—</td><td>—</td></tr>
+<tr><td>GDM login screen</td><td>Requires root</td><td><span class="tag no">Not feasible</span></td><td>—</td><td>—</td></tr>
+<tr><td>Apps with hard-coded colours; title bars drawn by non-GTK apps; Electron and Chromium apps in general</td><td>No shared mechanism</td><td><span class="tag no">Not feasible</span> generically</td><td>—</td><td>—</td></tr>
+</table></div>
+
+<h2 id="official">2. Dark style and accent colour</h2>
+<p>These two settings are the only appearance controls GNOME officially offers to libadwaita apps. The app sets the dark style from the theme's appearance, and the accent to whichever of the nine system accents (blue, teal, green, yellow, orange, red, pink, purple, slate) is perceptually closest to the theme's accent. The theme page shows both: "Accent: theme colour; fallback: Purple (system)".</p>
+<ul>
+<li>GNOME Shell, and apps that ignore the workaround below, show the nearest system accent, not the exact theme accent.</li>
+<li>Browsers and Electron apps read these two settings through the desktop portal, so they follow the dark style and system accent with no further work.</li>
+<li>The legacy file <code>gtk-3.0/settings.ini</code> may force a dark preference (it does on this machine) and would fight a light theme; the app reports it.</li>
+</ul>
+
+<h2 id="gtk4">3. GTK4 and libadwaita</h2>
+<p><strong>How it is applied.</strong> The app creates <code>~/.config/gtk-4.0/velatura.css</code> and connects it with one <code>@import</code> line at the end of the user's <code>~/.config/gtk-4.0/gtk.css</code>. The file redefines libadwaita's named colours (<code>window_bg_color</code>, <code>headerbar_bg_color</code>, <code>accent_bg_color</code> and the rest), sets the few newer colours that exist only as CSS variables, and sets the plain GTK names used by GTK4 apps without libadwaita.</p>
+<p><strong>Verified on libadwaita 1.9:</strong> the user's <code>gtk.css</code> is loaded at a higher priority than libadwaita's stylesheet, its system-accent definitions and app stylesheets, so the overrides win. Redefining the named colours also drives the matching CSS variables. The same on 1.6 to 1.8 is to verify.</p>
+<p><strong>Limitations:</strong></p>
+<ul>
+<li><strong>libadwaita does not support themes.</strong> Its developers consider this recolouring unsupported, and apps are tested only against the stock look. Bug reports must not go to app developers while a theme is active.</li>
+<li><strong>Only colours change.</strong> Shapes, spacing and icons stay as libadwaita defines them.</li>
+<li><strong>Apps that hard-code colours</strong> or draw their own content keep those colours.</li>
+<li><strong>Running apps do not pick up the change.</strong> GTK reads the file once at start.</li>
+<li><strong>Existing definitions can override the theme.</strong> Definitions later in the user's own <code>gtk.css</code> win over an import placed at the top. This machine's file has about 60 such lines, as does any file left by Gradience. The app detects this and reports the target as "set up but not taking effect". <strong>Resolved in Phase 0:</strong> the connection line is placed at the end of <code>gtk.css</code>, where GTK accepts it and it wins over earlier definitions. Lines added by the user after it are still detected and reported.</li>
+<li><strong>High Contrast.</strong> The overrides stay active when High Contrast is on, which would reduce contrast. The app therefore skips GTK recolouring while High Contrast is on, and warns if it is turned on later.</li>
+<li><strong>Title bars of X11 apps</strong> are drawn by a helper that reads this file once at login, so they change only at the next login.</li>
+<li><strong>Flatpak apps use the GTK of their runtime.</strong> Newer syntax (colour-scheme media queries need GTK 4.20) cannot be assumed; the file contains plain definitions for the current theme first.</li>
+<li>The colour names may change in a future libadwaita, and a major version could remove the mechanism.</li>
+</ul>
+
+<h2 id="gtk3">4. GTK3</h2>
+<p><strong>Recommended method.</strong> Use <strong>adw-gtk3</strong>, a GTK3 theme that imitates libadwaita and accepts the same named colours (confirmed in Phase 0 with version 6.5). With it, one palette drives GTK3 and GTK4 and the two look alike.</p>
+<p><strong>There is no useful fallback without it.</strong> The stock GTK3 Adwaita theme has its colours compiled in: it defines the colour names but its widget rules do not use them, so overriding them changes almost nothing. The first plan's "Basic" mode was wrong and is removed. (The existing setup on this machine works around this with a hand-written GTK3 theme that repaints widgets one by one; that approach is not general.)</p>
+<ol>
+<li>The app looks for adw-gtk3 in the system and per-user theme directories.</li>
+<li>If found: it sets <code>gtk-theme</code> to <code>adw-gtk3</code> or <code>adw-gtk3-dark</code> and connects a colour file from <code>~/.config/gtk-3.0/gtk.css</code>. The previous <code>gtk-theme</code> value is backed up.</li>
+<li>If not found: GTK3 is shown as an optional set-up row, "Improve older apps", and is skipped. The row explains the per-user install into <code>~/.local/share/themes</code>, which needs no root and also works on immutable systems, and mentions the distribution package where one exists. A built-in installer with a pinned version and checksum is considered for Phase 2.</li>
+</ol>
+<p>Flatpak GTK3 apps cannot see a per-user copy of the theme; they need the matching Flatpak theme extension (<code>org.gtk.Gtk3theme.adw-gtk3</code> and <code>-dark</code>), which Flatpak fetches by itself for the active GTK theme when it is available.</p>
+
+<h2 id="shell">5. GNOME Shell</h2>
+<p>GNOME has no supported way to theme the Shell. Loading a custom Shell stylesheet requires the <strong>User Themes</strong> extension, which is maintained by GNOME but is still an extension and is often not enabled. On this machine it is installed per user and disabled, with a leftover theme name set.</p>
+<h3>Method A: User Themes (Phase 1d)</h3>
+<p>Verified in the Shell and extension sources for GNOME 47 to 50:</p>
+<ul>
+<li><strong>A user theme is layered over the stock stylesheet; it does not replace it.</strong> The generated theme is therefore a short list of colour overrides only. It never imports or copies the stock stylesheet, which would override the Shell's own light and high-contrast variants. This also means a theme left over after a GNOME upgrade cannot break the Shell's layout.</li>
+<li><strong>The Shell reloads only when the theme name changes.</strong> Rewriting the file under the same name does nothing. Each apply therefore writes a new folder, <code>~/.local/share/themes/Velatura-&lt;hash&gt;/gnome-shell/gnome-shell.css</code>, then sets the name; older generated folders are cleaned up.</li>
+<li><strong>Stylesheets of enabled extensions always win over the user theme,</strong> whatever the selector. An extension that styles the panel (several are enabled here) will override the theme there. Troubleshooting lists enabled extensions that ship a stylesheet.</li>
+<li><strong>Order of steps:</strong> write the file, set the name, and only then ask the Shell to enable the extension, so a stale theme name is never shown.</li>
+<li>The setting lives in the extension's own schema directory when installed per user, which the engine must look up explicitly.</li>
+</ul>
+<p><strong>Installing User Themes without root:</strong> the app asks GNOME Shell's own installer, which shows the Shell's confirmation dialog, downloads from extensions.gnome.org and enables it without a logout. This needs a network connection and can be disabled by an administrator; the app checks and explains. It never blocks the rest of an apply.</p>
+<h3>Method C: companion extension (Phase 2)</h3>
+<ul>
+<li>A minimal extension owned by this project loads one stylesheet written by the app and reloads it when the file changes. Because it competes at the same priority as other extensions, it can theme areas that Method A loses to them.</li>
+<li>Published on extensions.gnome.org it installs without a logout. Installed from a local file, it needs a logout on install and on every update, since the Shell cannot restart under Wayland. All changing content therefore lives in the stylesheet, never in the extension's code.</li>
+</ul>
+<h3>Limitations</h3>
+<ul>
+<li><strong>The accent is the system accent.</strong> The stock stylesheet uses the accent in about 200 places through colour functions, and the Shell's style language has no variables. An exact theme accent would mean restating all of those rules for every Shell version; it waits for Phase 4.</li>
+<li><strong>Coverage is partial.</strong> Overrides reach the main surfaces (panel, menus, quick settings, calendar and notifications, dash, overview, on-screen displays, switchers, dialogs) but not every derived shade.</li>
+<li><strong>Per-version maintenance.</strong> Selectors change with every GNOME release. A static test checks each override against the stock stylesheet of each supported version.</li>
+<li><strong>High Contrast:</strong> Shell recolouring is skipped while it is on.</li>
+<li><strong>The lock screen and login screen</strong> keep the stock look.</li>
+<li><strong>One syntax error makes the Shell reject the whole stylesheet</strong> and fall back to the stock look (confirmed in Phase 0). The generated stylesheet is therefore syntax-checked before it is installed.</li>
+</ul>
+
+<h2 id="flatpak">6. Flatpak apps</h2>
+<ul>
+<li>GTK apps in Flatpak cannot see <code>~/.config/gtk-3.0</code> or <code>gtk-4.0</code>. The app offers to add read-only access to those two directories by editing Flatpak's per-user override file, <code>~/.local/share/flatpak/overrides/global</code>, as a key-level edit. Entries that were already there (both are, on this machine) are recorded as not the app's and are never removed.</li>
+<li>This slightly widens every sandbox, read-only, so it is opt-in and explained. It can be granted per app instead.</li>
+<li>Icon sets in <code>~/.local/share/icons</code> are already visible to Flatpak apps. Sets in the legacy <code>~/.icons</code> are not, so generated sets are always installed to the former.</li>
+<li>Flatpak apps that are not GTK (Electron, Qt) are not affected.</li>
+</ul>
+
+<h2 id="terminals">7. Terminals</h2>
+<h3>Kitty</h3>
+<ul>
+<li>The app creates <code>~/.config/kitty/velatura.conf</code> and connects it with one <code>include</code> line at the end of <code>kitty.conf</code>, which is how Kitty's own theme tool works.</li>
+<li><strong>Things that override it, detected and reported:</strong> colour lines after the include; and Kitty's automatic theme files (<code>dark-theme.auto.conf</code> and its siblings), which override every colour setting. This machine has one, so the include alone would have no effect here.</li>
+<li>Kitty's automatic theme files are not used as a connection method: their names are fixed, so they cannot be files the app owns, and they reset every colour the theme does not set.</li>
+<li>Recent Kitty reloads its configuration by itself; on older versions the user presses Ctrl+Shift+F5.</li>
+</ul>
+<h3>Ghostty</h3>
+<ul>
+<li>The app creates <code>~/.config/ghostty/themes/velatura</code> and adds one line, <code>theme = velatura</code>, to Ghostty's config (either of its two file names).</li>
+<li>Detected and reported: an existing <code>theme</code> line (there is one here) and explicit colour keys, both of which override the theme.</li>
+<li>The user reloads with Ctrl+Shift+Comma.</li>
+</ul>
+
+<h2 id="assets">8. Icons, cursors, wallpaper, fonts</h2>
+<ul>
+<li><strong>Selection</strong> of any installed icon theme, cursor theme, wallpaper or font is a plain settings change. The app sets both the light and the dark wallpaper keys. On Wayland some apps show a new cursor theme only after restarting.</li>
+<li><strong>Icon recolouring</strong> builds a per-user theme that inherits from the chosen base and contains recoloured copies of its coloured icons. Vector themes come first. Bitmap-only themes need pixel processing and are experimental; note that the icon theme in use on this machine is almost entirely bitmaps, so it falls in that later group. Monochrome symbolic icons already follow the text colour. Generated sets are for local use only, and are rebuilt from a recipe instead of being stored in backups.</li>
+<li><strong>Cursor recolouring</strong> edits cursor bitmaps and is experimental.</li>
+</ul>
+
+<h2 id="apps">9. Other applications</h2>
+<h3>Neovim (Phase 3)</h3>
+<p><strong>Recommended method.</strong> The app creates a self-contained colourscheme, <code>~/.config/nvim/colors/velatura.lua</code>, defining the standard highlight groups, common plugin groups and terminal colours, with no plugin dependency. The user activates it with <code>colorscheme velatura</code> in their own config; the app shows the line and never edits <code>init.lua</code>. For people who keep their own colourscheme, the app can instead write only a palette table for them to feed into it. Importing a theme from a running Neovim was proposed and is dropped for now, because it would mean running an external program against user configuration.</p>
+<h3>Starship (Phase 3)</h3>
+<p>Starship supports named palettes but has no include mechanism, so this is a key-level edit of <code>starship.toml</code>: add the <code>[palettes.velatura]</code> table and set <code>palette</code>, leaving everything else byte-identical. The prompt only changes where the user's format strings use the palette's colour names.</p>
+<h3>tmux (Phase 3)</h3>
+<p>A file the app creates, loaded by one <code>source-file</code> line. The user reloads the config.</p>
+<h3>Obsidian (Phase 3)</h3>
+<p>CSS snippets are a supported Obsidian feature. For each vault the user selects, the app writes <code>.obsidian/snippets/velatura.css</code>. The user enables the snippet in Obsidian's Appearance settings. Obsidian rewrites its own settings file while running, so the app does not edit it unless Obsidian is closed and the user opted in. Vaults are user data and often synchronised; nothing is written to a vault that was not explicitly chosen.</p>
+<h3>Firefox (Phase 4, experimental)</h3>
+<ul>
+<li>For each chosen profile: a stylesheet the app creates, one import line in <code>chrome/userChrome.css</code> placed according to CSS rules, and one line in <code>user.js</code> turning on the preference that makes Firefox load user stylesheets.</li>
+<li>Mozilla does not support this mechanism and Firefox releases every four weeks, so it is the most fragile target.</li>
+<li><strong>Not fully reversible:</strong> once Firefox has read the preference it keeps it in its own settings; removing the line does not turn it off. Undo for this target ends with a step for the user.</li>
+<li>Nothing is written while Firefox is running. Firefox must be restarted.</li>
+</ul>
+
+<h2 id="notfeasible">10. Not feasible or deferred</h2>
+<ul>
+<li><strong>GDM login screen and lock screen.</strong></li>
+<li><strong>Qt apps:</strong> deferred by decision.</li>
+<li><strong>Title bars of apps that draw their own</strong> (Kitty, Electron apps): GNOME does not draw title bars for Wayland apps.</li>
+<li><strong>Apps with hard-coded colours, and Electron or Chromium apps without their own theme mechanism.</strong></li>
+<li><strong>Restyling of libadwaita apps beyond colour:</strong> not possible by design.</li>
+</ul>
+</main>
+</body>
+</html>

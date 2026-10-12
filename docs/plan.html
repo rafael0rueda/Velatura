@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}h3{font-size:17px;margin-top:1.4em}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code,pre{font-family:ui-monospace,monospace;font-size:13.5px}pre{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Plan</h1>
+<p class="lead">Revision 2, rewritten after the five-perspective review. Approved by the owner on 2026-10-11. What changed from revision 1 is listed in <a href="review.html#changes">Review findings</a>.</p>
+
+<h2 id="goal">1. Goal and scope</h2>
+<p>A GNOME desktop application, with a matching command-line tool, that applies one colour theme to the whole desktop from one place. It is meant for GNOME users in general, not only for this machine.</p>
+<p>The app is a clean, independent project. The two existing palettes from <code>~/Workspace/Claude/system-theme</code> (Aetherius and Ember) are imported as its first bundled themes. The old scripts are not reused and not modified.</p>
+<h3>In scope</h3>
+<ul>
+<li>Terminals: Kitty and Ghostty.</li>
+<li>GTK4/libadwaita, GTK3, GNOME Shell, accent colour and dark/light style.</li>
+<li>Flatpak apps; selection of icons, cursors, wallpaper and fonts among what is installed; recolouring of icons and cursors.</li>
+<li>Neovim, Starship, tmux, Firefox, Obsidian.</li>
+<li>A daytime and a night-time theme with manual switching and optional automatic switching.</li>
+<li>A theme editor in the GUI.</li>
+</ul>
+<h3>Out of scope</h3>
+<ul>
+<li>Qt apps (deferred by decision), the GDM login screen and the lock screen (not reachable without root or unsupported Shell changes), Zen browser, Alacritty.</li>
+<li>Anything that requires <code>sudo</code>. The app only detects system packages and tells the user how to install them.</li>
+</ul>
+
+<h2 id="stack">2. Implementation options</h2>
+<p>The stated priorities are performance, security and size. The review corrected the first version of this comparison, which overstated Rust's advantages. The honest picture: the app's work is small file writes, so speed differences are modest except for icon recolouring; the design has no resident process in any language; and typed colour handling is a design choice available everywhere.</p>
+<div class="wrap"><table>
+<tr><th>Criterion</th><th>Python + PyGObject</th><th>Rust + gtk4-rs + libadwaita-rs</th><th>GJS (JavaScript)</th></tr>
+<tr><td>Performance</td><td>Fine for the CLI if it avoids loading GTK. GUI start is the slowest. Icon recolouring over thousands of files would be slow.</td><td>Fastest start and by far the best throughput for icon recolouring.</td><td>Similar to Python.</td></tr>
+<tr><td>Security: language</td><td>Memory-safe; errors in handling theme input are found at run time.</td><td>Memory-safe; the rule "only typed colours reach output" is enforced by the compiler.</td><td>Memory-safe; weakest static checking.</td></tr>
+<tr><td>Security: supply chain</td><td><strong>Best.</strong> No third-party code needed.</td><td><strong>Worst.</strong> An estimated 150–250 third-party crates behind the GUI. Mitigated by a dependency budget, a lock file and automated advisory checks, but not removed.</td><td>No third-party code, but no TOML parser either.</td></tr>
+<tr><td>Size on disk</td><td>Smallest: source only, needs Python and PyGObject on the host.</td><td>Comparable Rust GNOME apps on this machine measure 2.1–6.6 MB, and Rust command-line tools 3.6–5.4 MB. Expect roughly 3–6 MB for the GUI and 1.5–3.5 MB for the CLI.</td><td>Small; GJS is always present on GNOME.</td></tr>
+<tr><td>Testability</td><td>Good.</td><td>Strongest: the crash-and-recover tests the safety design depends on are natural to write.</td><td>Weakest tooling.</td></tr>
+<tr><td>Time to a working MVP</td><td><strong>Shortest</strong> for you: you have shipped a Python GTK4 app.</td><td>Longest: widget subclassing in Rust is slower to write, and builds are slower.</td><td>Medium.</td></tr>
+<tr><td>Release engineering</td><td>Simple.</td><td>More work: vendored crates for offline builds, a minimum compiler version to track.</td><td>Simple.</td></tr>
+</table></div>
+<p><strong>Recommendation.</strong> Rust for the engine and the CLI, decided now: compile-time guarantees on untrusted input, a single self-contained binary for timers and recovery from a text console, and icon throughput. The price is the larger supply chain and a slower start.</p>
+<p><strong>The owner chose Rust for the GUI as well.</strong> Phase 0 still measures binary size, crate count, start time, and recolouring speed against thresholds written down beforehand.</p>
+<p>Build: Cargo alone must be able to build and test the engine and CLI; Meson wraps Cargo for the GUI, translations, desktop file and icons. UI files are written in Blueprint. Translations use gettext. The optional Shell extension is necessarily JavaScript.</p>
+
+<h2 id="format">3. Theme file format</h2>
+<p>One TOML file per theme. It holds colours and a few short names; it cannot contain commands, templates or paths. A theme has one or more named <em>variants</em>, each of which states whether it is light or dark. Which theme is used by day and which by night is the user's setting, not part of the file, and may pair two different themes.</p>
+<pre>schema = 1                 # file format version
+derive = 1                 # version of the rule that fills in missing colours
+
+[meta]
+id          = "aetherius"  # lower-case slug [a-z0-9-]
+name        = "Aetherius"
+author      = "Rafa"
+license     = "CC0-1.0"
+description = "Starlit indigo with a periwinkle accent."
+
+[variants.default]
+name       = "Aetherius"
+appearance = "dark"        # "dark" or "light"
+
+[variants.default.palette] # open list of named colours: the lossless carrier for imports
+sumi_ink_0   = "#0D101A"
+sumi_ink_3   = "#141826"
+sumi_ink_4   = "#1E2438"
+fuji_white   = "#D3D9EE"
+oni_violet   = "#8493D8"
+winter_green = "#1D2B2A"
+# ... as many as the theme has
+
+[variants.default.ui]      # fixed roles; a value is a colour or a reference to the palette
+bg           = "@sumi_ink_3"      # required
+fg           = "@fuji_white"      # required
+accent       = "@oni_violet"      # required
+bg_dim       = "@sumi_ink_0"      # the rest are optional and derived when absent:
+surface      = "@sumi_ink_4"      #   surface, border, fg_muted, fg_subtle, accent_fg,
+                                  #   selection_bg, selection_fg, cursor, cursor_fg, link,
+                                  #   success, warning, error
+
+[variants.default.ansi]    # required: the 16 terminal colours
+black = "@sumi_ink_0"
+# ...
+
+[variants.default.syntax]      # optional, about 16 roles for editors
+keyword = "#A08CD0"            # may differ from the UI accent
+[variants.default.diff]        # optional: add, change, delete, text
+[variants.default.diagnostic]  # optional: error, warning, info, hint, ok
+
+[variants.default.slots.starship]  # optional per-app adjustments; only slots that app declares
+directory = "#7FA6DC"
+
+[variants.default.suggests]    # optional and advisory: never applied unless the user accepts
+icon_theme   = "Tela-purple"
+cursor_theme = "capitaine-cursors"
+</pre>
+<p>Rules of the format:</p>
+<ul>
+<li><strong>Colours only.</strong> Values are <code>#RRGGBB</code>, or <code>#RRGGBBAA</code> where a role allows transparency, or a one-level <code>@name</code> reference into the same variant's palette.</li>
+<li><strong>No text from a theme file is ever written into a generated config</strong>, not even in a comment. Generated files carry only the theme's slug and a hash. Names and descriptions are shown in the app as plain text, with control and direction-override characters removed and lengths capped.</li>
+<li><strong>Suggestions are names, not paths.</strong> An icon or cursor suggestion is matched by exact name against what is installed. Wallpaper and fonts are not part of a theme at all; the user picks them from installed ones and the choice is stored with the user's settings.</li>
+<li><strong>Derivation is frozen per number.</strong> <code>derive = 1</code> always produces the same colours; an improved rule becomes <code>derive = 2</code>. Bundled themes and themes saved by the editor write every role out explicitly.</li>
+<li><strong>Per-app slots are a declared list.</strong> Each target publishes its slot names (for Starship: directory, git, language and so on). Unknown slots or targets produce a warning, so a theme made for a newer version still loads.</li>
+<li><strong>Versioning.</strong> A file with a newer <code>schema</code> is refused with a clear message. Unknown keys load with a warning. The editor preserves comments and unknown keys when saving. A user's file is never rewritten in place by an upgrade.</li>
+<li><strong>Limits.</strong> Size cap before parsing; reserved ids for bundled themes; an imported theme whose id already exists must be renamed or explicitly replace the other.</li>
+<li>User themes live in <code>~/.local/share/velatura/themes/</code>. Bundled themes are read-only and are duplicated before editing.</li>
+</ul>
+<p>The first version of this format could not hold Aetherius and Ember without loss (they have 44 named colours each). The open palette table and the diff and diagnostic groups fix that. Importers for base16/base24 and Kitty themes come later and produce this same format.</p>
+
+<h2 id="safety">4. Safety requirements</h2>
+<p>These are requirements on the engine. The mechanics are in <a href="architecture.html#engine">Architecture</a>.</p>
+<ol>
+<li><strong>User level only.</strong> No <code>sudo</code>, no polkit. Each target may write only to its own fixed directories, checked after resolving symlinks.</li>
+<li><strong>Back up before every change.</strong> The pre-change state of every file and setting is recorded before it is touched. The first time the app ever touches an item, that state is added to a permanent "original setup" record.</li>
+<li><strong>Preview is the plan that gets applied.</strong> The preview produces a plan object; apply executes that same object and refuses to run if any file changed in between.</li>
+<li><strong>Undo and restore.</strong> Undo reverses the last change the user made. Any backup can be restored. The original setup is never pruned. Twenty backups are kept by default.</li>
+<li><strong>The user's own content is never lost.</strong> In a file the user maintains, the app changes only the span it added. Undo removes that span from the file as it is now, so edits made since are kept.</li>
+<li><strong>Never delete existing configuration.</strong> Files the user wrote are never removed. The one exception, which needs approval, is directories the app generated itself and can regenerate (icon sets, Shell theme folders).</li>
+<li><strong>All-or-nothing for files; best effort for settings.</strong> File changes are atomic and rolled back together on failure. GNOME settings cannot be made fully transactional; they are written last, in one batch, and restored on failure.</li>
+<li><strong>Crash recovery never overwrites newer work.</strong> After an interrupted apply, a file is rolled back only if it still contains exactly what the interrupted apply wrote.</li>
+<li><strong>The app does not restart, reload or signal other programs.</strong> After an apply it lists exactly what the user needs to do, with copyable instructions.</li>
+<li><strong>Unattended runs never ask and never cross a consent boundary.</strong> A scheduled switch skips anything that would need a decision, applies the rest, and records what was skipped for the user to see later.</li>
+<li><strong>An unreadable theme cannot lock the user out.</strong> Themes below a contrast floor need explicit confirmation and auto-revert unless confirmed; the app's own window stays readable under any theme; and recovery works from a text console.</li>
+<li><strong>Coexistence is checked, not assumed.</strong> The app detects other tools that rewrite the same files, and existing settings that would silently override the theme, and reports both before applying.</li>
+<li><strong>Theme files are untrusted input.</strong> See section 3.</li>
+</ol>
+
+<h2 id="daynight">5. Daytime and night-time themes</h2>
+<ul>
+<li>The user's settings name a daytime theme and a night-time theme. They can be two themes or two variants of one. The labels "day" and "night" are used only for scheduling; they are never used to mean light and dark.</li>
+<li><strong>Manual:</strong> a control in the GUI and <code>velatura switch day|night|toggle</code>.</li>
+<li><strong>Scheduled:</strong> one systemd user timer runs <code>velatura switch auto</code>, which works out the right theme for the current time, so a missed trigger (suspend, late login) corrects itself. No process stays resident. Scheduling is only offered once the CLI is installed at a stable path.</li>
+<li><strong>Follow the GNOME dark style:</strong> offered only for a light and dark pair. In this mode the app does not set the dark style itself, to avoid a feedback loop.</li>
+<li><strong>Limitation, stated before enabling:</strong> a switch recolours the top bar, terminals and newly opened apps; GTK apps that are already open keep the old colours until restarted.</li>
+</ul>
+
+<h2 id="testing">6. Testing strategy</h2>
+<div class="wrap"><table>
+<tr><th>Layer</th><th>What is tested</th><th>When</th></tr>
+<tr><td>Unit and property</td><td>Parsing, validation, derivation, contrast, nearest accent. Generated hostile themes: every text field filled with newlines, quotes, comment terminators, escape sequences and direction overrides must produce output that parses to exactly the expected keys.</td><td>Every change</td></tr>
+<tr><td>Golden output</td><td>The exact text each renderer produces for the bundled themes. A golden may only change together with a renderer or derivation version.</td><td>Every change</td></tr>
+<tr><td>Transaction</td><td>In a throw-away home directory: apply then undo equals the starting state; apply twice changes nothing the second time (no new backup, no setting written); apply A, apply B, undo, undo equals the start; apply, user edits outside the app's span, undo keeps the edits.</td><td>Every change</td></tr>
+<tr><td>Exhaustive crash test</td><td>For every step N of an apply: stop at N, run recovery, compare with the starting state.</td><td>Every change</td></tr>
+<tr><td>Failure injection</td><td>Disk full during backup and during write; read-only and immutable files; symlinked files and directories, dangling and looping links, links leaving the home directory; <code>/home</code> itself being a link; hard-linked files; another program writing between preview and apply; a killed lock holder; GUI and timer racing; damaged backup store; old-format backups; Windows line endings, missing final newline, non-UTF-8 files; half, duplicated or nested markers.</td><td>Every change</td></tr>
+<tr><td>Settings</td><td>Unset versus default, missing schema, locked key, no session bus, list-valued keys. In-memory backend for most; a private real dconf for the rest.</td><td>Every change, in a Fedora container</td></tr>
+<tr><td>Static version check</td><td>Every Shell selector the overrides touch exists in the stock stylesheet of each supported Shell version (stored as fixtures).</td><td>Every change</td></tr>
+<tr><td>GTK acceptance</td><td>GTK loads each generated stylesheet without a parsing error, per supported version.</td><td>Per version, in containers</td></tr>
+<tr><td>Headless GNOME Shell</td><td>The Shell loads the generated theme without stylesheet errors, on the two newest versions.</td><td>Weekly, not blocking</td></tr>
+<tr><td>Manual checklist</td><td>The main flows by keyboard only, with a screen reader, at 360 px width, at 200% text size, in a right-to-left locale, with High Contrast on; recovery from a text console; installing User Themes.</td><td>Each release</td></tr>
+<tr><td>Supply chain</td><td>Locked versions, licence and advisory checks, a cap on the number of crates per binary, a scheduled fuzzing job on the theme parser.</td><td>Every change / scheduled</td></tr>
+</table></div>
+
+<h2 id="roadmap">7. Phased roadmap</h2>
+<p>The review judged the first MVP too large to finish safely in one step. It is now built in four slices, each usable on its own.</p>
+<div class="wrap"><table>
+<tr><th>Phase</th><th>Content</th><th>Exit condition</th></tr>
+<tr><td><strong>0. Spikes and decisions</strong></td><td>Throw-away experiments for the open questions in <a href="review.html#open">Review findings</a>. Final name and application ID. Repository skeleton, the host-access layer, CI. On this machine: agree how the old <code>theme-auto.timer</code> is retired.</td><td>Every open question has a written answer and the plan is corrected where an assumption failed.</td></tr>
+<tr><td><strong>1a. Engine and CLI</strong></td><td>Theme format, validator, Aetherius and Ember. Backups, preview, undo, restore, crash recovery, console recovery. Two targets that exercise every kind of change: Kitty (new file plus one added line) and dark style plus accent (settings).</td><td>Exhaustive crash test passes.</td></tr>
+<tr><td><strong>1b. More targets</strong></td><td>Ghostty, GTK4/libadwaita, GTK3 with adw-gtk3. Detection of overriding settings and of other theming tools.</td><td>Transaction tests pass for each.</td></tr>
+<tr><td><strong>1c. GUI</strong></td><td>Theme library, preview, Apply with one plain-language confirmation, result page, Undo, History, Apps &amp; Desktop page, Troubleshooting. Translation scaffolding.</td><td>First apply takes four interactions or fewer.</td></tr>
+<tr><td><strong>1d. GNOME Shell</strong></td><td>Shell theme through User Themes, as colour overrides layered on the stock stylesheet. Manual day/night switch.</td><td>The <a href="#done">definition of done</a>.</td></tr>
+<tr><td><strong>2. Desktop completeness</strong></td><td>Scheduled and follow-system switching. Companion Shell extension, published on extensions.gnome.org. Flatpak overrides. Selection of icons, cursors, wallpaper and fonts. Theme editor, import and export. Spanish. GNOME 47–49 and the Ubuntu session, added as tested data.</td><td>A theme can be created in the GUI and switches on schedule without the GUI running.</td></tr>
+<tr><td><strong>3. More apps</strong></td><td>Neovim, Starship, tmux, Obsidian. Icon recolouring for vector icon themes. Importers for base16/base24 and Kitty themes. Candidates raised by the review: Ptyxis, GNOME Text Editor.</td><td>Each target passes the same transaction tests.</td></tr>
+<tr><td><strong>4. Distribution and experiments</strong></td><td>Packaged releases (see <a href="architecture.html#dist">distribution</a>). Firefox (experimental). Recolouring of bitmap icon themes and of cursors (experimental). Exact accent and full coverage in the Shell. User-supplied templates. Qt reconsidered.</td><td>Installable without building from source.</td></tr>
+</table></div>
+
+<h2 id="done">8. Definition of done for the MVP</h2>
+<p>The MVP (phases 1a to 1d) is done when all of the following hold on GNOME 50 and 51, upstream session, Wayland. The code is built against the libadwaita 1.6 interface so that older versions can be added afterwards as tested data.</p>
+<h3>Behaviour</h3>
+<ol>
+<li>Applying a bundled theme leaves the files and settings of Kitty, Ghostty, GTK4/libadwaita, GTK3 (when adw-gtk3 is present), GNOME Shell (when User Themes is active), accent and dark style in the expected state, and an automated probe confirms that GTK and the Shell compute the expected colours.</li>
+<li>Targets that are not installed, or that are missing a prerequisite, are skipped with a reason and do not fail the apply.</li>
+<li>Where an existing setting would override the theme, the target is reported as "set up but not taking effect", with the reason. It is never reported as applied.</li>
+<li>Switching between the daytime and night-time themes works from the GUI and the CLI.</li>
+</ol>
+<h3>Safety</h3>
+<ol start="5">
+<li>Preview lists every file and setting that will change and changes nothing. Apply refuses a plan whose files changed since the preview.</li>
+<li>After Undo, every file the app touched has its previous content, permissions and security label, provided nothing else changed it meanwhile, and every setting the app wrote is back to its previous value or unset state. Content the user added outside the app's span is preserved. Known exceptions are documented per target.</li>
+<li>"Restore original setup" returns every item the app has ever touched to its recorded first state, reporting any item that conflicts.</li>
+<li>After recovery from an apply interrupted at any step, the state equals the state before that apply, and no file edited since is overwritten.</li>
+<li>No content outside the app's own files and spans is changed; nothing is written outside the per-target directories; nothing runs with elevated rights.</li>
+<li>The hostile-theme tests pass for every target.</li>
+<li>Recovery from a text console works without the GUI and without a session bus (files restored, unrestored settings listed with the exact commands).</li>
+<li>Other theming tools and timers touching the same files are detected and reported before the first apply.</li>
+</ol>
+<h3>Experience</h3>
+<ol start="13">
+<li>A first-time user applies a bundled theme in four interactions or fewer, with no terminal and no detours.</li>
+<li>The theme in use is always visible, and Undo is always reachable from the menu, not only from a transient message.</li>
+<li>The app's own window stays readable under any applied theme. A theme below the contrast floor cannot be applied without explicit confirmation. With High Contrast on, GTK and Shell recolouring is skipped and the user is told.</li>
+<li>After applying, the app states what took effect now and what the user must reload or restart, and does none of it itself.</li>
+<li>Each failure class (not applied, skipped, conflict, busy, rollback incomplete) has a designed, translated message.</li>
+<li>All user-visible text is translatable. The manual checklist of section 6 passes.</li>
+<li>One-step "Remove all of Velatura's changes" exists in the GUI and CLI.</li>
+<li>The automated test layers pass in CI and the documentation in <code>docs/</code> matches what was built.</li>
+</ol>
+
+<h2 id="prior">9. Related projects</h2>
+<p>Looked at for lessons, not as dependencies: Gradience (recoloured libadwaita through <code>gtk.css</code>; archived and end-of-life on Flathub, which shows the maintenance cost of this workaround), Rewaita (a current libadwaita recolouring app on Flathub), Tinty and the base16 ecosystem, matugen and pywal, and <code>gtheme</code> on PyPI (a recent GNOME full-desktop themer; to be examined in Phase 0).</p>
+</main>
+</body>
+</html>

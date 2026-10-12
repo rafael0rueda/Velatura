@@ -1,0 +1,19 @@
+[package]
+name = "velatura-cli"
+description = "The velatura command."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "velatura"
+path = "src/main.rs"
+
+[dependencies]
+velatura-theme = { path = "../velatura-theme" }
+velatura-engine = { path = "../velatura-engine" }
+
+[lints]
+workspace = true

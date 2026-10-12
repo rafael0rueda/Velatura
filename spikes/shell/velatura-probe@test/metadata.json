@@ -1,0 +1,7 @@
+{
+  "uuid": "velatura-probe@test",
+  "name": "Velatura spike probe",
+  "description": "Headless-test helper only. Never install this into a real session.",
+  "shell-version": ["50", "51"],
+  "version": 1
+}

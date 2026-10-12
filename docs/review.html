@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review findings – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}h3{font-size:17px;margin-top:1.4em}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Review findings</h1>
+<p class="lead">Five read-only reviewers examined revision 1 of the plan on 2026-10-11, one perspective each. This page records what they found, what changed in revision 2, what was not adopted, and what is still open.</p>
+
+<div class="note">The reviewers raised 22 blockers and about 175 findings in total. None of the blockers invalidates the project; each is resolved in revision 2 by a design change, moved to a Phase 0 spike, or listed below for the owner's answer. Claims the reviewers marked as verified were checked by them against this machine or upstream source code. The ones marked "re-checked" I confirmed myself afterwards; the others rely on the reviewers' evidence and have not been independently confirmed.</div>
+
+<h2 id="confirm">1. Questions put to the owner</h2>
+<p><strong>All eleven were answered on 2026-10-11.</strong> The answers are recorded in the <a href="decisions.html">decisions log</a> (D3, D5, D12b, D19, D23, D27, D29, D30, D31, D34). The table is kept as the record of what was asked.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Question</th><th>Recommendation</th></tr>
+<tr><td>1</td><td><strong>Language</strong> (<a href="decisions.html#d19">D19</a>): Rust for the engine and CLI now, GUI in Rust confirmed after a Phase 0 spike?</td><td>Yes. Fallback is a Python GUI over the CLI.</td></tr>
+<tr><td>2</td><td><strong>Theme model</strong> (<a href="decisions.html#d5">D5</a>): ship Aetherius and Ember as two themes paired by a day/night setting, or as one theme with two variants?</td><td>Two themes.</td></tr>
+<tr><td>3</td><td><strong>Overriding settings</strong> (<a href="decisions.html#d12b">D12b</a>): when an existing file overrides the theme, only report it, or also offer a consented "take over" that renames the file aside?</td><td>Report only in the MVP; decide on take-over after using it.</td></tr>
+<tr><td>4</td><td><strong>Old timer</strong> (<a href="decisions.html#d31">D31</a>): will you turn off <code>theme-auto.timer</code> before the first real apply on this machine?</td><td>Yes; the two tools cannot run together.</td></tr>
+<tr><td>5</td><td><strong>Generated folders</strong> (<a href="decisions.html#d29">D29</a>): may the app delete folders it generated itself and can regenerate?</td><td>Yes.</td></tr>
+<tr><td>6</td><td><strong>Timers and extension enabling</strong> (<a href="decisions.html#d30">D30</a>): may the app write its own timer files, run <code>systemctl --user</code> for them, and ask the Shell to enable User Themes after you confirm?</td><td>Yes.</td></tr>
+<tr><td>7</td><td><strong>Copying existing files</strong> (<a href="decisions.html#d3">D3</a>): is my reading of your answer right?</td><td>—</td></tr>
+<tr><td>8</td><td><strong>Name</strong> (<a href="decisions.html#d23">D23</a>) and <strong>licence</strong> (<a href="decisions.html#d27">D27</a>).</td><td>Velatura; GPL-3.0-or-later with CC0 themes.</td></tr>
+<tr><td>9</td><td><strong>Scope</strong>: reviewers recommended dropping cursor recolouring and bitmap icon recolouring. They are kept as late experiments because you asked for recolouring. Keep, or drop?</td><td>Keep as Phase 4 experiments.</td></tr>
+<tr><td>10</td><td><strong>Extra targets</strong> raised by the review: Ptyxis (Fedora's default terminal) and GNOME Text Editor. Add as Phase 3 candidates?</td><td>Yes, as candidates.</td></tr>
+<tr><td>11</td><td><strong>Flathub</strong>: accept that the full app is not a realistic Flathub submission?</td><td>Yes; see <a href="architecture.html#dist">distribution</a>.</td></tr>
+</table></div>
+
+<h2 id="changes">2. What changed in revision 2, and why</h2>
+<div class="wrap"><table>
+<tr><th>Area</th><th>Revision 1</th><th>Revision 2</th><th>Why</th></tr>
+<tr><td>Shell theme content</td><td>Start from the Shell's built-in stylesheet and add overrides.</td><td>Colour overrides only.</td><td>A user theme is layered over the stock stylesheet, not a replacement. Importing or copying the stock one would override the Shell's own light and high-contrast variants and go stale after an upgrade. (Platform)</td></tr>
+<tr><td>Shell reload</td><td>Rewrite the file; effect "immediately".</td><td>Write a new folder name on each apply, then set the name.</td><td>User Themes reloads only when the name changes. (Platform, re-checked)</td></tr>
+<tr><td>Shell accent</td><td>Exact theme accent.</td><td>Nearest system accent in the MVP; exact accent in Phase 4.</td><td>The stock stylesheet uses the accent in about 200 places through colour functions, with no variables. (Platform)</td></tr>
+<tr><td>User Themes status</td><td>"Not installed" on this machine.</td><td>Installed per user, disabled, with a leftover theme name; schema must be read from the extension's folder; enable only after setting the name.</td><td>My first check looked only at system packages and enabled extensions. (Platform, re-checked)</td></tr>
+<tr><td>GTK3 fallback</td><td>"Basic" mode without adw-gtk3.</td><td>Removed. GTK3 requires adw-gtk3; otherwise skipped.</td><td>Stock GTK3 Adwaita has its colours compiled in, so the fallback did nothing. (Platform)</td></tr>
+<tr><td>Kitty</td><td>Include line, or Kitty's automatic theme files.</td><td>Include line only; automatic theme files detected as something that overrides the theme.</td><td>Those files have fixed names, reset unspecified colours, and one already exists here. (Platform, Safety, re-checked)</td></tr>
+<tr><td>"Applied" but no effect</td><td>Only Kitty checked for later colour lines.</td><td>Every target checks whether existing settings override it, and reports "set up but not taking effect".</td><td>On this machine the MVP would have changed nothing visible in GTK, Kitty or Ghostty. (Safety, Platform, re-checked for Ghostty)</td></tr>
+<tr><td>Other theming tools</td><td>Not considered.</td><td>Detected at first run and by <code>doctor</code>; scheduling refused while a conflicting timer is active.</td><td>The old <code>theme-auto.timer</code> is active and rewrites the same files twice a day without locking. (Safety, re-checked)</td></tr>
+<tr><td>Preview versus apply</td><td>"Same code path".</td><td>The previewed plan object is what gets executed; each change carries a precondition re-checked just before writing.</td><td>A file edited between preview and apply would otherwise be overwritten. (Safety, Architecture)</td></tr>
+<tr><td>Crash recovery</td><td>Roll back on next run.</td><td>Roll back only items that still hold what the interrupted apply wrote.</td><td>The next run may be days later, after the user edited the files. (Safety)</td></tr>
+<tr><td>Original state</td><td>The first snapshot, pinned.</td><td>An append-only record of the first-seen state of every item ever touched, labelled "state before Velatura".</td><td>The first apply may cover only one target, so a single snapshot cannot restore the rest. (Safety)</td></tr>
+<tr><td>Undo in user files</td><td>Restore the whole file from the snapshot.</td><td>Remove the app's span from the file as it is now.</td><td>Whole-file restore would discard edits the user made since. (Safety)</td></tr>
+<tr><td>Settings</td><td>Treated like files.</td><td>Looked up safely, checked for writability, written last in one batch, restored only if still the app's value; described as best effort.</td><td>A missing schema aborts the process; settings are not transactional. (Safety, Platform)</td></tr>
+<tr><td>Theme text in outputs</td><td>Names "escaped or rejected".</td><td>No text from a theme file ever reaches a generated file.</td><td>A newline in a name inside a Kitty or tmux file can become a command. (Safety)</td></tr>
+<tr><td>Unreadable themes</td><td>Contrast warning only.</td><td>Contrast floor, auto-revert countdown, the app immune to theming, console recovery.</td><td>The recovery tool would itself be recoloured and unreadable. (Safety, UX)</td></tr>
+<tr><td>Unattended runs</td><td>Not specified.</td><td>Never ask, never cross a consent boundary; skip, record, continue.</td><td>A timer has no one to answer a prompt. (Safety)</td></tr>
+<tr><td>Kinds of change</td><td>Five.</td><td>Eight, including directory creation, links, removal and generated trees; nothing happens that is not a recorded change.</td><td>Otherwise apply-then-undo is not exact. (Safety, Architecture)</td></tr>
+<tr><td>Flatpak override</td><td>Run <code>flatpak override</code>.</td><td>Edit Flatpak's key file; never remove entries that were already there.</td><td>Keeps it previewable and undoable, and removes a runtime dependency. (Safety, Packaging)</td></tr>
+<tr><td>Theme format</td><td>13 interface roles, 16 terminal colours, optional syntax.</td><td>Adds an open palette table with references, diff and diagnostic groups, declared per-app slots, a versioned derivation rule, unknown-key rules.</td><td>It could not hold the 44-colour Aetherius and Ember palettes without loss. (Architecture)</td></tr>
+<tr><td>Day and night</td><td>Fixed <code>day</code> and <code>night</code> variants inside a theme.</td><td>Open list of variants; the pairing is the user's setting.</td><td>The first model mixed palette with schedule and confused theme and variant names. (Architecture, UX)</td></tr>
+<tr><td>Extras in themes</td><td>Icon, cursor, wallpaper, opacity applied from the theme.</td><td>Icon and cursor are advisory suggestions; the rest are user settings.</td><td>They are facts about one machine, and a path in a shared file is a risk. (Architecture, Safety)</td></tr>
+<tr><td>Target design</td><td>One interface, "pure planners".</td><td>Renderer (pure) plus connector (read-only probe, then pure plan); everything keyed by instance.</td><td>Most targets must read the machine to plan; Firefox and Obsidian have several instances. (Architecture)</td></tr>
+<tr><td>Code layout</td><td>One core crate.</td><td>Separate theme and engine crates with a host-access layer and a dependency budget.</td><td>Boundaries do not hold by convention; a crate named <code>core</code> also clashes with Rust's own. (Architecture, Packaging)</td></tr>
+<tr><td>Messages</td><td>Engine returns English text.</td><td>Engine returns typed codes; CLI and GUI translate.</td><td>Otherwise nothing from the engine can be translated. (UX, Architecture)</td></tr>
+<tr><td>Language comparison</td><td>Rust ahead on every priority.</td><td>Rewritten: Rust loses on supply chain and time to MVP; GUI language confirmed after a spike.</td><td>The first table overstated start-up and footprint advantages. (Architecture)</td></tr>
+<tr><td>MVP size</td><td>One phase: engine, seven targets, GUI, four GNOME versions.</td><td>Four slices (1a to 1d); verified on GNOME 50 and 51 first.</td><td>Too large for one maintainer; GNOME 51 is already current. (Architecture, Platform)</td></tr>
+<tr><td>First-run experience</td><td>About 15 steps and 10 decisions.</td><td>Four steps and one confirmation; optional set-up never blocks.</td><td>Non-expert users would abandon the first version. (UX)</td></tr>
+<tr><td>GUI structure</td><td>Target switches on each theme page; consents in Preferences.</td><td>One Apps &amp; Desktop page; a result page instead of a transient message; plain vocabulary.</td><td>Target state lived in two places; the only Undo was in a message that disappears. (UX)</td></tr>
+<tr><td>Preview</td><td>A drawn mock.</td><td>Real widgets for the window part; drawings only for the top bar and terminal.</td><td>A drawing would look better than reality and break trust. (UX)</td></tr>
+<tr><td>Reload buttons</td><td>Optional button per item.</td><td>Removed; copyable instructions only.</td><td>Contradicted the owner's answer and the security rules. (UX, Safety)</td></tr>
+<tr><td>High Contrast</td><td>"Left to libadwaita".</td><td>GTK and Shell recolouring skipped while High Contrast is on.</td><td>The overrides stay active in High Contrast and would reduce it. (Platform, UX)</td></tr>
+<tr><td>Widget set</td><td>"Minimum 1.6, up to 1.9".</td><td>The 1.6 interface only; newer widgets listed as not to be used.</td><td>One binary cannot use newer widgets and still start on older systems. (UX, Packaging)</td></tr>
+<tr><td>Where consent is stored</td><td>In <code>~/.config</code>.</td><td>In the state directory.</td><td>People synchronise <code>~/.config</code> between machines. (Architecture)</td></tr>
+<tr><td>Distribution</td><td>"Flatpak or RPM, decided later".</td><td>An ordered recommendation, with Flathub as a reduced edition at most.</td><td>The full app needs about a dozen permission exceptions and falls under Flathub's rules on host utilities and AI-assisted submissions. (Packaging, policy text re-checked)</td></tr>
+<tr><td>Definition of done</td><td>11 items, several not testable.</td><td>20 items in three groups, each with an observable criterion.</td><td>"Recolours X" and "exactly the previous state" had no test. (Safety, UX)</td></tr>
+</table></div>
+
+<h2 id="conflicts">3. Where reviewers disagreed</h2>
+<div class="wrap"><table>
+<tr><th>Topic</th><th>Positions</th><th>Resolution</th></tr>
+<tr><td>GTK3 without adw-gtk3</td><td>UX: use the basic fallback silently. Platform: the fallback does nothing.</td><td>No fallback; GTK3 is an optional set-up row that never appears in the main flow.</td></tr>
+<tr><td>Shell stylesheet staleness</td><td>Safety and Architecture: a full generated stylesheet breaks after an upgrade; compile the Shell's style sources instead. Platform: a user theme is only a layer, so overrides are enough.</td><td>Overrides only, which removes the staleness risk. Compiling the style sources is evaluated in Phase 0 for exact accent and coverage, not for the MVP.</td></tr>
+<tr><td>Version range</td><td>Platform: 47 to 51. Architecture: 50 and newest only for the MVP.</td><td>MVP verified on 50 and 51; code targets the 1.6 interface so 47–49 are added as data in Phase 2.</td></tr>
+<tr><td>Companion extension</td><td>Architecture: cut it. Packaging and Platform: publish it on extensions.gnome.org.</td><td>Kept in Phase 2 because the owner chose it, published on extensions.gnome.org, with all changing content in the stylesheet.</td></tr>
+<tr><td>Simple targets as templates</td><td>Architecture: build them on templates from day one. Safety: templates are an injection risk.</td><td>Built-in renderers are embedded templates with a closed substitution and no logic. Third-party templates stay deferred.</td></tr>
+</table></div>
+
+<h2 id="notadopted">4. Not adopted, or adopted only in part</h2>
+<ul>
+<li><strong>Drop cursor and bitmap icon recolouring</strong> (Architecture). Kept as Phase 4 experiments, because the owner asked for recolouring. Listed above for confirmation.</li>
+<li><strong>Move wallpaper and fonts to Phase 4</strong> (Architecture). Kept in Phase 2: they are single settings and the owner asked for them.</li>
+<li><strong>A login-time job that resets the Shell theme after an upgrade</strong> (Safety). Not needed once the theme is overrides only. A version stamp and <code>apply --if-stale</code> remain.</li>
+<li><strong>A bus-activated background service</strong> shared by timers, GUI and extension (Packaging). Deferred; the timer runs the CLI directly. Revisit if a sandboxed build is made.</li>
+<li><strong>One usability test with a non-expert before the MVP</strong> (UX). Recommended, not made a formal exit condition.</li>
+<li><strong>A single apply that fails as a whole on any precondition</strong> was the original design; the review replaced it with per-target skipping, which was adopted.</li>
+</ul>
+
+<h2 id="open">5. Open questions for Phase 0</h2>
+<p>Each is a small throw-away experiment. The plan is corrected where an assumption fails.</p>
+<ol>
+<li><strong>GTK connection that wins.</strong> Where can the connection sit in <code>gtk.css</code> so the theme takes precedence over definitions already in the file, without touching the user's lines? Does an import resolve when <code>gtk.css</code> is a symlink, and inside a Flatpak sandbox?</li>
+<li><strong>libadwaita 1.6 to 1.9, and older Flatpak runtimes.</strong> Same precedence as verified on 1.9? Do older GTK versions skip an unknown media query cleanly?</li>
+<li><strong>The app immune to theming.</strong> Can the app's own window keep stock colours regardless of the user's <code>gtk.css</code>, on each libadwaita version?</li>
+<li><strong>Preview with real widgets.</strong> Can a part of the window be given its own colours reliably?</li>
+<li><strong>Shell overrides.</strong> Behaviour in light, dark and High Contrast on 50 and 51; a lock and unlock cycle; what a malformed stylesheet does; cleaning up old theme folders.</li>
+<li><strong>Installing User Themes</strong> through the Shell, including when extension installation is disabled and when offline. Reading its schema from Rust without the process aborting.</li>
+<li><strong>adw-gtk3.</strong> Does it take colour overrides from the user's <code>gtk.css</code>? Per-user install; behaviour with High Contrast.</li>
+<li><strong>Kitty.</strong> Which version added automatic config reload, and does it watch included files?</li>
+<li><strong>Exact undo.</strong> Settings unset versus default; list-valued settings; created directories; symlinked configs; security labels after restore.</li>
+<li><strong>Role sufficiency.</strong> Write the GTK, Kitty and Neovim outputs for Aetherius by hand from the proposed roles and compare with the current desktop.</li>
+<li><strong>Rust measurements.</strong> Binary sizes, crate count, start time and memory of a switch, build times, and the owner's own speed on one GUI screen. Icon recolouring speed against a plain Python baseline.</li>
+<li><strong>Translation tooling</strong> for Rust sources on the CI image.</li>
+<li><strong>Compiling the Shell's style sources</strong> with a Rust SASS compiler, as the route to exact accent and full coverage.</li>
+<li><strong>Related work.</strong> Look at <code>gtheme</code> and Rewaita.</li>
+<li><strong>Sandbox check</strong> (only if a Flatpak build is wanted): can host settings be written from inside one?</li>
+</ol>
+
+<h2 id="by-reviewer">6. Main findings by reviewer</h2>
+<h3>GNOME/GTK platform</h3>
+<ul>
+<li>Blockers: the Shell theme must be overrides only; re-applying the same theme name does not reload the Shell.</li>
+<li>Extension stylesheets always outrank the user theme. The Shell accent cannot be set by simple overrides.</li>
+<li>User Themes is installed here but disabled; its schema is not on the default path; the lock screen is not themed at all.</li>
+<li>The GTK3 fallback is a no-op. An import at the top of <code>gtk.css</code> loses to definitions below it.</li>
+<li>Colour-scheme media queries need GTK 4.20; Flatpak apps use their runtime's GTK.</li>
+<li>Kitty's automatic theme files override everything and cannot be app-owned. Ghostty has two config file names.</li>
+<li>Icon sets in <code>~/.local/share/icons</code> are already visible to Flatpak apps.</li>
+<li>X11 app title bars pick up <code>gtk.css</code> only at login. GNOME 50 has no nested Shell mode for testing.</li>
+<li>Forgotten areas: Ptyxis, GNOME Text Editor, the legacy <code>settings.ini</code> dark preference, the desktop portal.</li>
+</ul>
+<h3>Safety and reliability</h3>
+<ul>
+<li>Blockers: blind crash recovery; plans going stale between preview and apply; missing settings schema aborting mid-apply; an under-defined "original" snapshot; the active old timer; existing settings making the MVP a no-op; theme strings reaching generated files; no unattended policy; stale Shell theme after an upgrade.</li>
+<li>Durability order (what is synced and when) was unspecified. Rename loses extended attributes, access lists and security labels.</li>
+<li>Symlinks: dotfile tools, links leaving the home directory, <code>/home</code> itself being a link.</li>
+<li>Drift must be measured on the app's span only, or every user edit triggers a prompt.</li>
+<li>Marker grammar, byte fidelity and element-level undo were unspecified.</li>
+<li>Backup store: integrity checks, safe pruning, size growth from icon sets, privacy.</li>
+<li>Firefox's preference is not reversible by removing the line.</li>
+<li>A long list of missing failure tests, now in the test plan.</li>
+</ul>
+<h3>UX/UI</h3>
+<ul>
+<li>Blockers: the first-run flow was too long; the app itself would be recoloured into unreadability; the minimum-version claim was not achievable; High Contrast had no mechanism; nothing prevented applying an unreadable theme.</li>
+<li>Target state in two places; no indication of the theme in use; theme and variant names colliding.</li>
+<li>Internal vocabulary leaking into the interface; three inconsistent badge sets.</li>
+<li>Day and night confused with dark style and Night Light.</li>
+<li>The only Undo was in a transient message. Failure and conflict messages were undesigned.</li>
+<li>Editor too large; import and trust prompt undesigned.</li>
+<li>CLI vocabulary differed from the GUI; <code>disconnect</code> with no argument was dangerous.</li>
+</ul>
+<h3>Architecture and maintainability</h3>
+<ul>
+<li>Blockers: the format could not carry the existing palettes; "pure planners" was not achievable; per-version Shell overrides are the largest recurring cost; the MVP was too large.</li>
+<li>The language comparison overstated Rust and omitted velocity, testability and release cost.</li>
+<li>Derivation must be versioned or users' themes change silently.</li>
+<li>Multi-instance targets had no place in the model. The change list was incomplete.</li>
+<li>No host abstraction was defined, though tests and distribution both depend on one.</li>
+<li>Persisted formats need versions; the backup manifest is the longest-lived interface.</li>
+<li>Estimated upkeep: two to five days per GNOME release for Shell overrides, twice a year.</li>
+</ul>
+<h3>Packaging and distribution</h3>
+<ul>
+<li>Blocker: a full-fidelity Flathub release is unrealistic, for permission and policy reasons.</li>
+<li>Host settings written from a sandbox can fail silently. Timers and the CLI are awkward from a sandbox.</li>
+<li>State must live in one place across install channels.</li>
+<li>Bundled data should be compiled in. Crate names, minimum compiler version and vendoring should be fixed early.</li>
+<li>Immutable desktops have no <code>dnf install</code>; per-user installs must be the primary advice.</li>
+<li>The extension belongs on extensions.gnome.org, with its review rules in mind.</li>
+<li>The application ID fixes many other names and must be chosen before the repository exists.</li>
+</ul>
+</main>
+</body>
+</html>
