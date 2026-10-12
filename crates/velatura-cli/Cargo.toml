@@ -20,6 +20,7 @@ gio = ["velatura-engine/gio"]
 serde_json = { version = "1", default-features = false, features = ["std"] }
 velatura-theme = { path = "../velatura-theme" }
 velatura-engine = { path = "../velatura-engine" }
+velatura-text = { path = "../velatura-text" }
 
 [lints]
 workspace = true

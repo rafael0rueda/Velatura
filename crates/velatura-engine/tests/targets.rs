@@ -450,6 +450,51 @@ fn other_theming_tools_are_found_by_what_they_leave_behind() {
     ));
 }
 
+#[test]
+fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    engine::set_included(&host, GHOSTTY, false).unwrap();
+    assert_eq!(engine::excluded(&host).unwrap(), [GHOSTTY]);
+    let p = plan(&host, &t[0]);
+    assert_eq!(target(&p, GHOSTTY).skipped, Some(Skip::NotSelected));
+    assert!(target(&p, KITTY).skipped.is_none());
+
+    let resolved = Resolved::new(&t[0], None).unwrap();
+    let named = ApplyOpts {
+        only: vec!["ghostty".to_owned()],
+        ..ApplyOpts::default()
+    };
+    let p = engine::plan_apply(&host, &no_env, &resolved, &named).unwrap();
+    assert!(target(&p, GHOSTTY).skipped.is_none(), "naming it overrides");
+
+    engine::set_included(&host, GHOSTTY, true).unwrap();
+    assert!(target(&plan(&host, &t[0]), GHOSTTY).skipped.is_none());
+    engine::save_window_size(&host, 900, 640).unwrap();
+    assert_eq!(engine::window_size(&host), Some((900, 640)));
+    assert!(engine::excluded(&host).unwrap().is_empty());
+}
+
+#[test]
+fn restore_to_goes_back_to_before_the_named_backup() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let start = home.user_files();
+    apply(&host, &t[0]);
+    let after_first = home.user_files();
+    apply(&host, &t[1]);
+    apply(&host, &t[0]);
+    assert_eq!(engine::restore_to(&host, 2).unwrap().len(), 2);
+    assert_eq!(home.user_files(), after_first);
+    assert!(engine::restore_to(&host, 2).is_err(), "already undone");
+    assert_eq!(engine::restore_to(&host, 1).unwrap().len(), 1);
+    assert_eq!(home.user_files(), start);
+}
+
 /// Backups written by the first released format must stay restorable by
 /// every later build. The fixture was written by phase 1b and is not
 /// regenerated: if this test fails, the format changed incompatibly.

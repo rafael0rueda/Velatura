@@ -56,6 +56,25 @@ else
     echo "NOT RUN: Ghostty is not installed (it is not packaged for the CI image)"
 fi
 
+step "app"
+# The window, driven for real in a throw-away session: first apply through
+# the confirmation, then undo, with the sandbox's files checked after.
+desktop-file-validate data/io.github.rafael0rueda.Velatura.desktop
+scripts/update-pot.sh >/dev/null
+git diff --quiet -- po/velatura.pot || { echo "po/velatura.pot is out of date: run scripts/update-pot.sh"; exit 1; }
+if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
+    shots=$(mktemp -d)
+    flow=$(scripts/gui-shots.sh "$shots" --flow 2>/dev/null | grep -E '^(FLOW|SANDBOX)' || true)
+    rm -rf "$shots"
+    echo "$flow"
+    for want in 'FLOW confirmation shown' 'FLOW applied=Some("ember/default")' \
+        'FLOW undone applied=None' 'SANDBOX No theme applied.' 'SANDBOX kitty.conf: font_size 12|'; do
+        grep -qxF "$want" <<<"$flow" || { echo "app flow check failed, missing: $want"; exit 1; }
+    done
+else
+    echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
+fi
+
 step "docs"
 python3 scripts/check_docs.py
 

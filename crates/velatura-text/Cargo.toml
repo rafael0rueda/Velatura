@@ -1,0 +1,15 @@
+[package]
+name = "velatura-text"
+description = "The sentences Velatura shows people, shared by the command and the app."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+velatura-theme = { path = "../velatura-theme" }
+velatura-engine = { path = "../velatura-engine" }
+
+[lints]
+workspace = true

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- A panel with a band of glaze across it and a brush. One colour. -->
+  <path fill="#2e3436" d="M3 2 a2 2 0 0 0 -2 2 v8 a2 2 0 0 0 2 2 h5 v-2 H3 V9 h5 V7 H3 V4 h8 v1 h2 V4 a2 2 0 0 0 -2 -2 z"/>
+  <path fill="#2e3436" d="M13.3 6.3 l1.4 1.4 -3.6 3.6 -1.4 -1.4 z M9 10.6 l1.4 1.4 -1.1 1.1 c-.6 .6 -1.9 .9 -2.8 .9 0 -.9 .8 -1.8 1.4 -2.3 z"/>
+</svg>

@@ -1,0 +1,23 @@
+[package]
+name = "velatura-gui"
+description = "The Velatura app."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "velatura-app"
+path = "src/main.rs"
+
+[dependencies]
+# Only what libadwaita 1.6 offers is used, so the app runs on GNOME 47.
+adw = { package = "libadwaita", version = "0.9", features = ["v1_6"] }
+gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }
+velatura-theme = { path = "../velatura-theme" }
+velatura-engine = { path = "../velatura-engine", features = ["gio"] }
+velatura-text = { path = "../velatura-text" }
+
+[lints]
+workspace = true

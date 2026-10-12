@@ -1,4 +1,5 @@
-//! Every sentence the command prints, in one place.
+//! Every sentence about a plan or its outcome, in one place, shared by the
+//! command and the app.
 //!
 //! The engine returns typed values; this module turns them into text. Source
 //! text is US English and follows the GNOME writing guidelines: short,
@@ -93,6 +94,11 @@ fn setting_value(key: &str, value: Option<&str>) -> String {
                 .unwrap_or_default()
         }
     }
+}
+
+/// The display name of a system accent, from its settings value.
+pub fn accent_name(value: &str) -> String {
+    setting_value("accent-color", Some(value))
 }
 
 pub fn change(c: &Change, home: &Path) -> String {

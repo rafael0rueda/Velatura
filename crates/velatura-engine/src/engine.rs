@@ -14,8 +14,8 @@ use crate::block;
 use crate::host::{Host, acquire_lock};
 use crate::plan::{Cause, Change, Note, Plan, Skip, TargetPlan};
 use crate::store::{
-    self, Ledger, Manifest, Record, State, StoreError, get_blob, hash_opt, path_str, put_blob,
-    read_opt, setting_id,
+    self, Ledger, Manifest, Prefs, Record, State, StoreError, get_blob, hash_opt, path_str,
+    put_blob, read_opt, setting_id,
 };
 use crate::targets::{self, Env};
 use crate::txn::{self, Failure, Rollback, Step};
@@ -66,10 +66,15 @@ pub fn plan_apply(
     opts: &ApplyOpts,
 ) -> Result<Plan, Error> {
     let state = State::load(host)?;
+    let prefs = Prefs::load(host)?;
     let mut plans = Vec::new();
     for instance in targets::INSTANCES {
-        let selected = (opts.only.is_empty() || matches(instance, &opts.only))
-            && !matches(instance, &opts.except);
+        // Naming a target outright overrides having turned it off.
+        let selected = if opts.only.is_empty() {
+            !prefs.excluded.contains(instance)
+        } else {
+            matches(instance, &opts.only)
+        } && !matches(instance, &opts.except);
         plans.push(if selected {
             targets::plan(instance, host, env, theme, &state, opts.replace_changed)
         } else {
@@ -476,6 +481,57 @@ fn next_id(host: &Host<'_>) -> Result<u64, Error> {
         }
     }
     Ok(max + 1)
+}
+
+/// Turn an instance on or off for future applies. What is already applied
+/// to it stays until the next apply or undo.
+pub fn set_included(host: &Host<'_>, instance: &str, included: bool) -> Result<(), Error> {
+    let mut prefs = Prefs::load(host)?;
+    let changed = if included {
+        prefs.excluded.remove(instance)
+    } else {
+        prefs.excluded.insert(instance.to_owned())
+    };
+    if changed {
+        io(prefs.save(host))?;
+    }
+    Ok(())
+}
+
+/// Remember the app window's size for its next start.
+pub fn save_window_size(host: &Host<'_>, width: i32, height: i32) -> Result<(), Error> {
+    let mut prefs = Prefs::load(host)?;
+    prefs.window = Some((width, height));
+    io(prefs.save(host))
+}
+
+pub fn window_size(host: &Host<'_>) -> Option<(i32, i32)> {
+    Prefs::load(host).ok().and_then(|p| p.window)
+}
+
+/// Instances turned off for future applies.
+pub fn excluded(host: &Host<'_>) -> Result<Vec<String>, Error> {
+    Ok(Prefs::load(host)?.excluded.into_iter().collect())
+}
+
+/// Undo backups, newest first, down to and including `id`: the result is
+/// the state from before that backup. Stops at the first step that fails.
+pub fn restore_to(host: &Host<'_>, id: u64) -> Result<Vec<Report>, Error> {
+    let mut reports = Vec::new();
+    loop {
+        let plan = match plan_undo(host) {
+            Err(Error::NothingToUndo) if !reports.is_empty() => return Ok(reports),
+            other => other?,
+        };
+        if plan.undo_of.is_none_or(|current| current < id) {
+            return if reports.is_empty() {
+                Err(Error::NothingToUndo)
+            } else {
+                Ok(reports)
+            };
+        }
+        reports.push(execute(host, &plan, &[])?);
+    }
 }
 
 /// Roll back an interrupted run, if there is one. Used at start-up and by
