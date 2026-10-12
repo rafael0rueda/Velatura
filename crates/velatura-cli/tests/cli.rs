@@ -49,6 +49,24 @@ impl Sandbox {
             .unwrap()
     }
 
+    /// The command as run from a text console: no session bus at all.
+    fn velatura_without_session(&self, args: &[&str]) -> (i32, String, String) {
+        let out = Command::new(env!("CARGO_BIN_EXE_velatura"))
+            .args(args)
+            .env_clear()
+            .env("HOME", self.home())
+            .env("PATH", std::env::var_os("PATH").unwrap_or_default())
+            .env("LC_ALL", "C.UTF-8")
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        (
+            out.status.code().unwrap_or(-1),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        )
+    }
+
     fn velatura(&self, args: &[&str]) -> (i32, String, String) {
         let out = self.run(Path::new(env!("CARGO_BIN_EXE_velatura")), args);
         (
@@ -171,6 +189,27 @@ fn apply_and_undo_against_a_private_settings_store() {
     assert_eq!(code, 0, "{out}");
     assert_eq!(fs::read_to_string(&conf).unwrap(), original);
     assert_eq!(sb.gsetting("color-scheme"), "'default'");
+
+    // From a text console with no desktop session: files are put back, and
+    // the settings that could not be are listed with the command to run.
+    assert_eq!(sb.velatura(&["apply", "ember", "--yes"]).0, 0);
+    let (code, out, err) = sb.velatura_without_session(&["undo"]);
+    assert_eq!(code, 5, "{out}{err}");
+    assert_eq!(fs::read_to_string(&conf).unwrap(), original);
+    assert!(!owned.exists());
+    assert!(
+        out.contains("run: gsettings reset org.gnome.desktop.interface accent-color"),
+        "{out}"
+    );
+    assert!(
+        !out.contains("Set Accent Color"),
+        "nothing is claimed that did not happen: {out}"
+    );
+    assert_eq!(sb.gsetting("accent-color"), "'orange'", "truly unchanged");
+    // The same from the desktop, and a theme can be applied again after.
+    let (code, out, _) = sb.velatura_without_session(&["apply", "ember", "--yes", "--preview"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("desktop settings are not available"), "{out}");
 
     // Usage errors and an invalid theme file.
     assert_eq!(sb.velatura(&["apply", "no-such-theme"]).0, 2);

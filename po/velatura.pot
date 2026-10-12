@@ -89,6 +89,33 @@ msgstr ""
 msgid "In Use"
 msgstr ""
 
+msgid "Day and Night"
+msgstr ""
+
+msgid "Two themes to change between with one press"
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "_Daytime Theme"
+msgstr ""
+
+msgid "_Nighttime Theme"
+msgstr ""
+
+msgid "The choice could not be saved"
+msgstr ""
+
+msgid "_Switch to Nighttime Theme"
+msgstr ""
+
+msgid "_Switch to Daytime Theme"
+msgstr ""
+
+msgid "That theme is no longer available"
+msgstr ""
+
 msgid "Style"
 msgstr ""
 
@@ -130,9 +157,6 @@ msgid ""
 msgstr ""
 
 msgid "Velatura's own records cannot be read. Nothing was changed."
-msgstr ""
-
-msgid "That theme is no longer available"
 msgstr ""
 
 msgid "Theme Not Applied"
@@ -213,10 +237,10 @@ msgstr ""
 msgid "Left out"
 msgstr ""
 
-msgid "Unofficial: may stop working after a GNOME update"
+msgid "Set up, but not taking effect"
 msgstr ""
 
-msgid "The choice could not be saved"
+msgid "Unofficial: may stop working after a GNOME update"
 msgstr ""
 
 msgid "_Remove Everything Velatura Added"

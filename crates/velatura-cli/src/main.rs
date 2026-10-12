@@ -13,6 +13,7 @@ use velatura_engine::engine::{self, ApplyOpts, Error, Health, Report};
 use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs};
 use velatura_engine::library;
 use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
+use velatura_engine::store::DayNight;
 use velatura_engine::targets;
 use velatura_text as text;
 use velatura_theme::model::{ANSI_NAMES, clean_text};
@@ -129,6 +130,9 @@ fn main() -> ExitCode {
         ["show", theme] => cx.show(theme),
         ["targets"] => cx.targets(),
         ["apply", theme] => cx.apply(theme),
+        ["switch"] => cx.switch_show(),
+        ["switch", "set", which @ ("day" | "night"), theme] => cx.switch_set(which, theme),
+        ["switch", which @ ("day" | "night" | "toggle")] => cx.switch(which),
         ["undo"] | ["revert"] => cx.undo(None),
         ["history"] => cx.history(),
         ["restore"] if args.original => cx.restore_original(),
@@ -228,6 +232,12 @@ fn validate(file: &str, args: &Args) -> u8 {
     }
 }
 
+/// True if an applied `theme/variant` is the theme a choice names. A choice
+/// without a variant means the theme's default one.
+fn same_theme(label: &str, spec: &str) -> bool {
+    label == spec || (!spec.contains('/') && label.split('/').next() == Some(spec))
+}
+
 fn skip_code(s: &Skip) -> &'static str {
     match s {
         Skip::NotInstalled => "not-installed",
@@ -243,6 +253,7 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::HardLinked(_) => "hard-linked",
         Skip::HighContrast => "high-contrast",
         Skip::NeedsAdwGtk3 => "needs-adw-gtk3",
+        Skip::NeedsUserThemes => "needs-user-themes",
     }
 }
 
@@ -253,6 +264,9 @@ fn note_code(n: &Note) -> &'static str {
         Note::GtkRestart => "gtk-restart",
         Note::LinkedFile { .. } => "linked-file",
         Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
+        Note::SettingNeedsSession { .. } => "setting-needs-session",
+        Note::UserThemesOff => "user-themes-off",
+        Note::ShellExtensionStyles { .. } => "shell-extension-styles",
         Note::KittyAutoTheme { .. } => "kitty-auto-theme",
         Note::KittyReload => "kitty-reload",
         Note::AccentNearest { .. } => "accent-nearest",
@@ -421,11 +435,9 @@ impl Cx<'_> {
             ),
         ];
         for (id, name, support, place) in rows {
-            println!("{id:<9} {name:<28} {support:<11} {place}");
+            println!("{id:<17} {name:<28} {support:<11} {place}");
         }
-        println!(
-            "\nUnofficial: not supported by GNOME; may stop working after an update.\nGNOME Shell arrives in a later version."
-        );
+        println!("\nUnofficial: not supported by GNOME; may stop working after an update.");
         Ok(OK)
     }
 
@@ -588,7 +600,10 @@ impl Cx<'_> {
             for (instance, why) in &report.skipped {
                 if !matches!(
                     why,
-                    Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3
+                    Skip::NotSelected
+                        | Skip::NotInstalled
+                        | Skip::NeedsAdwGtk3
+                        | Skip::NeedsUserThemes
                 ) {
                     println!(
                         "{}: {}",
@@ -619,12 +634,14 @@ impl Cx<'_> {
         let left_out = report.skipped.iter().any(|(_, why)| {
             !matches!(
                 why,
-                Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3
+                Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3 | Skip::NeedsUserThemes
             )
-        }) || report
-            .notes
-            .iter()
-            .any(|(_, n)| matches!(n, Note::KeptFile { .. } | Note::KeptSetting { .. }));
+        }) || report.notes.iter().any(|(_, n)| {
+            matches!(
+                n,
+                Note::KeptFile { .. } | Note::KeptSetting { .. } | Note::SettingNeedsSession { .. }
+            )
+        });
         Ok(if left_out { PARTIAL } else { OK })
     }
 
@@ -637,6 +654,64 @@ impl Cx<'_> {
         let plan =
             self.with_theme(spec, |r, _| engine::plan_apply(&self.host, &env, r, &opts))??;
         self.run(&plan, true)
+    }
+
+    fn switch_show(&self) -> Outcome {
+        let chosen = DayNight::load(&self.host);
+        let show = |v: &Option<String>| v.clone().unwrap_or_else(|| "not chosen".to_owned());
+        println!("Daytime theme:   {}", show(&chosen.day));
+        println!("Nighttime theme: {}", show(&chosen.night));
+        println!(
+            "\nTo choose: velatura switch set day <theme>\nTo switch: velatura switch day, night or toggle"
+        );
+        Ok(OK)
+    }
+
+    fn switch_set(&self, which: &str, spec: &str) -> Outcome {
+        // Only a theme that exists can be chosen.
+        self.with_theme(spec, |_, _| ())?;
+        let mut chosen = DayNight::load(&self.host);
+        if which == "day" {
+            chosen.day = Some(spec.to_owned());
+        } else {
+            chosen.night = Some(spec.to_owned());
+        }
+        chosen.save(&self.host).map_err(|e| Exit {
+            code: FAILED,
+            message: clean_text(&e.to_string(), 300),
+        })?;
+        println!("The {which}time theme is now {}.", clean_text(spec, 80));
+        Ok(OK)
+    }
+
+    /// Apply the daytime or the nighttime theme, or whichever of the two is
+    /// not in use.
+    fn switch(&self, which: &str) -> Outcome {
+        let chosen = DayNight::load(&self.host);
+        let which = if which == "toggle" {
+            let applied = engine::status(&self.host)?.applied.map(|(label, _)| label);
+            let is_day = match (&applied, &chosen.day) {
+                (Some(label), Some(day)) => same_theme(label, day),
+                _ => false,
+            };
+            if is_day { "night" } else { "day" }
+        } else {
+            which
+        };
+        let spec = if which == "day" {
+            chosen.day
+        } else {
+            chosen.night
+        };
+        let Some(spec) = spec else {
+            return Err(Exit {
+                code: USAGE,
+                message: format!(
+                    "No {which}time theme is chosen yet. To choose one: velatura switch set {which} <theme>"
+                ),
+            });
+        };
+        self.apply(&spec)
     }
 
     /// Undo once, or with `until` keep undoing down to and including that
@@ -783,6 +858,8 @@ impl Cx<'_> {
                         n,
                         Note::Override { .. }
                             | Note::LinkedFile { .. }
+                            | Note::UserThemesOff
+                            | Note::ShellExtensionStyles { .. }
                             | Note::KittyAutoTheme { .. }
                             | Note::SettingLocked { .. }
                     ) {

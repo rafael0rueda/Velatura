@@ -23,6 +23,8 @@ Usage:
   velatura targets                 apps and desktop parts that can be themed
   velatura status                  theme in use and the state of each part
   velatura apply <theme>[/variant] apply a theme
+  velatura switch day|night|toggle apply the daytime or the nighttime theme
+  velatura switch set day <theme>  choose the daytime (or night) theme
   velatura undo                    reverse the most recent change
   velatura history                 backups, newest first
   velatura restore <id>            go back to the state before backup <id>
@@ -65,6 +67,7 @@ pub fn instance(id: &str) -> &str {
         "ghostty:default" => "Ghostty",
         "gtk4:default" => "Apps (GTK 4 and libadwaita)",
         "gtk3:default" => "Older Apps (GTK 3)",
+        "gnome:shell" => "Top Bar and Overview",
         "gnome:appearance" => "Style and Accent Color",
         "" => "Changes",
         other => other,
@@ -76,6 +79,7 @@ fn setting_name(key: &str) -> &str {
         "color-scheme" => "Style",
         "accent-color" => "Accent Color",
         "gtk-theme" => "Legacy Application Theme",
+        "name" => "Shell Theme",
         other => other,
     }
 }
@@ -83,7 +87,7 @@ fn setting_name(key: &str) -> &str {
 fn setting_value(key: &str, value: Option<&str>) -> String {
     match (key, value) {
         (_, None) => "the default".to_owned(),
-        ("gtk-theme", Some(v)) => v.to_owned(),
+        ("gtk-theme" | "name", Some(v)) => v.to_owned(),
         ("color-scheme", Some("prefer-dark")) => "Dark".to_owned(),
         ("color-scheme", Some("default")) => "Default".to_owned(),
         ("color-scheme", Some("prefer-light")) => "Light".to_owned(),
@@ -180,6 +184,7 @@ pub fn skip(why: &Skip, home: &Path) -> String {
         Skip::HighContrast => {
             "Left out: High Contrast is on, and recoloring would lower contrast".to_owned()
         }
+        Skip::NeedsUserThemes => "Left out: the top bar and overview can only be recolored through the User Themes extension, which is not installed. It is in the gnome-shell-extension-user-theme package and on extensions.gnome.org".to_owned(),
         Skip::NeedsAdwGtk3 => "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package".to_owned(),
     }
 }
@@ -212,6 +217,26 @@ pub fn note(n: &Note, home: &Path) -> String {
             "{} is a link. The change is written to {}",
             path(p, home),
             path(real, home)
+        ),
+        Note::SettingNeedsSession { schema, key, value } => {
+            let quote = |v: &str| format!("'{}'", clean_text(v, 200).replace('\'', "'\\''"));
+            let (id, dir) = match schema.split_once('@') {
+                Some((id, dir)) => (id, format!("--schemadir {} ", quote(dir))),
+                None => (schema.as_str(), String::new()),
+            };
+            let command = match value {
+                Some(v) => format!("gsettings {dir}set {id} {key} {}", quote(v)),
+                None => format!("gsettings {dir}reset {id} {key}"),
+            };
+            format!(
+                "{} could not be put back without a desktop session. After signing in, run: {command}",
+                setting_name(key)
+            )
+        }
+        Note::UserThemesOff => "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app".to_owned(),
+        Note::ShellExtensionStyles { names } => format!(
+            "These extensions bring their own colors, which win over the theme where they apply: {}",
+            clean_text(&names.join(", "), 400)
         ),
         Note::Gtk3DarkForced { path: p } => format!(
             "{} asks older apps for dark and can work against this light theme",

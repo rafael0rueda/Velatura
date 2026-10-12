@@ -138,6 +138,21 @@ fn current_setting(host: &Host<'_>, schema: &str, key: &str) -> Option<Option<St
         .map(|s| s.user)
 }
 
+/// The note for a setting that could not be planned: the store cannot be
+/// reached at all, or the setting was changed by someone else.
+fn kept_setting(host: &Host<'_>, schema: &str, key: &str, wanted: &Option<String>) -> Note {
+    match host.settings.read(schema, key) {
+        Err(crate::host::SettingsError::Unavailable(_)) => Note::SettingNeedsSession {
+            schema: schema.to_owned(),
+            key: key.to_owned(),
+            value: wanted.clone(),
+        },
+        _ => Note::KeptSetting {
+            key: setting_id(schema, key),
+        },
+    }
+}
+
 /// What undoing the most recent change would do. Reads only.
 pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
     let (all, _) = io(store::manifests(host))?;
@@ -219,9 +234,7 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
                     value: pre.clone(),
                     pre: now,
                 }),
-                _ => out.notes.push(Note::KeptSetting {
-                    key: setting_id(schema, key),
-                }),
+                _ => out.notes.push(kept_setting(host, schema, key, pre)),
             },
         }
     }
@@ -267,7 +280,7 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
         });
     }
     for (id, written) in &state.settings {
-        let Some((schema, key)) = id.split_once(' ') else {
+        let Some((schema, key)) = id.rsplit_once(' ') else {
             continue;
         };
         let original = ledger.settings.get(id).and_then(|(_, was)| was.clone());
@@ -279,7 +292,7 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
                 value: original,
                 pre: now,
             }),
-            _ => out.notes.push(Note::KeptSetting { key: id.clone() }),
+            _ => out.notes.push(kept_setting(host, schema, key, &original)),
         }
     }
     Ok(Plan {
@@ -603,7 +616,7 @@ pub fn status(host: &Host<'_>) -> Result<Status, Error> {
         s.blocks.push((path_str(Path::new(path)), health));
     }
     for (id, written) in &state.settings {
-        let health = match id.split_once(' ') {
+        let health = match id.rsplit_once(' ') {
             Some((schema, key)) => match current_setting(host, schema, key) {
                 Some(now) if now == *written => Health::Ok,
                 Some(_) => Health::Changed,

@@ -1,0 +1,6 @@
+{
+  "uuid": "velatura-accept@test",
+  "name": "Velatura acceptance probe",
+  "description": "Test only: writes the panel's computed background colour to a file once a second.",
+  "shell-version": ["47", "48", "49", "50", "51"]
+}

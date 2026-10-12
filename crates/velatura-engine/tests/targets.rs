@@ -12,7 +12,7 @@ use velatura_engine::host::{Dirs, Faults, Fs, Host, MemSettings, Settings, StdFs
 use velatura_engine::plan::{Note, Plan, Skip, TargetPlan};
 use velatura_engine::store;
 use velatura_engine::targets::{
-    self, GHOSTTY, GTK3, GTK4, INSTANCES, INTERFACE_SCHEMA, KITTY, OtherTool,
+    self, GHOSTTY, GTK3, GTK4, INSTANCES, INTERFACE_SCHEMA, KITTY, OtherTool, SHELL,
 };
 use velatura_theme::{Resolved, Theme, bundled};
 
@@ -47,6 +47,15 @@ impl Home {
                 "",
             );
         }
+        // User Themes as a distribution package installs it: no schema of
+        // its own. Here it lives in the user's folder to stay in the sandbox.
+        h.write(
+            &format!(
+                ".local/share/gnome-shell/extensions/{}/metadata.json",
+                targets::USER_THEMES
+            ),
+            "{}",
+        );
         h.write(".config/kitty/kitty.conf", "font_size 12\n");
         h.write(
             ".config/ghostty/config",
@@ -199,7 +208,8 @@ fn all_five_apply_and_undo_to_the_exact_start() {
 
     // A second theme only rewrites the four colour files and the accent.
     let second = apply(&host, &t[0]);
-    assert_eq!(second.changes.len(), 5, "{:?}", second.changes);
+    // Plus the Shell: a new theme folder in, the old one out, the name set.
+    assert_eq!(second.changes.len(), 5 + 7, "{:?}", second.changes);
     assert!(plan(&host, &t[0]).is_empty());
 
     undo(&host);
@@ -451,6 +461,150 @@ fn other_theming_tools_are_found_by_what_they_leave_behind() {
 }
 
 #[test]
+fn day_and_night_choices_are_kept_in_a_file_a_person_can_edit() {
+    use velatura_engine::store::{DayNight, is_theme_spec};
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    assert_eq!(DayNight::load(&host), DayNight::default());
+
+    home.write(".config/velatura/config.toml", "# mine\nretention = 20\n");
+    let chosen = DayNight {
+        day: Some("aetherius".to_owned()),
+        night: Some("ember/default".to_owned()),
+    };
+    chosen.save(&host).unwrap();
+    assert_eq!(
+        home.read(".config/velatura/config.toml"),
+        "day = \"aetherius\"\nnight = \"ember/default\"\n# mine\nretention = 20\n"
+    );
+    assert_eq!(DayNight::load(&host), chosen);
+    DayNight {
+        day: None,
+        ..chosen.clone()
+    }
+    .save(&host)
+    .unwrap();
+    assert_eq!(DayNight::load(&host).day, None);
+
+    // Anything that is not a plain theme name is ignored, not trusted.
+    home.write(
+        ".config/velatura/config.toml",
+        "day = \"../../etc\"\nnight = 7\n",
+    );
+    assert_eq!(DayNight::load(&host), DayNight::default());
+    for bad in ["", "a/b/c", "A", "a b", "a/", "/a", "a\nb"] {
+        assert!(!is_theme_spec(bad), "{bad:?}");
+    }
+    assert!(is_theme_spec("base16-ocean/dark"));
+}
+
+const SHELL_SCHEMA: &str = "org.gnome.shell.extensions.user-theme";
+
+#[test]
+fn the_shell_theme_gets_a_new_folder_per_theme_and_the_old_one_is_cleared() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let start = home.user_files();
+    let name = |s: &MemSettings| s.read(SHELL_SCHEMA, "name").unwrap().unwrap().effective;
+    let folders = |home: &Home| -> Vec<String> {
+        let mut v: Vec<String> = fs::read_dir(home.path(".local/share/themes"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|n| n.starts_with("Velatura-"))
+            .collect();
+        v.sort();
+        v
+    };
+
+    apply(&host, &t[0]);
+    let first = name(&settings);
+    assert!(first.starts_with("Velatura-"));
+    assert_eq!(folders(&home), std::slice::from_ref(&first));
+    let css = home.read(&format!(
+        ".local/share/themes/{first}/gnome-shell/gnome-shell.css"
+    ));
+    assert!(css.contains("#panel { background-color: #0d101a; color: #d3d9ee; }"));
+
+    // A new theme means a new name, or the Shell would not reload.
+    apply(&host, &t[1]);
+    let second = name(&settings);
+    assert_ne!(first, second);
+    assert_eq!(
+        folders(&home),
+        std::slice::from_ref(&second),
+        "the earlier folder is gone"
+    );
+    assert!(plan(&host, &t[1]).is_empty());
+
+    undo(&host);
+    assert_eq!(name(&settings), first);
+    assert_eq!(folders(&home), [first], "and comes back with undo");
+    undo(&host);
+    assert_eq!(home.user_files(), start);
+    assert!(settings.snapshot().is_empty());
+}
+
+#[test]
+fn the_shell_needs_user_themes_and_reports_what_hides_the_theme() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let ext = format!(
+        ".local/share/gnome-shell/extensions/{}",
+        targets::USER_THEMES
+    );
+
+    // Installed for the user, the extension's own schema folder is used.
+    home.write(&format!("{ext}/schemas/gschemas.compiled"), "");
+    let own = format!(
+        "{SHELL_SCHEMA}@{}",
+        home.path(&format!("{ext}/schemas")).display()
+    );
+    home.write(
+        ".local/share/gnome-shell/extensions/styled@test/stylesheet.css",
+        "",
+    );
+    let settings = MemSettings::new(&[
+        (INTERFACE_SCHEMA, "color-scheme", "default"),
+        (&own, "name", "Dracula"),
+        (
+            "org.gnome.shell",
+            "enabled-extensions",
+            "['styled@test', 'plain@test']",
+        ),
+    ]);
+    let host = home.host(&StdFs, &settings);
+    let p = plan(&host, &t[0]);
+    let shell = target(&p, SHELL);
+    assert!(shell.skipped.is_none());
+    assert!(shell.notes.contains(&Note::UserThemesOff));
+    assert!(shell.notes.contains(&Note::ShellExtensionStyles {
+        names: vec!["styled@test".to_owned()]
+    }));
+    engine::execute(&host, &p, &everyone()).unwrap();
+    assert!(
+        settings
+            .read(&own, "name")
+            .unwrap()
+            .unwrap()
+            .effective
+            .starts_with("Velatura-")
+    );
+    undo(&host);
+    assert!(
+        settings.snapshot().is_empty(),
+        "the leftover default name is back"
+    );
+
+    // Without the extension the Shell is left out; with High Contrast too.
+    fs::remove_dir_all(home.path(&ext)).unwrap();
+    let p = plan(&home.host(&StdFs, &MemSettings::gnome()), &t[0]);
+    assert_eq!(target(&p, SHELL).skipped, Some(Skip::NeedsUserThemes));
+}
+
+#[test]
 fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     let t = bundled::themes();
     let home = Home::full();
@@ -558,7 +712,7 @@ fn write_fixture(fixture: &Path) {
     let resolved_theme = bundled::themes();
     let resolved = Resolved::new(&resolved_theme[1], None).unwrap();
     let only = ApplyOpts {
-        only: vec!["kitty".to_owned(), "gnome".to_owned()],
+        only: vec!["kitty".to_owned(), "gnome:appearance".to_owned()],
         ..ApplyOpts::default()
     };
     let p = engine::plan_apply(&host, &no_env, &resolved, &only).unwrap();

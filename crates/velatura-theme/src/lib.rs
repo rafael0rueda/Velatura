@@ -11,6 +11,7 @@ pub mod ghostty;
 pub mod gtk;
 pub mod kitty;
 pub mod model;
+pub mod shell;
 
 pub use accent::{Accent, nearest_accent};
 pub use color::{Color, ParseColorError};

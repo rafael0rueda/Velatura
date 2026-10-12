@@ -125,7 +125,7 @@ fn themes() -> Vec<Theme> {
 /// The two targets of phase 1a, which most tests below are written around.
 fn two() -> ApplyOpts {
     ApplyOpts {
-        only: vec!["kitty".to_owned(), "gnome".to_owned()],
+        only: vec!["kitty".to_owned(), "gnome:appearance".to_owned()],
         ..ApplyOpts::default()
     }
 }

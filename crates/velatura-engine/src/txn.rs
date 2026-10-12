@@ -248,6 +248,21 @@ pub(crate) fn run(host: &Host<'_>, steps: &[Step]) -> Result<(), Failure> {
         }
     }
     host.settings.sync();
+    // A settings store can accept a write and lose it. Believe only what
+    // reads back.
+    for step in steps {
+        if let Step::Setting {
+            schema, key, value, ..
+        } = step
+            && user_value(host, schema, key).ok().as_ref() != Some(value)
+        {
+            return Err(Failure::Step {
+                what: label(step),
+                error: "the setting did not take the new value".to_owned(),
+                rollback: rollback(host, &journal),
+            });
+        }
+    }
 
     // 4. Removing the journal is the commit.
     if let Err(e) = host.fs.remove_file(&journal_path(host)) {

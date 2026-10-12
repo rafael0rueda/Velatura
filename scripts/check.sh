@@ -48,6 +48,12 @@ for major in 3 4; do
         echo "SKIPPED: GTK $major is not available to Python"; skipped+=("gtk$major")
     fi
 done
+# And a libadwaita app must compute those colours, over earlier definitions.
+if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
+    for f in "$golden"/*.gtk.css; do python3 scripts/gtk-probe.py "$f"; done
+else
+    echo "NOT RUN: the colour probe needs a display (none in CI)"
+fi
 if command -v ghostty >/dev/null 2>&1; then
     for f in "$golden"/*.ghostty.conf; do
         ghostty +validate-config --config-file="$f" && echo "Ghostty accepts $f"
@@ -79,6 +85,16 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
     done
 else
     echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
+fi
+
+step "shell"
+# The command applies themes in a sandbox and a headless GNOME Shell must
+# show their colours on the panel, reload on a new theme, and return to
+# stock after undo.
+if command -v gnome-shell >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
+    scripts/shell-accept.sh
+else
+    echo "NOT RUN: the Shell check needs gnome-shell (not in the CI image)"
 fi
 
 step "docs"

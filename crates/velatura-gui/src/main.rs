@@ -18,6 +18,7 @@ use gtk::{gio, glib};
 use velatura_engine::engine::{self, ApplyOpts, Error, Report};
 use velatura_engine::library::Entry;
 use velatura_engine::plan::{Note, Plan, Skip};
+use velatura_engine::store::DayNight;
 use velatura_engine::targets;
 use velatura_theme::{Resolved, nearest_accent};
 
@@ -362,7 +363,125 @@ fn themes_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         group.add(&row);
     }
     page.add(&group);
+    page.add(&day_night_group(ui, snap));
     page.upcast()
+}
+
+/// Choosing which theme is for the day and which for the night, and one
+/// button to change between them.
+fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(tr("Day and Night"))
+        .description(tr("Two themes to change between with one press"))
+        .build();
+    // Every theme and variant, as the engine names them and as shown.
+    let choices: Vec<(String, String)> = snap
+        .themes
+        .iter()
+        .flat_map(|e| {
+            e.theme.variants.iter().map(move |(key, v)| {
+                let spec = if key == e.theme.default_variant() {
+                    e.theme.id.clone()
+                } else {
+                    format!("{}/{key}", e.theme.id)
+                };
+                (spec, v.name.clone())
+            })
+        })
+        .collect();
+    let mut names = vec![tr("None")];
+    names.extend(choices.iter().map(|(_, name)| name.clone()));
+    let names: Vec<&str> = names.iter().map(String::as_str).collect();
+
+    for (which, title, current) in [
+        ("day", tr("_Daytime Theme"), &snap.day_night.day),
+        ("night", tr("_Nighttime Theme"), &snap.day_night.night),
+    ] {
+        let selected = current
+            .as_ref()
+            .and_then(|spec| choices.iter().position(|(s, _)| s == spec))
+            .map_or(0, |i| i + 1);
+        let row = adw::ComboRow::builder()
+            .title(title)
+            .use_underline(true)
+            .model(&gtk::StringList::new(&names))
+            .selected(selected as u32)
+            .build();
+        let weak = Rc::downgrade(ui);
+        let specs: Vec<String> = choices.iter().map(|(s, _)| s.clone()).collect();
+        row.connect_selected_notify(move |row| {
+            let picked = (row.selected() as usize)
+                .checked_sub(1)
+                .and_then(|i| specs.get(i).cloned());
+            if let Some(ui) = weak.upgrade() {
+                glib::spawn_future_local(async move {
+                    let saved = data::run(move |host| {
+                        let mut chosen = DayNight::load(host);
+                        if which == "day" {
+                            chosen.day = picked;
+                        } else {
+                            chosen.night = picked;
+                        }
+                        chosen.save(host)
+                    })
+                    .await;
+                    if !matches!(saved, Some(Ok(()))) {
+                        toast(&ui, &tr("The choice could not be saved"));
+                    }
+                    refresh(&ui).await;
+                });
+            }
+        });
+        group.add(&row);
+    }
+
+    // The button names where it goes: the one of the two not in use.
+    let is = |spec: &Option<String>| {
+        spec.as_ref()
+            .zip(snap.applied.as_ref())
+            .is_some_and(|(spec, label)| {
+                label == spec || (!spec.contains('/') && label.split('/').next() == Some(spec))
+            })
+    };
+    let to_night = is(&snap.day_night.day) || !is(&snap.day_night.night);
+    let (next, label) = if to_night && snap.day_night.night.is_some() {
+        (
+            snap.day_night.night.clone(),
+            tr("_Switch to Nighttime Theme"),
+        )
+    } else {
+        (snap.day_night.day.clone(), tr("_Switch to Daytime Theme"))
+    };
+    let switch = adw::ButtonRow::builder()
+        .title(label)
+        .use_underline(true)
+        .sensitive(next.is_some() && !is(&next))
+        .build();
+    let weak = Rc::downgrade(ui);
+    switch.connect_activated(move |_| {
+        if let (Some(ui), Some(spec)) = (weak.upgrade(), next.clone()) {
+            glib::spawn_future_local(async move {
+                let (id, variant) = match spec.split_once('/') {
+                    Some((id, v)) => (id.to_owned(), Some(v.to_owned())),
+                    None => (spec.clone(), None),
+                };
+                let variant = variant.or_else(|| {
+                    ui.snap
+                        .borrow()
+                        .themes
+                        .iter()
+                        .find(|e| e.theme.id == id)
+                        .map(|e| e.theme.default_variant().to_owned())
+                });
+                match variant {
+                    Some(variant) => apply_theme(&ui, id, variant).await,
+                    None => toast(&ui, &tr("That theme is no longer available")),
+                }
+            });
+        }
+    });
+    group.add(&switch);
+    group
 }
 
 /// The page for one theme: preview, a few facts, and the one button.
@@ -623,7 +742,7 @@ fn applied(ui: &U, name: &str, report: &Report, home: &Path) {
         .filter(|(_, why)| {
             !matches!(
                 why,
-                Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3
+                Skip::NotSelected | Skip::NotInstalled | Skip::NeedsAdwGtk3 | Skip::NeedsUserThemes
             )
         })
         .map(|(instance, why)| {
@@ -729,7 +848,14 @@ async fn undo(ui: &U) {
             let kept: Vec<String> = report
                 .notes
                 .iter()
-                .filter(|(_, n)| matches!(n, Note::KeptFile { .. } | Note::KeptSetting { .. }))
+                .filter(|(_, n)| {
+                    matches!(
+                        n,
+                        Note::KeptFile { .. }
+                            | Note::KeptSetting { .. }
+                            | Note::SettingNeedsSession { .. }
+                    )
+                })
                 .map(|(_, n)| velatura_text::note(n, &home))
                 .collect();
             if kept.is_empty() {
@@ -777,7 +903,7 @@ async fn roll_back(ui: &U) {
 fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     let page = adw::PreferencesPage::new();
     let groups = [
-        (tr("Desktop"), vec![targets::APPEARANCE]),
+        (tr("Desktop"), vec![targets::APPEARANCE, targets::SHELL]),
         (tr("Terminals"), vec![targets::KITTY, targets::GHOSTTY]),
         (tr("Apps"), vec![targets::GTK4, targets::GTK3]),
     ];
@@ -789,11 +915,19 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 RowState::Themed => (tr("Themed, and left out of the next apply"), true),
                 RowState::Ready if row.included => (tr("Included in the next apply"), true),
                 RowState::Ready => (tr("Left out"), true),
+                RowState::Shadowed(note) => (
+                    format!(
+                        "{}. {}",
+                        tr("Set up, but not taking effect"),
+                        velatura_text::note(note, &snap.home)
+                    ),
+                    true,
+                ),
                 RowState::Unavailable(why) => {
                     (words::reason(&velatura_text::skip(why, &snap.home)), false)
                 }
             };
-            let unofficial = matches!(row.instance, targets::GTK4 | targets::GTK3);
+            let unofficial = matches!(row.instance, targets::GTK4 | targets::GTK3 | targets::SHELL);
             let switch = adw::SwitchRow::builder()
                 .title(velatura_text::instance(row.instance))
                 .subtitle(if unofficial && available {
@@ -988,6 +1122,7 @@ async fn troubleshooting(ui: &U) {
     for row in &snap.rows {
         let state = match &row.state {
             RowState::Unavailable(why) => words::reason(&velatura_text::skip(why, &home)),
+            RowState::Shadowed(note) => velatura_text::note(note, &home),
             _ => tr("Can be themed"),
         };
         parts.add(
