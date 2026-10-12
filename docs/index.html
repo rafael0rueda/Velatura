@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Velatura – documentation</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:18px 0}
+.card{display:block;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;text-decoration:none;color:var(--fg)}
+.card strong{color:var(--ac);display:block;margin-bottom:4px}
+</style>
+</head>
+<body>
+<main>
+<h1>Velatura</h1>
+<p class="lead">A GNOME app that applies one colour theme to the whole desktop from one place. Planning documents, revision 2, 2026-10-11.</p>
+<div class="note"><strong>Status:</strong> plan approved on 2026-10-11. Work proceeds phase by phase; see the <a href="changelog/index.html">changelog</a> for what has been built.</div>
+
+<div class="cards">
+<a class="card" href="plan.html"><strong>Plan</strong>Scope, language comparison, theme file format, safety requirements, testing, roadmap, definition of done.</a>
+<a class="card" href="architecture.html"><strong>Architecture</strong>Components, target interface, apply engine, snapshots, security boundaries, CLI, GUI structure.</a>
+<a class="card" href="targets.html"><strong>Theming targets</strong>How each part of the desktop is themed, and whether that is official, a workaround, or not feasible.</a>
+<a class="card" href="decisions.html"><strong>Decisions log</strong>What was decided, by whom and why, and what still needs confirmation.</a>
+<a class="card" href="workflow.html"><strong>Workflow</strong>Branches, pull requests, the test gate and how phases are closed.</a>
+<a class="card" href="changelog/index.html"><strong>Changelog</strong>What each phase delivered.</a>
+<a class="card" href="spikes.html"><strong>Spike results</strong>What the Phase 0 experiments showed, with the open questions and their status.</a>
+<a class="card" href="review.html"><strong>Review findings</strong>Findings of the five reviews, what changed in the plan as a result, and the open questions.</a>
+</div>
+
+<h2 id="summary">The plan in brief</h2>
+<ul>
+<li><strong>Stack:</strong> Rust engine and CLI; GTK4/libadwaita GUI, in Rust unless a Phase 0 spike says otherwise; an optional small GNOME Shell extension in JavaScript.</li>
+<li><strong>Theme format:</strong> one TOML file per theme: named colours, fixed roles that refer to them, 16 terminal colours. Colours and short names only.</li>
+<li><strong>MVP, in four slices:</strong> engine and CLI with Kitty and the system accent and dark style; then Ghostty, GTK4/libadwaita and GTK3; then the GUI; then GNOME Shell through User Themes. Backups, preview, undo and restore from the first slice.</li>
+<li><strong>Honest limits:</strong> recolouring libadwaita apps and the Shell is unofficial and can break with GNOME updates. The Shell shows the nearest system accent, not the exact one. GTK3 needs the adw-gtk3 theme. Open apps keep their colours until restarted. The lock and login screens cannot be themed.</li>
+<li><strong>On this machine:</strong> existing settings would override the new theme in GTK, Kitty and Ghostty, and the old theme timer is still active. Both are handled in the plan and need a decision from you.</li>
+</ul>
+
+<h2 id="names">Name</h2>
+<p><strong>Velatura was chosen.</strong> The candidates considered:</p>
+<p>Checked on 2026-10-11 against Fedora 44 packages, Flathub and crates.io only. A web and GitHub search before the final choice is still advisable.</p>
+<div class="wrap"><table>
+<tr><th>Name</th><th>Meaning</th><th>Application ID</th><th>Clash check</th></tr>
+<tr><td><strong>Velatura</strong></td><td>Italian painting term for a thin glaze of colour laid over a finished surface. Pairs with Tempera.</td><td><code>io.github.rafael0rueda.Velatura</code></td><td>No match in the three sources.</td></tr>
+<tr><td><strong>Imprimatura</strong></td><td>The first tinted layer that sets the tone of a whole canvas.</td><td><code>io.github.rafael0rueda.Imprimatura</code></td><td>No match in the three sources. Longer to type as a command.</td></tr>
+<tr><td><strong>Livery</strong></td><td>The single colour scheme worn by a whole fleet.</td><td><code>io.github.rafael0rueda.Livery</code></td><td>An unrelated Rust crate named <code>livery</code> exists (a CSS engine), so the crate name would need a prefix.</td></tr>
+</table></div>
+<p>Rejected: Gesso (a Rust crate of that name is a Wayland wallpaper tool, too close), Patina (many unrelated crates), Palette and Paleta (existing GNOME apps), Gradience (the archived predecessor in this space).</p>
+
+
+</main>
+</body>
+</html>

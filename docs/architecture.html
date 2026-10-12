@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}h3{font-size:17px;margin-top:1.4em}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code,pre{font-family:ui-monospace,monospace;font-size:13.5px}pre{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0;border-radius:0 8px 8px 0}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Architecture</h1>
+<p class="lead">Revision 2, rewritten after the review. How the code is organised, how an apply works, how the GUI is laid out, and how distribution is kept open.</p>
+
+<h2 id="layout">1. Components</h2>
+<pre>velatura/
+├── crates/
+│   ├── velatura-theme/    theme model, parsing, derivation, contrast, renderers. No I/O at all.
+│   ├── velatura-engine/   plans, connectors, transactions, backups, host-access layer
+│   ├── velatura-cli/      the "velatura" command
+│   └── velatura-gui/      GTK4 + libadwaita application
+├── extension/             optional GNOME Shell companion extension (JavaScript)
+├── data/                  desktop file, icons, metainfo
+├── po/                    translations
+├── tests/                 goldens, fixtures (stock Shell stylesheets, old backup formats), harness
+├── docs/                  this documentation (HTML)
+└── meson.build            wraps Cargo for the GUI and installed data</pre>
+<div class="wrap"><table>
+<tr><th>Crate</th><th>Responsibility</th><th>Must not</th></tr>
+<tr><td><code>velatura-theme</code></td><td>Turn a theme file into a fully resolved set of typed colours, and render that into text for each app. Pure functions; can be fuzzed; all the editor preview needs.</td><td>Read or write anything.</td></tr>
+<tr><td><code>velatura-engine</code></td><td>Everything that inspects or changes the machine. Public interface of about eight operations: probe, plan, execute, undo, history, restore, disconnect, diagnose.</td><td>Depend on GTK (it may use GLib and GIO for settings), produce user-facing prose, or ask questions.</td></tr>
+<tr><td><code>velatura-cli</code></td><td>Arguments, translated text output, JSON output.</td><td>Hold logic the GUI would have to repeat.</td></tr>
+<tr><td><code>velatura-gui</code></td><td>Presentation. Calls the engine on a background thread; no async runtime.</td><td>Write any file itself.</td></tr>
+<tr><td><code>extension</code></td><td>Load one stylesheet into the Shell and reload it when it changes.</td><td>Contain theme logic, start programs, or patch Shell internals.</td></tr>
+</table></div>
+<p>Bundled themes and all version-specific data are compiled into the binaries, so they are found the same way when running from source, from a user-prefix install, from a package or from a sandbox. Messages, hints and errors cross the engine boundary as typed values with a stable code and arguments; the CLI and GUI turn them into translated text.</p>
+<p><strong>Dependency budget for the theme and engine crates:</strong> TOML reading and comment-preserving editing, JSON, error and logging facades, a hash, safe temporary files, a diff library, and GIO behind a feature switch. Colour maths, contrast, marker editing, key-file editing and placeholder substitution are written in-house. No regular-expression engine, async runtime, template engine or date library. CI fails if the crate count per binary exceeds a stated cap.</p>
+
+<h2 id="model">2. Data model</h2>
+<ul>
+<li><strong>Theme</strong> and <strong>Variant</strong>: parsed and validated TOML.</li>
+<li><strong>ResolvedTheme</strong>: sanitised identity, appearance, every role as a typed <code>Color</code>, and per-target slot values. A <code>Color</code> can only be formatted through a closed set of functions.</li>
+<li><strong>Instance</strong>: one concrete thing to theme, identified by target and instance, for example <code>kitty:default</code>, <code>firefox:default-release</code>, <code>obsidian:&lt;vault id&gt;</code>. Preferences, consent, backups, status and <code>--only</code> are all keyed this way.</li>
+<li><strong>Facts</strong>: what probing found about an instance: paths, versions, prerequisites, conflicts. Serialisable, so plans can be tested from stored facts.</li>
+<li><strong>Plan</strong>: an ordered list of Changes, each with the precondition it was computed against, plus conflicts needing an answer and hints for afterwards. Serialisable.</li>
+</ul>
+
+<h2 id="targets">3. Targets: renderer and connector</h2>
+<p>The first design claimed targets could be pure planners. The review showed that is false for most of them (Kitty must read <code>kitty.conf</code>, Firefox must find profiles). Each target is now two parts with a read-only probing step between them.</p>
+<pre>trait Renderer {                       // colours -&gt; bytes. Pure, golden-tested.
+    fn render(&amp;self, theme: &amp;ResolvedTheme, opts: &amp;RenderOpts) -&gt; Artifacts;
+}
+
+trait Connector {                      // where the bytes go
+    fn id(&amp;self) -&gt; TargetId;
+    fn requires(&amp;self) -&gt; &amp;[HostCapability];           // e.g. Systemd, ShellDbus, HostExec
+    fn probe(&amp;self, host: &amp;dyn HostRead) -&gt; Probe;      // read-only: instances + facts
+    fn plan(&amp;self, art: &amp;Artifacts, facts: &amp;Facts, prefs: &amp;InstancePrefs)
+        -&gt; Result&lt;TargetPlan, PlanError&gt;;               // pure
+}
+
+enum Change {
+    WriteOwnedFile  { path, content, mode },
+    RemoveOwned     { path },                    // moved into the backup store, not unlinked
+    CreateDir       { path, mode },              // undone only if still empty and created by us
+    Symlink         { path, target },            // e.g. timer enablement links
+    ManagedBlock    { path, marker, content, placement, comment_style },
+    StructuredEdit  { path, format, edits },     // key-level and list-member-level edits
+    SetSetting      { schema, schema_source, path, key, value },
+    InstallTree     { dest, staged, recipe_hash } // generated icon sets, by directory rename
+}</pre>
+<ul>
+<li><strong>Nothing happens that is not a Change.</strong> Creating a directory, enabling a timer or granting a Flatpak permission are all Changes, so they appear in the preview and in the backup. The Flatpak override is an edit of Flatpak's own key file, not a call to the <code>flatpak</code> program.</li>
+<li><strong>Simple renderers are embedded template files</strong> filled by an in-house substitution of the form <code>{role|format}</code> with four formats and no conditionals or loops. One named-colour renderer serves GTK4, GTK3 and Flatpak; one CSS-variable renderer serves Obsidian and Firefox. Third-party templates are a later, separate decision.</li>
+<li><strong>Version-specific data</strong> is a single list per target annotated with "since" and "removed", split only when a release makes a name harmful.</li>
+</ul>
+
+<h2 id="host">4. Host-access layer</h2>
+<p>All contact with the machine goes through one layer, defined in Phase 0 and enforced by a lint that bans direct file, process and directory-lookup calls elsewhere. It has a real implementation, a failure-injecting wrapper for tests, and room for a sandboxed implementation later.</p>
+<div class="wrap"><table>
+<tr><th>Part</th><th>Covers</th></tr>
+<tr><td>Directories</td><td>The host's XDG directories (never the process's own, which differ in a sandbox), system data directories taken from <code>XDG_DATA_DIRS</code>.</td></tr>
+<tr><td>Files</td><td>Read, atomic write, rename, create and remove empty directory, canonicalise, sync, free space; each path classified as visible, not reachable or portal-backed.</td></tr>
+<tr><td>Settings</td><td>GIO settings: user value versus default, set, reset, writability, schemas from the default source or from an extension's own directory. Asserts at start that the real dconf backend is in use.</td></tr>
+<tr><td>Session bus</td><td>GNOME Shell's extension interface: Shell version, list, install request, enable request.</td></tr>
+<tr><td>Programs</td><td>A closed list. After the review it contains only <code>systemctl --user</code>. Version probing of apps is optional and falls back to conservative behaviour.</td></tr>
+<tr><td>Self</td><td>How to invoke this CLI from a timer, and which install channel is running.</td></tr>
+<tr><td>Clock</td><td>For schedules and tests.</td></tr>
+</table></div>
+
+<h2 id="engine">5. Apply engine</h2>
+<ol>
+<li><strong>Lock.</strong> An operating-system file lock in the state directory. A second caller waits up to five seconds, then returns "busy" with its own exit code.</li>
+<li><strong>Recover.</strong> If the journal shows an unfinished apply, examine each item: unchanged from before is left alone; equal to what the interrupted apply wrote is rolled back; anything else was edited since and is kept and reported.</li>
+<li><strong>Probe and plan.</strong> Each enabled connector probes its instances and returns Changes, conflicts and hints.</li>
+<li><strong>Check.</strong> Resolve symlinks on both the path and the home directory. Confirm the real location is in that target's allow-list and is the expected kind of file. Try creating a temporary file in the destination directory. Check that settings keys exist and are writable. Note whether the owning app is running, whether an editor has the file open, and whether the file is hard-linked.
+<ul>
+<li>A failed precondition demotes that instance to "skipped, with reason". It never aborts the others.</li>
+<li>Drift is measured only on what the app owns: the whole of an owned file, the bytes between markers, or the named keys.</li>
+<li><strong>Shadowing analysis:</strong> would something already in the user's configuration override the theme? If so the instance is marked "set up but not taking effect".</li>
+</ul></li>
+<li><strong>Preview stops here</strong> and returns the plan.</li>
+<li><strong>Resolve.</strong> The caller supplies answers to conflicts. Interactive callers ask the user. Unattended callers use a fixed policy: skip, record, continue.</li>
+<li><strong>Back up.</strong> Store pre-change content, sync it, then write the manifest by rename. The manifest is the commit marker; a backup without a valid manifest is ignored.</li>
+<li><strong>Execute.</strong> Journal the start. For each file: re-verify its precondition immediately before writing and abort as "stale" on mismatch; write a temporary file in the same directory, copy extended attributes, access lists and security label, sync, rename, sync the directory. Symlinked files are written through to the real file. Generated trees are installed by directory rename. Every fallible step is done before settings, which are written last in a single batch and synced.</li>
+<li><strong>Verify,</strong> then commit or roll back. Rollback restores by copying, never by moving, so security labels stay correct.</li>
+<li><strong>Report</strong> what changed, what was skipped and why, and the hints.</li>
+</ol>
+
+<h3 id="snapshots">Backups</h3>
+<ul>
+<li><strong>Store:</strong> <code>~/.local/share/velatura/backups/</code>, content-addressed, owner-only, marked as a cache directory for backup tools to skip. Blobs are verified on read; pruning runs under the lock and never removes anything referenced by the original-setup ledger or an unfinished apply.</li>
+<li><strong>Original setup:</strong> an append-only ledger. The first time any path or setting is touched, its state is added. It is labelled "state before Velatura" with its date, because on a machine that was already themed it is not a pristine state.</li>
+<li><strong>Undo is the inverse operation, not a file copy.</strong> For a managed block: remove or replace the block in the file as it is now. For a structured edit: put the keys or list members back. For a setting: restore only if the current value is still the one the app wrote; otherwise report a conflict. The stored full copy is the last resort.</li>
+<li><strong>Generated trees</strong> are recorded as a recipe and a hash, not as content.</li>
+<li><strong>Retention:</strong> the ledger for ever; 20 user-initiated backups; three slots for scheduled switches. Undo targets the last user-initiated change.</li>
+<li><strong>Formats are versioned.</strong> Every persisted file carries a version; a newer version makes the app read-only; a test restores a first-version backup on every future build.</li>
+<li><strong>Recoverable by hand.</strong> Manifests are JSON and the store is plain files. An emergency card (first run, <code>--help</code>, docs) gives the exact commands for a text console.</li>
+</ul>
+
+<h3 id="ownership">File ownership rules</h3>
+<div class="wrap"><table>
+<tr><th>Kind</th><th>Rule</th></tr>
+<tr><td>Owned file</td><td>Owned only if the state record lists it and its hash matches. A file that merely has the app's name is treated as the user's. Header contains the slug and a hash, nothing from the theme.</td></tr>
+<tr><td>Managed block</td><td>Exactly one well-formed pair of single-line markers carrying the target id and a format version. Anything else (one marker, duplicates, nesting) means refuse and report. Edited as bytes, keeping the file's line endings, encoding and final-newline state. Placement follows each format's rules.</td></tr>
+<tr><td>Structured edit</td><td>For formats with no place for a marker (JSON, key files). The prior state of each key or list member is recorded, so removal takes out only what the app added. After editing, the untouched parts are compared and the edit is refused if they differ.</td></tr>
+<tr><td>"Show me the line"</td><td>For every managed block the user can decline the edit and add the line themselves. This is the recommended path for files managed by a dotfile tool; the app detects stow, chezmoi, yadm and home-manager and says where bytes would really land.</td></tr>
+</table></div>
+
+<h3 id="security">Security boundaries</h3>
+<ul>
+<li>Theme files are hostile until proven otherwise: schema, size cap, typed colours, numeric ranges, reserved ids.</li>
+<li>No theme string reaches a generated file. References are matched by equality against enumerated installed items, never joined into a path.</li>
+<li>Names shown in the GUI are plain text with markup disabled; CLI output is stripped of control sequences.</li>
+<li>Diagnostic reports redact the home directory, profile names and vault names by default.</li>
+<li>No network access in the engine. Installing User Themes is delegated to GNOME Shell's own installer and dialog.</li>
+</ul>
+
+<h2 id="state">6. Where things are stored</h2>
+<div class="wrap"><table>
+<tr><th>Path</th><th>Content</th></tr>
+<tr><td><code>~/.config/velatura/config.toml</code></td><td>Portable preferences only: schedule, retention, day and night choice.</td></tr>
+<tr><td><code>~/.local/state/velatura/</code></td><td>Machine facts: consents, selected instances, accepted suggestions, what is applied, last-written hashes, lock, journal, results of unattended runs, the install channel.</td></tr>
+<tr><td><code>~/.local/share/velatura/themes/</code></td><td>User themes.</td></tr>
+<tr><td><code>~/.local/share/velatura/backups/</code></td><td>Backups and the original-setup ledger.</td></tr>
+<tr><td><code>~/.cache/velatura/</code></td><td>Staged icon sets; safe to delete.</td></tr>
+</table></div>
+<p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
+
+<h2 id="cli">7. Command line</h2>
+<pre>velatura                               status and short help
+velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
+velatura targets                       apps and desktop parts: instances, support, prerequisites
+velatura status                        theme in use, per-instance state, things left for you to do
+velatura apply &lt;theme&gt;[/variant] [--only ..] [--except ..] [--preview] [--yes] [--if-stale]
+velatura switch day|night|toggle|auto
+velatura undo                          (alias: revert)
+velatura history [verify]
+velatura restore &lt;id&gt; | --original [--preview]
+velatura disconnect &lt;target&gt; | --all   remove what the app added
+velatura doctor                        versions, prerequisites, conflicts, other theming tools
+velatura schedule set --day 07:00 --night 20:00 | off | status
+velatura theme import|export|resolve</pre>
+<ul>
+<li>Words match the GUI: Undo, History, Preview. One glossary is shared by GUI, CLI and docs.</li>
+<li>The first apply that adds a line to a user's file needs confirmation on a terminal or <code>--yes</code>. Without a terminal and without <code>--yes</code> it changes nothing and exits with the conflict code.</li>
+<li><code>--json</code> on every command, with a format number, stable codes and a documented exit-code table. Human output is translated; command names, JSON keys and exit codes are not.</li>
+</ul>
+
+<h2 id="gui">8. GUI structure</h2>
+<p>A libadwaita application built only on the 1.6 interface. Widgets that need newer versions are not used.</p>
+<h3>Vocabulary</h3>
+<div class="wrap"><table>
+<tr><th>Internal</th><th>What the user sees</th></tr>
+<tr><td>target, instance</td><td>"app", on a page called Apps &amp; Desktop</td></tr>
+<tr><td>snapshot</td><td>"backup"; the list is History; the first is Original Setup</td></tr>
+<tr><td>managed line, owned file</td><td>"a line Velatura adds to your settings file", "a file Velatura creates"</td></tr>
+<tr><td>connect, disconnect</td><td>Set Up, Stop Theming</td></tr>
+<tr><td>dry run, revert, doctor, hints</td><td>Preview Changes, Undo, Troubleshooting, "Finish applying"</td></tr>
+<tr><td>support level</td><td>No badge when supported; "Unofficial" (not supported by GNOME; may stop working after an update); "Experimental"</td></tr>
+</table></div>
+<h3>Screens</h3>
+<ul>
+<li><strong>Themes.</strong> A list of themes with swatches, each tagged Dark or Light in text. The theme in use carries a check mark and "In use". A theme page shows the preview and one primary button, "Apply Theme", which reads "Applied" when nothing would change.</li>
+<li><strong>Preview.</strong> The window part is built from real libadwaita widgets with locally scoped colours, so it shows what GTK will actually do. The top bar and terminal are drawings, captioned as illustrations. One line underneath: "Some apps keep their own colours."</li>
+<li><strong>Apply flow: four steps.</strong> Pick; press Apply Theme; one confirmation in plain words ("Adds one line to your Kitty settings. Creates 4 files. Changes 3 system settings. Nothing is deleted. You can undo this at any time."), with details and diffs behind an expander; then a result page in the same dialog: what changed now, what changes when apps are reopened, the exact steps left to the user with a copy button, and Undo.</li>
+<li><strong>Apps &amp; Desktop.</strong> One system-wide page with a row per app: status, set-up action, a switch meaning "include when applying themes", and Stop Theming. Turning a switch off asks whether to keep the current colours or remove them. Optional items (User Themes, adw-gtk3) appear here as set-up rows and never block an apply.</li>
+<li><strong>History.</strong> Backups with date, theme and cause; Restore; Restore Original Setup; store size.</li>
+<li><strong>Editor (Phase 2).</strong> Three colours first (background, text, accent) with everything else derived and shown; expanders for Interface, Terminal and Code; each derived colour can be made custom and reset to automatic; contrast problems in plain words with a Fix button; Save and Discard; bundled themes offer Duplicate to Edit.</li>
+<li><strong>Import (Phase 2).</strong> Shows a preview, name and author as plain text, and the statement that theme files contain only colours and names and cannot run anything.</li>
+<li><strong>Preferences, Troubleshooting, About, Shortcuts, empty states,</strong> and a "scheduled switch in progress" state.</li>
+</ul>
+<h3>Rules</h3>
+<ul>
+<li><strong>The app must stay readable under any theme.</strong> Its own window uses stock colours regardless of the user's <code>gtk.css</code>. How to do this reliably is a Phase 0 spike; if it cannot be done, the console recovery path is the documented fallback.</li>
+<li><strong>Undo is persistent:</strong> on the result page and in the primary menu, not only in a transient message.</li>
+<li><strong>Contrast guard.</strong> Below 4.5 to 1 for text on background, Apply needs "Apply Anyway", which is never the default, and then shows a "Keep this theme?" countdown that reverts unless confirmed.</li>
+<li><strong>High Contrast.</strong> When the system setting is on, GTK and Shell recolouring is skipped with an explanation; Troubleshooting flags a theme that is overriding colours while High Contrast is on.</li>
+<li><strong>Outside changes.</strong> If the dark style or accent is changed elsewhere after an apply, the app shows it and offers to reapply; it does not silently change it back.</li>
+<li><strong>Failures</strong> have three designed forms: nothing was changed (with reason); some apps skipped (a line on the result page); rollback incomplete (each affected file and its backup location, plus the console command).</li>
+<li><strong>Conflict prompt:</strong> "You changed Kitty's theme file since last time", with Keep My Changes as the default, Replace, and Show Changes.</li>
+<li><strong>Accessibility:</strong> labelled swatches, status never by colour alone, diffs marked with plus and minus, layouts that hold at 360 px and at 200% text, no animation when animations are off.</li>
+<li><strong>Translation:</strong> named placeholders, plural forms, locale date formats; role names such as "Sidebar background" are translatable; a pseudo-locale and a right-to-left run are part of the MVP checklist.</li>
+</ul>
+
+<h2 id="compat">9. Version support</h2>
+<ul>
+<li>MVP verified on GNOME 50 and 51, upstream session. GNOME 47–49 and the Ubuntu session follow in Phase 2 as tested data; Ubuntu ships a modified Shell stylesheet and is unsupported until tested.</li>
+<li>The GUI is compiled against the libadwaita 1.6 and GTK 4.16 interfaces only.</li>
+<li>Flatpak apps use the GTK of their runtime, not the host's, so generated GTK stylesheets must be valid for every runtime in use, not just the host version.</li>
+<li>On a GNOME version that has not been tested, the Shell target is off by default with an explanation.</li>
+<li>Generated Shell themes are stamped with the Shell version they were made for. Because they are overrides only, a stale one degrades to "some colours not applied" instead of a broken Shell; <code>apply --if-stale</code> regenerates it.</li>
+</ul>
+
+<h2 id="dist">10. Distribution</h2>
+<p>Run from source for now. The recommended order afterwards:</p>
+<ol>
+<li><strong>User-prefix install</strong> from source (<code>~/.local</code>), which also works on immutable systems and gives the CLI a stable path for timers.</li>
+<li><strong>COPR, AUR and a tarball with vendored crates.</strong> Fedora 44 already packages the needed Rust GTK crates, so an official Fedora package is possible later.</li>
+<li><strong>The Shell extension on extensions.gnome.org</strong>, versioned separately, with a fixed identifier and a one-file contract with the app.</li>
+<li><strong>A self-hosted Flatpak repository</strong> with full permissions, mainly for immutable desktops.</li>
+<li><strong>Flathub: only as a reduced edition, if at all.</strong> The full app needs about a dozen permission exceptions (home configuration directories, host system data, host settings, user timers, host commands), and Flathub does not accept system utilities that mainly act on the host. Flathub also requires disclosure of AI-generated material, forbids AI-generated or AI-assisted content in the submission manifest, and refuses sandbox-escaping exceptions where it sees signs of LLM use. Since this project is being developed with AI assistance, that policy applies and the owner should read it before planning on Flathub.</li>
+</ol>
+<p>Each connector declares which host capabilities it needs, so a restricted build can switch a target off with an explanation instead of failing. Fixed in Phase 0 because they are expensive to change later: application ID, CLI and GUI binary names, gettext domain, extension identifier, timer unit names.</p>
+</main>
+</body>
+</html>

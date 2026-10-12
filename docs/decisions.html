@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decisions log – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Decisions log</h1>
+<p class="lead">Status values: <span class="tag ok">Decided</span> by the owner's answers of 2026-10-11. <span class="tag wa">Proposed</span> by the plan or the review and adopted in revision 2 unless the owner objects. <span class="tag no">Needs answer</span>: the plan cannot proceed on this point without the owner.</p>
+
+<div class="wrap"><table>
+<tr><th>ID</th><th>Decision</th><th>Status</th><th>Reason and consequences</th></tr>
+<tr id="d1"><td>D1</td><td>Clean, independent project. Aetherius and Ember are imported as bundled themes.</td><td><span class="tag ok">Decided</span></td><td>The old scripts recolour files in place by matching hex values, which cannot be made safe for other people's machines. Nothing in that repository is modified.</td></tr>
+<tr id="d2"><td>D2</td><td>Audience: GNOME users in general.</td><td><span class="tag ok">Decided</span></td><td>Drives capability detection, translations, accessibility, and the rule that theme files are untrusted.</td></tr>
+<tr id="d3"><td>D3</td><td>Existing generated configs may be copied as a source for the import. Live files are changed only through the engine, after a backup.</td><td><span class="tag ok">Decided</span></td><td>Confirmed by the owner on 2026-10-11.</td></tr>
+<tr id="d4"><td>D4</td><td>Native theme format is TOML. Other formats come in through importers.</td><td><span class="tag ok">Decided</span></td><td>Revision 2 adds an open palette table, diff and diagnostic roles, declared per-app slots and a versioned derivation rule, because the first draft could not hold the existing palettes without loss.</td></tr>
+<tr id="d5"><td>D5</td><td>A theme file holds one or more named variants, each marked light or dark. Which theme is used by day and which by night is the user's setting and may pair two themes. Aetherius and Ember ship as two themes, paired by default.</td><td><span class="tag ok">Decided</span></td><td>Owner chose two themes. The format still allows a theme with several variants. Both palettes are dark, so day/night is not light/dark.</td></tr>
+<tr id="d6"><td>D6</td><td>Switching: manual, scheduled, or following the GNOME dark style (light and dark pairs only).</td><td><span class="tag ok">Decided</span>, detail <span class="tag wa">Proposed</span></td><td>One systemd user timer runs an idempotent <code>switch auto</code>. Unattended runs never ask; they skip and record.</td></tr>
+<tr id="d7"><td>D7</td><td>Themes may suggest an icon and cursor theme by name. Wallpaper and fonts are chosen by the user among what is installed and stored with the user's settings, not in themes.</td><td><span class="tag ok">Decided</span>, detail <span class="tag wa">Proposed</span></td><td>Suggestions are advisory and applied only after the user accepts them once. Terminal opacity moved out of the theme for the same reason.</td></tr>
+<tr id="d8"><td>D8</td><td>The GUI includes a theme editor.</td><td><span class="tag ok">Decided</span></td><td>Phase 2.</td></tr>
+<tr id="d9"><td>D9</td><td>Terminals: Kitty and Ghostty.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d10"><td>D10</td><td>GNOME Shell: User Themes in the MVP, companion extension in Phase 2, both usable together.</td><td><span class="tag ok">Decided</span>, detail <span class="tag wa">Proposed</span></td><td>The Shell theme is colour overrides only. The companion extension is published on extensions.gnome.org so it installs without a logout.</td></tr>
+<tr id="d11"><td>D11</td><td>GTK3 is themed through adw-gtk3, which is required for that target. Without it GTK3 is skipped and offered as an optional set-up step. Per-user installation is the primary recommendation.</td><td><span class="tag wa">Proposed</span> (owner asked for the best way)</td><td>Review finding: the stock GTK3 theme ignores colour overrides, so there is no real fallback.</td></tr>
+<tr id="d12"><td>D12</td><td>Config edits, in order of preference: a file the app creates; else that plus one marked line in the user's file, added once with consent and a backup; else, where a format has no include mechanism, a key-level edit that preserves everything else. Whole-file rewriting of hand-maintained configs is never done. The user can always decline and add the line themselves.</td><td><span class="tag wa">Proposed</span> (owner asked which way is better)</td><td>Smallest footprint in the user's file, and how Kitty's own theme tool behaves.</td></tr>
+<tr id="d12b"><td>D12b</td><td>When existing settings override the theme, the app only reports it and says what to change. No "take over".</td><td><span class="tag ok">Decided</span></td><td>Owner chose report only.</td></tr>
+<tr id="d13"><td>D13</td><td>Qt is not handled for now.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d14"><td>D14</td><td>Icons and cursors are recoloured, not only selected.</td><td><span class="tag ok">Decided</span>, phasing <span class="tag wa">Proposed</span></td><td>Vector icon themes in Phase 3; bitmap icon themes and cursors experimental in Phase 4. A reviewer recommended dropping the last two; they are kept because the owner asked for them. The icon theme currently in use here is bitmap-based.</td></tr>
+<tr id="d15"><td>D15</td><td>Neovim: the app creates a self-contained colourscheme the user selects; optionally a palette-only table.</td><td><span class="tag wa">Proposed</span> (owner asked for the best way)</td><td>No edits to <code>init.lua</code>, no plugin dependency.</td></tr>
+<tr id="d16"><td>D16</td><td>Additional targets: Starship, tmux, Obsidian in Phase 3; Firefox in Phase 4 as experimental. GDM excluded.</td><td><span class="tag ok">Decided</span>, phasing <span class="tag wa">Proposed</span></td><td>Firefox moved later because its mechanism is unsupported, changes every four weeks and is not fully reversible.</td></tr>
+<tr id="d17"><td>D17</td><td>The app sets the GNOME accent colour and dark style.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d18"><td>D18</td><td>A CLI ships with the GUI and shares its engine.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d19"><td>D19</td><td>Rust for the engine, the CLI and the GUI.</td><td><span class="tag ok">Decided</span></td><td>Owner chose Rust. The Phase 0 measurements are still taken and recorded.</td></tr>
+<tr id="d20"><td>D20</td><td>Run from source for now. Later, in order: user-prefix install; COPR, AUR and a vendored tarball; the extension on extensions.gnome.org; a self-hosted Flatpak repository; Flathub only as a reduced edition, if at all.</td><td><span class="tag ok">Decided</span>, order <span class="tag wa">Proposed</span></td><td>See <a href="architecture.html#dist">Architecture, section 10</a>, including Flathub's policy on AI-assisted submissions.</td></tr>
+<tr id="d21"><td>D21</td><td>Keep 20 backups, plus the permanent original-setup record, plus three slots for scheduled switches.</td><td><span class="tag ok">Decided</span>, detail <span class="tag wa">Proposed</span></td><td></td></tr>
+<tr id="d22"><td>D22</td><td>The app does not restart, reload or signal other programs. It lists what the user needs to do, with copyable instructions.</td><td><span class="tag ok">Decided</span></td><td>The reload buttons proposed in the first draft are removed: two reviewers found they contradicted this answer and the security rules.</td></tr>
+<tr id="d23"><td>D23</td><td>Name: Velatura. Application ID <code>io.github.rafael0rueda.Velatura</code>. Repository <code>github.com/rafael0rueda/Velatura</code>. CLI command <code>velatura</code>.</td><td><span class="tag ok">Decided</span></td><td>Owner chose the name and created the repository.</td></tr>
+<tr id="d24"><td>D24</td><td>The UI is translatable from the start. English source strings; Spanish first.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d25"><td>D25</td><td>Git repository initialised with the docs. The remote is added once the name is chosen.</td><td><span class="tag ok">Decided</span></td><td>Nothing is committed or pushed until asked.</td></tr>
+<tr id="d26"><td>D26</td><td>Documentation is self-contained HTML in <code>docs/</code>.</td><td><span class="tag ok">Decided</span></td><td></td></tr>
+<tr id="d27"><td>D27</td><td>Licence: GPL-3.0-or-later for the application; CC0 for the bundled themes.</td><td><span class="tag ok">Decided</span></td><td>Approved by the owner.</td></tr>
+<tr id="d28"><td>D28</td><td>The MVP is verified on GNOME 50 and 51. GNOME 47–49 and the Ubuntu session follow in Phase 2. The code targets the libadwaita 1.6 interface throughout.</td><td><span class="tag wa">Proposed</span></td><td>GNOME 51 is already current, and four versions is too wide a test matrix for a first release.</td></tr>
+<tr id="d29"><td>D29</td><td>The app may delete only folders it generated itself and can regenerate (icon sets, Shell theme folders), and asks the user before doing so.</td><td><span class="tag ok">Decided</span></td><td>Owner approved with the condition that the user is asked first. Unattended runs therefore never delete; they leave old folders for the next interactive clean-up.</td></tr>
+<tr id="d30"><td>D30</td><td>For scheduling, the app writes its own systemd user timer files and runs <code>systemctl --user</code> to load and enable them. To enable User Themes it asks GNOME Shell, after the user confirms.</td><td><span class="tag ok">Decided</span></td><td>Approved by the owner.</td></tr>
+<tr id="d31"><td>D31</td><td>The old <code>theme-auto.timer</code> on this machine is not turned off without asking the owner first.</td><td><span class="tag ok">Decided</span></td><td>It is active and rewrites the same files at 07:00 and 20:00. The owner is asked before the first real apply on this machine; until then nothing is applied to the live home directory.</td></tr>
+<tr id="d32"><td>D32</td><td>An optional notification after a scheduled switch that needed attention.</td><td><span class="tag wa">Proposed</span></td><td>Off by default. Otherwise a skipped scheduled switch is only visible in the app and in <code>status</code>.</td></tr>
+<tr id="d33"><td>D33</td><td>Safety rules added by the review: no text from a theme file in any generated file; a contrast floor with auto-revert; recovery never overwrites newer edits; unattended runs never cross a consent boundary.</td><td><span class="tag wa">Proposed</span></td><td>See <a href="plan.html#safety">Plan, section 4</a>.</td></tr>
+<tr id="d34"><td>D34</td><td>Ptyxis and GNOME Text Editor are Phase 3 candidates. Cursor and bitmap icon recolouring stay as Phase 4 experiments. The full app is not planned for Flathub.</td><td><span class="tag ok">Decided</span></td><td>Owner's answers of 2026-10-11 to the review questions.</td></tr>
+<tr id="d35"><td>D35</td><td>Workflow: one branch and one pull request per phase; commit, merge and push only when the tests pass; one HTML changelog per phase.</td><td><span class="tag ok">Decided</span></td><td>See <a href="workflow.html">Workflow</a>.</td></tr>
+</table></div>
+</main>
+</body>
+</html>

@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["crates/velatura-theme", "crates/velatura-engine", "crates/velatura-cli"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/rafael0rueda/Velatura"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = true

@@ -1,0 +1,14 @@
+[package]
+name = "velatura-engine"
+description = "Host access, plans and transactions for Velatura."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+velatura-theme = { path = "../velatura-theme" }
+
+[lints]
+workspace = true

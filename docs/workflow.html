@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Workflow</h1>
+<p class="lead">How work on Velatura is organised. Agreed with the owner on 2026-10-11 (decision <a href="decisions.html#d35">D35</a>).</p>
+
+<h2 id="rules">1. Rules</h2>
+<ol>
+<li><strong>One branch and one pull request per phase.</strong> Branches are named <code>phase-0-spikes</code>, <code>phase-1a-engine-cli</code>, <code>phase-1b-targets</code> and so on.</li>
+<li><strong>Nothing is committed, merged or pushed unless the tests pass.</strong> The gate is one command, <code>scripts/check.sh</code>. The same command runs in GitHub Actions on every pull request, and a pull request is merged only after that run is green.</li>
+<li><strong>One changelog page per phase</strong> in <code>docs/changelog/</code>, written in the same pull request as the work.</li>
+<li><strong>Docs are HTML</strong> in <code>docs/</code>, self-contained, and updated in the same pull request as the change they describe.</li>
+<li><strong>The owner's live desktop is not touched without asking.</strong> Tests run in throw-away directories. Anything that would change the real home directory or session, including turning off the old theme timer, is asked first.</li>
+</ol>
+
+<h2 id="gate">2. The test gate</h2>
+<p><code>scripts/check.sh</code> runs, in order, and stops at the first failure:</p>
+<ol>
+<li>Formatting check (<code>cargo fmt --check</code>).</li>
+<li>Lints with warnings treated as errors (<code>cargo clippy</code>).</li>
+<li>All tests (<code>cargo test</code>).</li>
+<li>Documentation check: every HTML file parses, every internal link and anchor resolves, and no page loads anything from the network.</li>
+</ol>
+<p><code>scripts/check-in-container.sh</code> runs the same gate inside the Fedora container that GitHub Actions uses, with podman and without root. It is the way to run the full gate, including formatting, when a tool is missing on the host.</p>
+<p>Later phases add steps to this one script (golden files, dependency audit, GTK stylesheet acceptance), so there is always exactly one gate.</p>
+
+<h2 id="pr">3. Closing a phase</h2>
+<ol>
+<li>The pull request description lists the phase's exit condition from the <a href="plan.html#roadmap">roadmap</a> as a checklist, and states plainly anything that was not done or was moved to a later phase.</li>
+<li>The gate passes locally and in GitHub Actions.</li>
+<li>The pull request is squash-merged, so <code>main</code> has one commit per phase.</li>
+<li><code>main</code> is tagged with the phase name, for example <code>phase-0</code>.</li>
+<li>The plan and decisions log are corrected where the phase showed an assumption to be wrong.</li>
+</ol>
+
+<h2 id="ideas">4. Additions proposed to the owner</h2>
+<p>The first three are in place. The others need the owner's go-ahead because they change repository settings or add a file type the owner excluded.</p>
+<ul>
+<li><strong>In place:</strong> a single gate script shared by local runs and CI.</li>
+<li><strong>In place:</strong> a tag per merged phase, so any phase can be checked out or compared later.</li>
+<li><strong>In place:</strong> a written result for every experiment in <a href="spikes.html">Spike results</a>, so a decision can be traced to its evidence.</li>
+<li><strong>Proposed:</strong> protect <code>main</code> on GitHub so that it only accepts pull requests whose checks passed. This makes rule 2 enforced by GitHub, not only by habit.</li>
+<li><strong>Proposed:</strong> a short <code>README.md</code> that only points to the HTML docs. GitHub shows nothing on the repository page without one.</li>
+<li><strong>Proposed:</strong> publish <code>docs/</code> with GitHub Pages so the HTML can be read in a browser from the repository.</li>
+</ul>
+
+</main>
+</body>
+</html>

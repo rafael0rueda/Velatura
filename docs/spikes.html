@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spike results – Velatura</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="index.html">Index</a><a href="plan.html">Plan</a><a href="architecture.html">Architecture</a><a href="targets.html">Theming targets</a><a href="decisions.html">Decisions log</a><a href="review.html">Review findings</a><a href="spikes.html">Spike results</a><a href="workflow.html">Workflow</a><a href="changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Spike results</h1>
+<p class="lead">Phase 0 experiments, run on 2026-10-11 on Fedora 44 with GNOME Shell 50.5, GTK 4.22.5, libadwaita 1.9.4, GTK 3.24.52, Kitty 0.47.1 and Ghostty 1.3.1. Every experiment ran in throw-away directories with a private settings database; the real home directory and session were only read. The scripts are in <code>spikes/</code> and can be re-run.</p>
+
+<h2 id="status">1. Status of the open questions</h2>
+<p>Nine of the fifteen questions from the <a href="review.html#open">review</a> are answered or partly answered. Six are moved to the phase that needs them, each for a stated reason. Results hold for the versions above; other versions are not yet tested.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Question</th><th>Status</th><th>Result</th></tr>
+<tr><td>1</td><td>A GTK connection that wins over existing definitions</td><td><span class="tag ok">Answered</span></td><td>Put the <code>@import</code> on the <strong>last</strong> line of <code>gtk.css</code>. GTK accepts it there, even after style rules, with no warning, and it then overrides the user's earlier definitions. See section 2. Not tested inside a Flatpak sandbox (Phase 2).</td></tr>
+<tr><td>2</td><td>libadwaita 1.6 to 1.8 and older Flatpak runtimes</td><td><span class="tag no">Moved</span> to Phase 2</td><td>Needs older GNOME images with a display. Those versions are added in Phase 2 (decision D28), and are tested then.</td></tr>
+<tr><td>3</td><td>Can the app stay readable under any theme?</td><td><span class="tag ok">Answered</span></td><td>Yes. A style provider added by the app one step above user priority wins over the user's <code>gtk.css</code>, for both named colours and CSS variables.</td></tr>
+<tr><td>4</td><td>Preview built from real widgets</td><td><span class="tag ok">Answered</span></td><td>Yes. A CSS variable set on a container applies to the widgets inside it only.</td></tr>
+<tr><td>5</td><td>Shell overrides through User Themes</td><td><span class="tag wa">Partly</span></td><td>Confirmed on 50.5; see section 4. Not tested: a lock and unlock cycle, and GNOME 51. Both move to Phase 1d.</td></tr>
+<tr><td>6</td><td>Installing User Themes; reading its settings</td><td><span class="tag wa">Partly</span></td><td>Its settings can be read from the extension's own folder without error (the default lookup returns nothing, as predicted). The install request was not tested: it would act on the live session, and the extension is already installed here. Moves to Phase 1d, with the owner present.</td></tr>
+<tr><td>7</td><td>adw-gtk3 and colour overrides</td><td><span class="tag ok">Answered</span></td><td>adw-gtk3 6.5 honours <code>window_bg_color</code> from the user's <code>gtk-3.0/gtk.css</code>, and loads from a per-user themes folder. Stock GTK3 Adwaita ignores the same override completely. See section 3. Interaction with High Contrast not tested.</td></tr>
+<tr><td>8</td><td>Kitty's automatic reload</td><td><span class="tag wa">Partly</span></td><td>Kitty 0.47.1 has <code>auto_reload_config</code>, on by default with a 0.1 s delay, and only when <code>kitty.conf</code> existed at start. Which version introduced it, and whether included files are watched, is not determined: testing it means opening a Kitty window on the desktop. Moves to Phase 1a.</td></tr>
+<tr><td>9</td><td>Exact undo</td><td><span class="tag no">Moved</span> to Phase 1a</td><td>This is the core of the 1a test suite. One fact confirmed now: GSettings distinguishes "set by the user" from "at its default", which undo needs.</td></tr>
+<tr><td>10</td><td>Are the proposed roles sufficient?</td><td><span class="tag no">Moved</span> to Phase 1a</td><td>Writing the Aetherius theme file is the first task of 1a and answers this directly.</td></tr>
+<tr><td>11</td><td>Rust measurements</td><td><span class="tag wa">Partly</span></td><td>CLI skeleton measured; see section 5. The GUI could not be measured: the GTK development packages are not installed and need <code>sudo</code>. Moves to the start of Phase 1c. Icon recolouring speed moves to Phase 3.</td></tr>
+<tr><td>12</td><td>Translation tooling for Rust</td><td><span class="tag ok">Answered</span></td><td>The installed <code>xgettext</code> (gettext 0.26) lists Rust among its languages.</td></tr>
+<tr><td>13</td><td>Compiling the Shell's style sources</td><td><span class="tag no">Moved</span> to Phase 4</td><td>Only needed for the exact accent and full coverage, which are Phase 4.</td></tr>
+<tr><td>14</td><td>Related work</td><td><span class="tag wa">Partly</span></td><td><code>gtheme</code> (0.1.0, July 2026, MIT) is a terminal-menu tool with no GUI. Its themes carry file templates and hook scripts, the opposite of Velatura's rule that a theme file cannot run anything. It covers Ptyxis, which supports adding that target. Rewaita not yet examined.</td></tr>
+<tr><td>15</td><td>Writing host settings from a sandbox</td><td>Dropped</td><td>No Flatpak build is planned (decision D34).</td></tr>
+</table></div>
+
+<h2 id="gtk4">2. GTK4 and libadwaita</h2>
+<p>Script: <code>spikes/gtk4_css.py</code>. Each case starts a fresh process with its own configuration directory and asks GTK what <code>window_bg_color</code> resolves to. The theme wants <code>#aa0000</code>; the user's own file says <code>#111111</code>.</p>
+<div class="wrap"><table>
+<tr><th>Case</th><th>Result</th><th>Meaning</th></tr>
+<tr><td><code>@import</code> on the first line, user's definition below</td><td><code>#111111</code></td><td>The user's line wins. This is the "set up but not taking effect" case predicted by the review.</td></tr>
+<tr><td>User's definition first, <code>@import</code> on the last line</td><td><code>#aa0000</code></td><td>The theme wins, with no parser warning.</td></tr>
+<tr><td>A style rule, then the user's definition, then <code>@import</code></td><td><code>#aa0000</code></td><td>GTK does not require imports to come first.</td></tr>
+<tr><td>Definitions written inline at the end, no import</td><td><code>#aa0000</code></td><td>Also works; kept as the fallback.</td></tr>
+<tr><td><code>gtk.css</code> is a symlink into another folder; the imported file sits beside the link</td><td><code>#aa0000</code></td><td>The import resolves relative to the link's folder, not the real file's.</td></tr>
+<tr><td>Definition inside <code>@media (prefers-contrast: no-preference)</code></td><td><code>#aa0000</code></td><td>GTK 4.22 accepts definitions inside a contrast query.</td></tr>
+<tr><td>An unknown <code>@media</code> feature, then a plain definition</td><td><code>#aa0000</code>, one warning</td><td>The unknown block is skipped and the rest still loads.</td></tr>
+<tr><td>Only a <code>:root</code> CSS variable</td><td>variable <code>#aa0000</code>, named colour unchanged</td><td>Named colours drive the variables, not the reverse. Both must be written.</td></tr>
+<tr><td>User file themes everything; app adds its own provider above user priority</td><td><code>#fafafb</code></td><td>The app can keep its own window in stock colours.</td></tr>
+<tr><td>Variable set on one container</td><td>label inside is <code>#aa0000</code></td><td>Scoped colours work for the preview.</td></tr>
+</table></div>
+<p><strong>Consequence for the plan:</strong> the connection line goes at the end of <code>gtk.css</code>. On this machine that makes the GTK target effective without touching the roughly 60 existing definitions.</p>
+
+<h2 id="gtk3">3. GTK3</h2>
+<p>Script: <code>spikes/gtk3_css.py</code>, with adw-gtk3 6.5 unpacked into a temporary folder.</p>
+<div class="wrap"><table>
+<tr><th>Theme</th><th>Override in <code>gtk.css</code></th><th>Window background</th></tr>
+<tr><td>Stock Adwaita, dark</td><td>none</td><td><code>#353535</code></td></tr>
+<tr><td>Stock Adwaita, dark</td><td><code>#aa0000</code></td><td><code>#353535</code> (ignored)</td></tr>
+<tr><td>adw-gtk3-dark</td><td>none</td><td><code>#222226</code></td></tr>
+<tr><td>adw-gtk3-dark</td><td><code>#aa0000</code></td><td><code>#aa0000</code></td></tr>
+</table></div>
+
+<h2 id="shell">4. GNOME Shell</h2>
+<p>Script: <code>spikes/shell/run.sh</code>. It starts a headless GNOME Shell with its own D-Bus session, settings database and data folders, loads the real User Themes extension and a small probe, and records the panel's computed background after each step.</p>
+<div class="wrap"><table>
+<tr><th>Step</th><th>Panel background</th><th>Meaning</th></tr>
+<tr><td>Stock theme, dark style</td><td><code>#000000</code></td><td>Baseline.</td></tr>
+<tr><td>Theme A: one rule, <code>#aa0000</code></td><td><code>#aa0000</code>, panel height unchanged</td><td>A user theme is a layer over the stock stylesheet. Overrides alone are enough.</td></tr>
+<tr><td>Theme A's file rewritten to <code>#00aa00</code></td><td><code>#aa0000</code></td><td>No reload when the file changes.</td></tr>
+<tr><td>The same name set again</td><td><code>#aa0000</code></td><td>No reload when the name is unchanged.</td></tr>
+<tr><td>Theme B under a new name, <code>#0000aa</code></td><td><code>#0000aa</code></td><td>A new name reloads at once.</td></tr>
+<tr><td>High Contrast turned on</td><td><code>#0000aa</code></td><td>The override stays active, so the app must skip Shell recolouring itself when High Contrast is on.</td></tr>
+<tr><td>Light style</td><td><code>#0000aa</code></td><td>The override stays active across the light and dark switch.</td></tr>
+<tr><td>A stylesheet with syntax errors followed by a valid rule</td><td><code>#000000</code></td><td><strong>One syntax error rejects the whole file.</strong> The Shell logs the error, falls back to the stock look and keeps running.</td></tr>
+<tr><td>Theme name cleared</td><td><code>#000000</code></td><td>Clean return to stock.</td></tr>
+</table></div>
+<p><strong>Consequences for the plan:</strong> a generated Shell stylesheet must be checked for syntax before it is installed, because a single error silently removes the whole theme. The failure mode is safe: the Shell stays usable.</p>
+
+<h2 id="rust">5. Rust measurements</h2>
+<div class="wrap"><table>
+<tr><th>Measure</th><th>Result</th></tr>
+<tr><td>CLI skeleton, release build, stripped</td><td>333 kB</td></tr>
+<tr><td>Third-party crates</td><td>0 (5 lines in the dependency tree, all this project's own crates)</td></tr>
+<tr><td>Run time of <code>velatura accent</code>, median of 200 runs</td><td>0.29 ms</td></tr>
+<tr><td>Peak memory of that run</td><td>2.8 MB</td></tr>
+<tr><td>For comparison: an empty Python start</td><td>6.6 ms</td></tr>
+<tr><td>For comparison: Python importing the GIO bindings</td><td>45 ms</td></tr>
+</table></div>
+<p>The skeleton does almost nothing yet, so these numbers are a floor and will grow with TOML parsing and settings access. They are recorded so later phases can be compared against them. The comparison figures confirm the review's point that Python would also have been fast enough for a twice-daily switch.</p>
+
+<h2 id="accent">6. Matching the system accent</h2>
+<p>The review recommended choosing the nearest of GNOME's nine accents by colour distance. Tried and rejected: by distance, Aetherius's periwinkle and most pastel accents land on slate, and Ember's orange lands on yellow. The rule now implemented: a near-grey colour maps to slate; any other colour maps to the accent with the nearest hue. With it, Aetherius maps to blue and Ember to orange, and a set of pastel test colours each map to their own hue. The nine values were read from the installed libadwaita.</p>
+
+<h2 id="owner">7. Needed from the owner</h2>
+<ul>
+<li><strong>Now, optional:</strong> <code>sudo dnf install rustfmt</code>. Without it the formatting step only runs through <code>scripts/check-in-container.sh</code> and in GitHub Actions.</li>
+<li><strong>Before Phase 1c:</strong> <code>sudo dnf install gtk4-devel libadwaita-devel blueprint-compiler</code>, needed to build the GUI.</li>
+</ul>
+
+</main>
+</body>
+</html>
