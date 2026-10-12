@@ -1,8 +1,17 @@
 //! Host access, plans and transactions for Velatura.
 //!
-//! Phase 0 contains only the first piece of the host-access layer. Everything
-//! that reads or changes the machine goes through [`host`], so tests can
-//! substitute a failing implementation and a sandboxed build can substitute
-//! its own.
+//! Everything that reads or changes the machine goes through [`host`], so
+//! tests can substitute a failing implementation and a sandboxed build can
+//! substitute its own. This crate returns typed values; turning them into
+//! text for people is the caller's job.
 
+pub mod block;
+pub mod engine;
+#[cfg(feature = "gio")]
+pub mod gio_settings;
 pub mod host;
+pub mod library;
+pub mod plan;
+pub mod store;
+pub mod targets;
+pub mod txn;

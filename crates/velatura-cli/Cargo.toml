@@ -11,7 +11,13 @@ repository.workspace = true
 name = "velatura"
 path = "src/main.rs"
 
+[features]
+default = ["gio"]
+# Read and write GNOME settings. Without it only files are themed.
+gio = ["velatura-engine/gio"]
+
 [dependencies]
+serde_json = { version = "1", default-features = false, features = ["std"] }
 velatura-theme = { path = "../velatura-theme" }
 velatura-engine = { path = "../velatura-engine" }
 

@@ -1,9 +1,11 @@
 //! The host-access layer: the only place that touches the file system.
 
+use std::cell::{Cell, RefCell};
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -53,7 +55,37 @@ pub trait Fs {
     /// is kept. An existing file keeps its permission bits; a new file gets
     /// `mode`.
     fn write_atomic(&self, path: &Path, content: &[u8], mode: u32) -> io::Result<()>;
+
+    /// What is at `path`, without following a final symlink. `None` if
+    /// nothing is there.
+    fn kind(&self, path: &Path) -> io::Result<Option<Kind>>;
+
+    /// Resolve every symlink in `path`.
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+
+    /// Create one directory. The parent must exist.
+    fn create_dir(&self, path: &Path, mode: u32) -> io::Result<()>;
+
+    fn remove_file(&self, path: &Path) -> io::Result<()>;
+
+    /// Fails if the directory is not empty.
+    fn remove_empty_dir(&self, path: &Path) -> io::Result<()>;
+
+    /// Names of the entries in a directory, sorted.
+    fn list(&self, path: &Path) -> io::Result<Vec<OsString>>;
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    File,
+    Dir,
+    Symlink,
+    Other,
+}
+
+/// The file name [`StdFs::write_atomic`] gives its temporary file starts
+/// with a dot, then the target's name, then this.
+pub const TMP_MARK: &str = ".velatura-tmp-";
 
 /// [`Fs`] on the real file system.
 #[derive(Clone, Copy, Debug, Default)]
@@ -89,7 +121,7 @@ impl Fs for StdFs {
         let mut tmp_name = OsString::from(".");
         tmp_name.push(name);
         tmp_name.push(format!(
-            ".velatura-tmp-{}-{}",
+            "{TMP_MARK}{}-{}",
             std::process::id(),
             TMP_COUNTER.fetch_add(1, Ordering::Relaxed)
         ));
@@ -111,6 +143,289 @@ impl Fs for StdFs {
             let _ = fs::remove_file(&tmp);
         }
         result
+    }
+
+    fn kind(&self, path: &Path) -> io::Result<Option<Kind>> {
+        match fs::symlink_metadata(path) {
+            Ok(m) if m.file_type().is_symlink() => Ok(Some(Kind::Symlink)),
+            Ok(m) if m.is_file() => Ok(Some(Kind::File)),
+            Ok(m) if m.is_dir() => Ok(Some(Kind::Dir)),
+            Ok(_) => Ok(Some(Kind::Other)),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        fs::canonicalize(path)
+    }
+
+    fn create_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+        fs::DirBuilder::new().mode(mode).create(path)
+    }
+
+    fn remove_file(&self, path: &Path) -> io::Result<()> {
+        fs::remove_file(path)
+    }
+
+    fn remove_empty_dir(&self, path: &Path) -> io::Result<()> {
+        fs::remove_dir(path)
+    }
+
+    fn list(&self, path: &Path) -> io::Result<Vec<OsString>> {
+        let mut names = Vec::new();
+        for entry in fs::read_dir(path)? {
+            names.push(entry?.file_name());
+        }
+        names.sort();
+        Ok(names)
+    }
+}
+
+/// The state of one settings key.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SettingState {
+    /// The value the user set, or `None` when the key is at its default.
+    pub user: Option<String>,
+    /// The value in effect: the user's, or the default.
+    pub effective: String,
+    pub writable: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SettingsError {
+    /// The settings store cannot be used at all (no session, wrong backend).
+    Unavailable(String),
+    NotWritable,
+    Failed(String),
+}
+
+/// String-valued desktop settings. Phase 1a needs no other type.
+pub trait Settings {
+    /// `Ok(None)` when the schema or the key does not exist on this system.
+    fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError>;
+
+    /// Set the user's value, or with `None` return the key to its default.
+    fn write(&self, schema: &str, key: &str, value: Option<&str>) -> Result<(), SettingsError>;
+
+    /// Block until earlier writes have reached the store.
+    fn sync(&self);
+}
+
+/// Settings held in memory, for tests and for systems with no settings store.
+#[derive(Debug, Default)]
+pub struct MemSettings {
+    defaults: BTreeMap<(String, String), String>,
+    user: RefCell<BTreeMap<(String, String), String>>,
+    locked: RefCell<Vec<(String, String)>>,
+    /// Number of successful writes, so a test can assert "nothing written".
+    pub writes: Cell<u32>,
+}
+
+impl MemSettings {
+    /// A store that knows `keys`, each given as `(schema, key, default)`.
+    pub fn new(keys: &[(&str, &str, &str)]) -> Self {
+        Self {
+            defaults: keys
+                .iter()
+                .map(|(s, k, d)| (((*s).to_owned(), (*k).to_owned()), (*d).to_owned()))
+                .collect(),
+            ..Self::default()
+        }
+    }
+
+    /// The GNOME 47+ keys the appearance target uses, at their defaults.
+    pub fn gnome() -> Self {
+        Self::new(&[
+            ("org.gnome.desktop.interface", "color-scheme", "default"),
+            ("org.gnome.desktop.interface", "accent-color", "blue"),
+        ])
+    }
+
+    pub fn lock(&self, schema: &str, key: &str) {
+        self.locked
+            .borrow_mut()
+            .push((schema.to_owned(), key.to_owned()));
+    }
+
+    /// Every user-set value, for comparing two states.
+    pub fn snapshot(&self) -> BTreeMap<(String, String), String> {
+        self.user.borrow().clone()
+    }
+}
+
+impl Settings for MemSettings {
+    fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError> {
+        let id = (schema.to_owned(), key.to_owned());
+        let Some(default) = self.defaults.get(&id) else {
+            return Ok(None);
+        };
+        let user = self.user.borrow().get(&id).cloned();
+        Ok(Some(SettingState {
+            effective: user.clone().unwrap_or_else(|| default.clone()),
+            user,
+            writable: !self.locked.borrow().contains(&id),
+        }))
+    }
+
+    fn write(&self, schema: &str, key: &str, value: Option<&str>) -> Result<(), SettingsError> {
+        let id = (schema.to_owned(), key.to_owned());
+        if !self.defaults.contains_key(&id) {
+            return Err(SettingsError::Failed("no such key".to_owned()));
+        }
+        if self.locked.borrow().contains(&id) {
+            return Err(SettingsError::NotWritable);
+        }
+        match value {
+            Some(v) => self.user.borrow_mut().insert(id, v.to_owned()),
+            None => self.user.borrow_mut().remove(&id),
+        };
+        self.writes.set(self.writes.get() + 1);
+        Ok(())
+    }
+
+    fn sync(&self) {}
+}
+
+/// A settings store that is absent: every key reads as missing.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NoSettings;
+
+impl Settings for NoSettings {
+    fn read(&self, _: &str, _: &str) -> Result<Option<SettingState>, SettingsError> {
+        Err(SettingsError::Unavailable(
+            "built without desktop settings support".to_owned(),
+        ))
+    }
+    fn write(&self, _: &str, _: &str, _: Option<&str>) -> Result<(), SettingsError> {
+        Err(SettingsError::NotWritable)
+    }
+    fn sync(&self) {}
+}
+
+/// Counts every operation that changes the machine and makes the one numbered
+/// `fail_at`, and all after it, fail. With `fail_at` past the end it only
+/// counts. This is how tests stop an apply at every possible step.
+pub struct Faults<'a> {
+    fs: &'a dyn Fs,
+    settings: &'a dyn Settings,
+    fail_at: u32,
+    pub count: Cell<u32>,
+}
+
+impl<'a> Faults<'a> {
+    pub fn new(fs: &'a dyn Fs, settings: &'a dyn Settings, fail_at: u32) -> Self {
+        Self {
+            fs,
+            settings,
+            fail_at,
+            count: Cell::new(0),
+        }
+    }
+
+    fn step(&self) -> io::Result<()> {
+        let n = self.count.get();
+        self.count.set(n + 1);
+        if n >= self.fail_at {
+            Err(io::Error::other("injected failure"))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl Fs for Faults<'_> {
+    fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+        self.fs.read(path)
+    }
+    fn write_atomic(&self, path: &Path, content: &[u8], mode: u32) -> io::Result<()> {
+        self.step()?;
+        self.fs.write_atomic(path, content, mode)
+    }
+    fn kind(&self, path: &Path) -> io::Result<Option<Kind>> {
+        self.fs.kind(path)
+    }
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        self.fs.canonicalize(path)
+    }
+    fn create_dir(&self, path: &Path, mode: u32) -> io::Result<()> {
+        self.step()?;
+        self.fs.create_dir(path, mode)
+    }
+    fn remove_file(&self, path: &Path) -> io::Result<()> {
+        self.step()?;
+        self.fs.remove_file(path)
+    }
+    fn remove_empty_dir(&self, path: &Path) -> io::Result<()> {
+        self.step()?;
+        self.fs.remove_empty_dir(path)
+    }
+    fn list(&self, path: &Path) -> io::Result<Vec<OsString>> {
+        self.fs.list(path)
+    }
+}
+
+impl Settings for Faults<'_> {
+    fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError> {
+        self.settings.read(schema, key)
+    }
+    fn write(&self, schema: &str, key: &str, value: Option<&str>) -> Result<(), SettingsError> {
+        self.step()
+            .map_err(|e| SettingsError::Failed(e.to_string()))?;
+        self.settings.write(schema, key, value)
+    }
+    fn sync(&self) {
+        self.settings.sync();
+    }
+}
+
+/// Take the lock that serialises every change Velatura makes. Waits up to
+/// `wait` for another holder; `Ok(None)` means it is still busy. The lock is
+/// released when the returned file is dropped, or when the process dies.
+pub fn acquire_lock(path: &Path, wait: std::time::Duration) -> io::Result<Option<File>> {
+    let file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .open(path)?;
+    let deadline = std::time::Instant::now() + wait;
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(Some(file)),
+            Err(fs::TryLockError::WouldBlock) => {
+                if std::time::Instant::now() >= deadline {
+                    return Ok(None);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(fs::TryLockError::Error(e)) => return Err(e),
+        }
+    }
+}
+
+/// Everything the engine may touch, handed to it by the caller.
+#[derive(Clone, Copy)]
+pub struct Host<'a> {
+    pub dirs: &'a Dirs,
+    pub fs: &'a dyn Fs,
+    pub settings: &'a dyn Settings,
+    /// Seconds since the Unix epoch.
+    pub now: u64,
+}
+
+impl Host<'_> {
+    pub fn state_dir(&self) -> PathBuf {
+        self.dirs.state.join("velatura")
+    }
+    pub fn data_dir(&self) -> PathBuf {
+        self.dirs.data.join("velatura")
+    }
+    pub fn backups_dir(&self) -> PathBuf {
+        self.data_dir().join("backups")
+    }
+    pub fn themes_dir(&self) -> PathBuf {
+        self.data_dir().join("themes")
     }
 }
 
@@ -240,5 +555,47 @@ mod tests {
         let missing_dir = t.0.join("no-such-dir").join("file");
         assert!(StdFs.write_atomic(&missing_dir, b"x", 0o644).is_err());
         assert_eq!(names(&t.0), Vec::<String>::new());
+    }
+
+    #[test]
+    fn the_lock_is_exclusive_and_released_on_drop() {
+        let t = TempDir::new("lock");
+        let path = t.0.join("lock");
+        let none = std::time::Duration::ZERO;
+        let held = acquire_lock(&path, none)
+            .unwrap()
+            .expect("first taker gets it");
+        assert!(
+            acquire_lock(&path, none).unwrap().is_none(),
+            "second is told busy"
+        );
+        let waited = std::time::Instant::now();
+        assert!(
+            acquire_lock(&path, std::time::Duration::from_millis(120))
+                .unwrap()
+                .is_none()
+        );
+        assert!(waited.elapsed() >= std::time::Duration::from_millis(100));
+        drop(held);
+        assert!(acquire_lock(&path, none).unwrap().is_some());
+    }
+
+    #[test]
+    fn memory_settings_tell_set_from_default() {
+        let s = MemSettings::gnome();
+        let read = |s: &MemSettings| s.read("org.gnome.desktop.interface", "accent-color");
+        assert_eq!(read(&s).unwrap().unwrap().user, None);
+        s.write("org.gnome.desktop.interface", "accent-color", Some("blue"))
+            .unwrap();
+        let now = read(&s).unwrap().unwrap();
+        assert_eq!(
+            (now.user.as_deref(), now.effective.as_str()),
+            (Some("blue"), "blue")
+        );
+        s.write("org.gnome.desktop.interface", "accent-color", None)
+            .unwrap();
+        assert_eq!(read(&s).unwrap().unwrap().user, None);
+        assert_eq!(s.read("org.gnome.desktop.interface", "nope").unwrap(), None);
+        assert!(s.write("no.such.schema", "k", Some("v")).is_err());
     }
 }

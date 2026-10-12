@@ -1,0 +1,187 @@
+//! Plans: what an operation would do, as data.
+//!
+//! A preview and the operation it previews are the same [`Plan`]. Every
+//! [`Change`] carries the state it was computed against, and executing it
+//! refuses to run if that state has moved.
+
+use std::path::PathBuf;
+
+/// One thing an operation does to the machine. Nothing happens that is not
+/// one of these.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Change {
+    CreateDir {
+        path: PathBuf,
+    },
+    /// Removed only if it is empty when its turn comes.
+    RemoveDir {
+        path: PathBuf,
+    },
+    /// A file Velatura creates and owns. `content` of `None` removes it.
+    Owned {
+        path: PathBuf,
+        content: Option<Vec<u8>>,
+        /// SHA-256 of the file as planned against; `None` if absent.
+        pre: Option<String>,
+    },
+    /// A marked span inside a file the user maintains.
+    Block {
+        path: PathBuf,
+        target: String,
+        /// The whole file after the edit; `None` removes a file that
+        /// Velatura created and that holds nothing else.
+        content: Option<Vec<u8>>,
+        pre: Option<String>,
+        body_before: Option<String>,
+        body_after: Option<String>,
+        added_eol: bool,
+        created_file: bool,
+    },
+    /// `value` of `None` returns the key to its default.
+    Setting {
+        schema: String,
+        key: String,
+        value: Option<String>,
+        /// The user's value as planned against; `None` if at default.
+        pre: Option<String>,
+    },
+}
+
+/// Why an app or desktop part was left out of an operation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Skip {
+    NotInstalled,
+    /// Excluded by `--only` or `--except`.
+    NotSelected,
+    /// Adding a line to a file the user maintains was not agreed to.
+    NoConsent,
+    /// The real location, after following links, is outside the home folder.
+    OutsideHome(PathBuf),
+    NotAFile(PathBuf),
+    Unreadable(PathBuf),
+    /// The file's markers are damaged: one without the other, or duplicates.
+    MalformedBlock(PathBuf),
+    /// A file with the name Velatura uses exists and Velatura did not make it.
+    ForeignFile(PathBuf),
+    /// A file Velatura made was changed outside Velatura since.
+    ChangedOutside(PathBuf),
+    SettingsUnavailable(String),
+}
+
+/// Something the user should know that does not stop the operation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Note {
+    /// Lines after the include that set the same colours and so win.
+    KittyOverride {
+        path: PathBuf,
+        lines: Vec<usize>,
+    },
+    /// Kitty applies this file on top of every other colour setting.
+    KittyAutoTheme {
+        path: PathBuf,
+    },
+    /// Open Kitty windows pick the change up by themselves on recent
+    /// versions; older ones need a manual reload.
+    KittyReload,
+    /// The system accent is the nearest of GNOME's fixed set.
+    AccentNearest {
+        wanted: String,
+        used: &'static str,
+    },
+    /// This GNOME version has no accent setting.
+    AccentUnsupported,
+    SettingLocked {
+        key: String,
+    },
+    /// Left as it is because it was changed outside Velatura.
+    KeptFile {
+        path: PathBuf,
+    },
+    KeptSetting {
+        key: String,
+    },
+    /// Text on background is below the contrast floor.
+    LowContrast,
+}
+
+/// The part of a plan that concerns one app or desktop part.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TargetPlan {
+    /// `target:instance`, for example `kitty:default`.
+    pub instance: String,
+    pub changes: Vec<Change>,
+    pub notes: Vec<Note>,
+    pub skipped: Option<Skip>,
+    /// True when this would add a line to a user's file for the first time.
+    pub needs_consent: bool,
+}
+
+impl TargetPlan {
+    pub fn new(instance: &str) -> Self {
+        Self {
+            instance: instance.to_owned(),
+            changes: Vec::new(),
+            notes: Vec::new(),
+            skipped: None,
+            needs_consent: false,
+        }
+    }
+
+    pub fn skip(instance: &str, why: Skip) -> Self {
+        Self {
+            skipped: Some(why),
+            ..Self::new(instance)
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Cause {
+    Apply,
+    Undo,
+    RestoreOriginal,
+}
+
+impl Cause {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Apply => "apply",
+            Self::Undo => "undo",
+            Self::RestoreOriginal => "restore-original",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Plan {
+    pub cause: Cause,
+    /// `theme/variant` and its fingerprint, for an apply.
+    pub theme: Option<(String, String)>,
+    /// The backup an undo reverses.
+    pub undo_of: Option<u64>,
+    pub targets: Vec<TargetPlan>,
+}
+
+impl Plan {
+    /// True when executing would change nothing.
+    pub fn is_empty(&self) -> bool {
+        self.changes().next().is_none()
+    }
+
+    /// Every change of every target that is not skipped.
+    pub fn changes(&self) -> impl Iterator<Item = &Change> {
+        self.targets
+            .iter()
+            .filter(|t| t.skipped.is_none())
+            .flat_map(|t| &t.changes)
+    }
+
+    /// Instances that need the user's agreement before they are touched.
+    pub fn needing_consent(&self) -> Vec<&str> {
+        self.targets
+            .iter()
+            .filter(|t| t.skipped.is_none() && t.needs_consent)
+            .map(|t| t.instance.as_str())
+            .collect()
+    }
+}

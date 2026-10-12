@@ -27,9 +27,9 @@ pub enum ParseColorError {
 impl fmt::Display for ParseColorError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::MissingHash => "colour must start with '#'",
-            Self::BadLength => "colour must be #RRGGBB or #RRGGBBAA",
-            Self::BadDigit => "colour contains a character that is not a hex digit",
+            Self::MissingHash => "color must start with '#'",
+            Self::BadLength => "color must be #RRGGBB or #RRGGBBAA",
+            Self::BadDigit => "color contains a character that is not a hex digit",
         })
     }
 }
@@ -49,7 +49,7 @@ impl Color {
             return Err(ParseColorError::BadLength);
         }
         let mut ch = [255u8; 4];
-        for (i, pair) in bytes.chunks_exact(2).enumerate() {
+        for (i, pair) in bytes.as_chunks::<2>().0.iter().enumerate() {
             ch[i] = (nibble(pair[0])? << 4) | nibble(pair[1])?;
         }
         Ok(Self {
@@ -83,6 +83,21 @@ impl Color {
     pub fn css_rgba(self) -> String {
         let alpha = (f64::from(self.a) / 255.0 * 1000.0).round() / 1000.0;
         format!("rgba({}, {}, {}, {})", self.r, self.g, self.b, alpha)
+    }
+
+    /// Blend towards `other` by `t` (0 keeps `self`, 1 gives `other`), channel
+    /// by channel in sRGB. Alpha is taken from `self`.
+    pub fn mix(self, other: Self, t: f64) -> Self {
+        let ch = |a: u8, b: u8| {
+            let v = f64::from(a) + (f64::from(b) - f64::from(a)) * t.clamp(0.0, 1.0);
+            v.round().clamp(0.0, 255.0) as u8
+        };
+        Self {
+            r: ch(self.r, other.r),
+            g: ch(self.g, other.g),
+            b: ch(self.b, other.b),
+            a: self.a,
+        }
     }
 
     /// Convert to OKLab (Björn Ottosson, 2020). Alpha is ignored.
