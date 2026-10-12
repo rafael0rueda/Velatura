@@ -9,6 +9,7 @@ use std::path::Path;
 
 use velatura_engine::library::Why;
 use velatura_engine::plan::{Change, Note, Skip};
+use velatura_engine::targets::OtherTool;
 use velatura_engine::txn::{Failure, Rollback};
 use velatura_theme::model::clean_text;
 
@@ -61,8 +62,36 @@ pub fn path(p: &Path, home: &Path) -> String {
     clean_text(&shown, 400)
 }
 
-pub fn instance(id: &str) -> &str {
-    match id {
+/// The function that looks a sentence up in the translation catalog. The
+/// command and the app each install theirs at start; without one the
+/// English source text is used.
+static TRANSLATE: std::sync::OnceLock<fn(&str) -> String> = std::sync::OnceLock::new();
+
+pub fn set_translator(lookup: fn(&str) -> String) {
+    let _ = TRANSLATE.set(lookup);
+}
+
+fn t(text: &str) -> String {
+    TRANSLATE.get().map_or_else(|| text.to_owned(), |f| f(text))
+}
+
+/// Translate a sentence, then put the arguments in place of `{1}`, `{2}`
+/// and so on. Numbered, so a translation can reorder them.
+macro_rules! tf {
+    ($text:literal $(, $arg:expr)* $(,)?) => {{
+        let mut out = t($text);
+        let mut n = 0;
+        $(
+            n += 1;
+            out = out.replace(&format!("{{{n}}}"), &$arg.to_string());
+        )*
+        let _ = n;
+        out
+    }};
+}
+
+pub fn instance(id: &str) -> String {
+    t(match id {
         "kitty:default" => "Kitty",
         "ghostty:default" => "Ghostty",
         "gtk4:default" => "Apps (GTK 4 and libadwaita)",
@@ -70,27 +99,27 @@ pub fn instance(id: &str) -> &str {
         "gnome:shell" => "Top Bar and Overview",
         "gnome:appearance" => "Style and Accent Color",
         "" => "Changes",
-        other => other,
-    }
+        other => return other.to_owned(),
+    })
 }
 
-fn setting_name(key: &str) -> &str {
-    match key {
+fn setting_name(key: &str) -> String {
+    t(match key {
         "color-scheme" => "Style",
         "accent-color" => "Accent Color",
         "gtk-theme" => "Legacy Application Theme",
         "name" => "Shell Theme",
-        other => other,
-    }
+        other => return other.to_owned(),
+    })
 }
 
 fn setting_value(key: &str, value: Option<&str>) -> String {
     match (key, value) {
-        (_, None) => "the default".to_owned(),
+        (_, None) => t("the default"),
         ("gtk-theme" | "name", Some(v)) => v.to_owned(),
-        ("color-scheme", Some("prefer-dark")) => "Dark".to_owned(),
-        ("color-scheme", Some("default")) => "Default".to_owned(),
-        ("color-scheme", Some("prefer-light")) => "Light".to_owned(),
+        ("color-scheme", Some("prefer-dark")) => t("Dark"),
+        ("color-scheme", Some("default")) => t("Default"),
+        ("color-scheme", Some("prefer-light")) => t("Light"),
         (_, Some(v)) => {
             let mut c = v.chars();
             c.next()
@@ -107,18 +136,18 @@ pub fn accent_name(value: &str) -> String {
 
 pub fn change(c: &Change, home: &Path) -> String {
     match c {
-        Change::CreateDir { path: p } => format!("Create the folder {}", path(p, home)),
+        Change::CreateDir { path: p } => tf!("Create the folder {1}", path(p, home)),
         Change::RemoveDir { path: p } => {
-            format!("Remove the folder {} if it is empty", path(p, home))
+            tf!("Remove the folder {1} if it is empty", path(p, home))
         }
         Change::Owned {
             path: p,
             content,
             pre,
         } => match (content, pre) {
-            (Some(_), None) => format!("Create {}", path(p, home)),
-            (Some(_), Some(_)) => format!("Update {}", path(p, home)),
-            (None, _) => format!("Remove {} (created by Velatura)", path(p, home)),
+            (Some(_), None) => tf!("Create {1}", path(p, home)),
+            (Some(_), Some(_)) => tf!("Update {1}", path(p, home)),
+            (None, _) => tf!("Remove {1} (created by Velatura)", path(p, home)),
         },
         Change::Block {
             path: p,
@@ -127,19 +156,19 @@ pub fn change(c: &Change, home: &Path) -> String {
             body_after,
             ..
         } => match (content, body_before, body_after) {
-            (None, _, _) => format!(
-                "Remove {} (created by Velatura, holds nothing else)",
+            (None, _, _) => tf!(
+                "Remove {1} (created by Velatura, holds nothing else)",
                 path(p, home)
             ),
-            (_, None, Some(_)) => format!(
-                "Add a marked block with one line at the end of {}",
+            (_, None, Some(_)) => tf!(
+                "Add a marked block with one line at the end of {1}",
                 path(p, home)
             ),
-            (_, Some(_), None) => format!("Take the Velatura block out of {}", path(p, home)),
-            _ => format!("Update the Velatura block in {}", path(p, home)),
+            (_, Some(_), None) => tf!("Take the Velatura block out of {1}", path(p, home)),
+            _ => tf!("Update the Velatura block in {1}", path(p, home)),
         },
-        Change::Setting { key, value, .. } => format!(
-            "Set {} to {}",
+        Change::Setting { key, value, .. } => tf!(
+            "Set {1} to {2}",
             setting_name(key),
             setting_value(key, value.as_deref())
         ),
@@ -148,51 +177,53 @@ pub fn change(c: &Change, home: &Path) -> String {
 
 pub fn skip(why: &Skip, home: &Path) -> String {
     match why {
-        Skip::NotInstalled => "Not installed".to_owned(),
-        Skip::NotSelected => "Left out".to_owned(),
-        Skip::NoConsent => {
-            "Left out: adding a line to the settings file was not agreed to".to_owned()
-        }
+        Skip::NotInstalled => t("Not installed"),
+        Skip::NotSelected => t("Left out"),
+        Skip::NoConsent => t("Left out: adding a line to the settings file was not agreed to"),
         Skip::OutsideHome(p) => {
-            format!("Left out: {} leads outside the home folder", path(p, home))
+            tf!("Left out: {1} leads outside the home folder", path(p, home))
         }
-        Skip::NotAFile(p) => format!(
-            "Left out: {} is not a regular file or folder",
+        Skip::NotAFile(p) => tf!(
+            "Left out: {1} is not a regular file or folder",
             path(p, home)
         ),
-        Skip::Unreadable(p) => format!("Left out: {} cannot be read", path(p, home)),
-        Skip::MalformedBlock(p) => format!(
-            "Left out: the Velatura markers in {} are damaged. Remove both marker lines, then apply again",
+        Skip::Unreadable(p) => tf!("Left out: {1} cannot be read", path(p, home)),
+        Skip::MalformedBlock(p) => tf!(
+            "Left out: the Velatura markers in {1} are damaged. Remove both marker lines, then apply again",
             path(p, home)
         ),
-        Skip::ForeignFile(p) => format!(
-            "Left out: {} already exists and was not created by Velatura",
+        Skip::ForeignFile(p) => tf!(
+            "Left out: {1} already exists and was not created by Velatura",
             path(p, home)
         ),
-        Skip::ChangedOutside(p) => format!(
-            "Left out: {} was changed outside Velatura. Use --replace-changed to overwrite it",
+        Skip::ChangedOutside(p) => tf!(
+            "Left out: {1} was changed outside Velatura. Use --replace-changed to overwrite it",
             path(p, home)
         ),
-        Skip::SettingsUnavailable(what) => format!(
-            "Left out: desktop settings are not available ({})",
+        Skip::SettingsUnavailable(what) => tf!(
+            "Left out: desktop settings are not available ({1})",
             clean_text(what, 120)
         ),
-        Skip::HardLinked(p) => format!(
-            "Left out: {} has more than one name (a hard link), and replacing it would split them",
+        Skip::HardLinked(p) => tf!(
+            "Left out: {1} has more than one name (a hard link), and replacing it would split them",
             path(p, home)
         ),
         Skip::HighContrast => {
-            "Left out: High Contrast is on, and recoloring would lower contrast".to_owned()
+            t("Left out: High Contrast is on, and recoloring would lower contrast")
         }
-        Skip::NeedsUserThemes => "Left out: the top bar and overview can only be recolored through the User Themes extension, which is not installed. It is in the gnome-shell-extension-user-theme package and on extensions.gnome.org".to_owned(),
-        Skip::NeedsAdwGtk3 => "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package".to_owned(),
+        Skip::NeedsUserThemes => t(
+            "Left out: the top bar and overview can only be recolored through the User Themes extension, which is not installed. It is in the gnome-shell-extension-user-theme package and on extensions.gnome.org",
+        ),
+        Skip::NeedsAdwGtk3 => t(
+            "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
+        ),
     }
 }
 
 pub fn note(n: &Note, home: &Path) -> String {
     match n {
-        Note::Override { path: p, lines } => format!(
-            "{} has lines after the Velatura block that win over the theme (line {})",
+        Note::Override { path: p, lines } => tf!(
+            "{1} has lines after the Velatura block that win over the theme (line {2})",
             path(p, home),
             lines
                 .iter()
@@ -200,21 +231,19 @@ pub fn note(n: &Note, home: &Path) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        Note::KittyAutoTheme { path: p } => format!(
-            "{} exists. Kitty applies it over every other color setting, so the theme does not show until that file is renamed",
+        Note::KittyAutoTheme { path: p } => tf!(
+            "{1} exists. Kitty applies it over every other color setting, so the theme does not show until that file is renamed",
             path(p, home)
         ),
         Note::KittyReload => {
-            "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each".to_owned()
+            t("If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each")
         }
         Note::GhosttyReload => {
-            "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them".to_owned()
+            t("To update open Ghostty windows, press Ctrl+Shift+Comma in one of them")
         }
-        Note::GtkRestart => {
-            "Apps that are already open keep their colors until reopened".to_owned()
-        }
-        Note::LinkedFile { path: p, real } => format!(
-            "{} is a link. The change is written to {}",
+        Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
+        Note::LinkedFile { path: p, real } => tf!(
+            "{1} is a link. The change is written to {2}",
             path(p, home),
             path(real, home)
         ),
@@ -228,54 +257,78 @@ pub fn note(n: &Note, home: &Path) -> String {
                 Some(v) => format!("gsettings {dir}set {id} {key} {}", quote(v)),
                 None => format!("gsettings {dir}reset {id} {key}"),
             };
-            format!(
-                "{} could not be put back without a desktop session. After signing in, run: {command}",
-                setting_name(key)
+            tf!(
+                "{1} could not be put back without a desktop session. After signing in, run: {2}",
+                setting_name(key),
+                command
             )
         }
-        Note::UserThemesOff => "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app".to_owned(),
-        Note::ShellExtensionStyles { names } => format!(
-            "These extensions bring their own colors, which win over the theme where they apply: {}",
+        Note::UserThemesOff => t(
+            "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app",
+        ),
+        Note::ShellExtensionStyles { names } => tf!(
+            "These extensions bring their own colors, which win over the theme where they apply: {1}",
             clean_text(&names.join(", "), 400)
         ),
-        Note::Gtk3DarkForced { path: p } => format!(
-            "{} asks older apps for dark and can work against this light theme",
+        Note::Gtk3DarkForced { path: p } => tf!(
+            "{1} asks older apps for dark and can work against this light theme",
             path(p, home)
         ),
-        Note::AccentNearest { wanted, used } => format!(
-            "The theme's accent is {wanted}. GNOME offers nine accents; the nearest is {}",
+        Note::AccentNearest { wanted, used } => tf!(
+            "The theme's accent is {1}. GNOME offers nine accents; the nearest is {2}",
+            wanted,
             setting_value("accent-color", Some(used))
         ),
-        Note::AccentUnsupported => "This GNOME version has no accent color setting".to_owned(),
-        Note::SettingLocked { key } => format!(
-            "{} is locked by the system administrator and was not changed",
+        Note::AccentUnsupported => t("This GNOME version has no accent color setting"),
+        Note::SettingLocked { key } => tf!(
+            "{1} is locked by the system administrator and was not changed",
             setting_name(key)
         ),
-        Note::KeptFile { path: p } => format!(
-            "{} was changed outside Velatura and is left as it is",
+        Note::KeptFile { path: p } => tf!(
+            "{1} was changed outside Velatura and is left as it is",
             path(p, home)
         ),
-        Note::KeptSetting { key } => format!(
-            "{} was changed outside Velatura and is left as it is",
+        Note::KeptSetting { key } => tf!(
+            "{1} was changed outside Velatura and is left as it is",
             setting_name(key.rsplit(' ').next().unwrap_or(key))
         ),
         Note::LowContrast => {
-            "Text on background is below a contrast of 4.5 to 1 and may be hard to read".to_owned()
+            t("Text on background is below a contrast of 4.5 to 1 and may be hard to read")
         }
+    }
+}
+
+/// Another tool on this machine that changes the same colours or files.
+pub fn other_tool(tool: &OtherTool, home: &Path) -> String {
+    match tool {
+        OtherTool::Known { name, path: p } => tf!(
+            "Another theming tool, {1}, is present ({2}). It may write the same colors",
+            name,
+            path(p, home)
+        ),
+        OtherTool::Timer { unit } => tf!(
+            "A timer that may change the theme is turned on: {1}",
+            clean_text(unit, 120)
+        ),
+        OtherTool::Dotfiles { name, path: p } => tf!(
+            "Settings files may be managed by {1} ({2}). It can overwrite changes made here",
+            name,
+            path(p, home)
+        ),
     }
 }
 
 pub fn rollback(r: &Rollback) -> String {
     let mut out = String::new();
     for kept in &r.kept {
-        out.push_str(&format!(
-            "  Kept, because it was changed afterwards: {}\n",
+        out.push_str(&tf!(
+            "  Kept, because it was changed afterwards: {1}\n",
             clean_text(kept, 400)
         ));
     }
     for (what, why) in &r.errors {
-        out.push_str(&format!(
-            "  Could not be put back: {} ({})\n",
+        out.push_str(&tf!(
+            "  Could not be put back: {1} ({2})\n",
             clean_text(what, 400),
             clean_text(why, 200)
         ));
@@ -285,12 +338,12 @@ pub fn rollback(r: &Rollback) -> String {
 
 pub fn failure(f: &Failure) -> String {
     match f {
-        Failure::Stale(what) => format!(
-            "Nothing was changed: {} changed after the preview. Run the command again.",
+        Failure::Stale(what) => tf!(
+            "Nothing was changed: {1} changed after the preview. Run the command again.",
             clean_text(what, 400)
         ),
-        Failure::Prepare(why) => format!(
-            "Nothing was changed: the backup could not be written ({}).",
+        Failure::Prepare(why) => tf!(
+            "Nothing was changed: the backup could not be written ({1}).",
             clean_text(why, 200)
         ),
         Failure::Step {
@@ -298,20 +351,20 @@ pub fn failure(f: &Failure) -> String {
             error,
             rollback: r,
         } => {
-            let mut out = format!(
-                "The change failed at {} ({}).\n",
+            let mut out = tf!(
+                "The change failed at {1} ({2}).\n",
                 clean_text(what, 400),
                 clean_text(error, 200)
             );
             if r.is_clean() && r.kept.is_empty() {
-                out.push_str("Everything was put back as it was.");
+                out.push_str(&t("Everything was put back as it was."));
             } else if r.is_clean() {
-                out.push_str("Everything else was put back as it was.\n");
+                out.push_str(&t("Everything else was put back as it was.\n"));
                 out.push_str(&rollback(r));
             } else {
-                out.push_str("Rolling back did not finish:\n");
+                out.push_str(&t("Rolling back did not finish:\n"));
                 out.push_str(&rollback(r));
-                out.push_str("Backups are in ~/.local/share/velatura/backups. To try again: velatura recover");
+                out.push_str(&t("Backups are in ~/.local/share/velatura/backups. To try again: velatura recover"));
             }
             out
         }

@@ -45,6 +45,18 @@ pub async fn run_if_asked(ui: &U) {
         ui.window.set_default_size(size.0, size.1);
     }
     pause(700).await;
+    // What this window computes for its own background, for the check that
+    // an applied theme does not recolour the app itself.
+    #[allow(deprecated)]
+    if let Some(c) = ui.window.style_context().lookup_color("window_bg_color") {
+        let byte = |v: f32| (v * 255.0).round() as u8;
+        println!(
+            "SHOTS own window_bg_color=#{:02x}{:02x}{:02x}",
+            byte(c.red()),
+            byte(c.green()),
+            byte(c.blue())
+        );
+    }
     for view in ["themes", "apps", "history"] {
         ui.stack.set_visible_child_name(view);
         pause(500).await;

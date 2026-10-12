@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
-use velatura_engine::engine::{self, ApplyOpts, Error, Health, Report};
+use velatura_engine::engine::{self, ApplyOpts, Error, Health, PartState, Report};
 use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs};
 use velatura_engine::library;
 use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
@@ -486,6 +486,28 @@ impl Cx<'_> {
                 word(h)
             );
         }
+        // Each part, in words: themed, ready, hidden by something, or why not.
+        let (themes, _) = library::load(&self.host);
+        let parts = engine::parts(&self.host, &env, &themes);
+        if !parts.is_empty() {
+            println!();
+        }
+        for part in &parts {
+            let state = match &part.state {
+                PartState::Themed if part.included => "themed".to_owned(),
+                PartState::Themed => "themed, and left out of the next apply".to_owned(),
+                PartState::Ready if part.included => "included in the next apply".to_owned(),
+                PartState::Ready => "left out".to_owned(),
+                PartState::Shadowed(note) => format!(
+                    "set up, but not taking effect. {}",
+                    text::note(note, self.home)
+                ),
+                PartState::Unavailable(why) => text::skip(why, self.home)
+                    .trim_start_matches("Left out: ")
+                    .to_owned(),
+            };
+            println!("{}: {state}", text::instance(part.instance));
+        }
         if with_hint {
             println!("\nTo see the commands: velatura --help");
         }
@@ -546,9 +568,25 @@ impl Cx<'_> {
         }
     }
 
+    /// Before the very first apply, say what else on this machine changes
+    /// the same colours.
+    fn print_other_tools(&self, plan: &Plan) {
+        let first = plan.cause == Cause::Apply
+            && engine::status(&self.host).is_ok_and(|s| s.applied.is_none());
+        if !first {
+            return;
+        }
+        for tool in targets::other_tools(&self.host) {
+            println!("Note: {}", text::other_tool(&tool, self.home));
+        }
+    }
+
     /// Show the plan, ask if needed, carry it out, and report.
     fn run(&self, plan: &Plan, undo_hint: bool) -> Outcome {
         let args = self.args;
+        if !args.json {
+            self.print_other_tools(plan);
+        }
         if args.preview {
             if args.json {
                 self.emit(self.plan_json(plan, None));
@@ -834,20 +872,7 @@ impl Cx<'_> {
             code = PARTIAL;
         }
         for tool in targets::other_tools(&self.host) {
-            match tool {
-                targets::OtherTool::Known { name, path } => println!(
-                    "Another theming tool: {name} ({}). It may write the same colors",
-                    text::path(&path, self.home)
-                ),
-                targets::OtherTool::Timer { unit } => println!(
-                    "A timer that may change the theme is enabled: {}",
-                    clean_text(&unit, 120)
-                ),
-                targets::OtherTool::Dotfiles { name, path } => println!(
-                    "Settings files may be managed by {name} ({}). It can overwrite changes made here",
-                    text::path(&path, self.home)
-                ),
-            }
+            println!("{}", text::other_tool(&tool, self.home));
         }
         // What applying would run into, using a bundled theme as the probe.
         let themes = velatura_theme::bundled::themes();

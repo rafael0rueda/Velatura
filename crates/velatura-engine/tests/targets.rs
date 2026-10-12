@@ -130,8 +130,11 @@ impl Drop for Home {
     }
 }
 
-fn no_env(_: &str) -> Option<OsString> {
-    None
+/// An environment with nothing in it, and with the system's shared data
+/// out of sight: what is installed on the machine running the tests (an
+/// extension, a GTK theme) must not change their outcome.
+fn no_env(key: &str) -> Option<OsString> {
+    (key == "XDG_DATA_DIRS").then(|| OsString::from("/nonexistent-velatura-test"))
 }
 
 fn plan(host: &Host<'_>, theme: &Theme) -> Plan {

@@ -9,12 +9,29 @@ permissions:
   contents: read
 
 jobs:
+  # The gate on the GNOME version the project is developed on. Required
+  # before a pull request can be merged.
   check:
     runs-on: ubuntu-latest
     container: fedora:44
     steps:
-      - name: Install tools
-        run: dnf install -y --setopt=install_weak_deps=False git cargo rustfmt clippy gcc python3 pkgconf-pkg-config glib2-devel dbus-daemon dconf gsettings-desktop-schemas gtk3 gtk4 python3-gobject gobject-introspection gtk4-devel libadwaita-devel gettext desktop-file-utils
+      - name: Install git
+        run: dnf install -y --setopt=install_weak_deps=False git
       - uses: actions/checkout@v4
+      - name: Install tools
+        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt)
+      - name: Gate
+        run: VELATURA_CI=1 scripts/check.sh
+
+  # The same gate on the next GNOME version (51, libadwaita 1.10).
+  check-next:
+    runs-on: ubuntu-latest
+    container: fedora:45
+    steps:
+      - name: Install git
+        run: dnf install -y --setopt=install_weak_deps=False git
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt)
       - name: Gate
         run: VELATURA_CI=1 scripts/check.sh
