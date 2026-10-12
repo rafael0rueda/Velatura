@@ -60,8 +60,14 @@ step "app"
 # The window, driven for real in a throw-away session: first apply through
 # the confirmation, then undo, with the sandbox's files checked after.
 desktop-file-validate data/io.github.rafael0rueda.Velatura.desktop
+before=$(mktemp)
+cp po/velatura.pot "$before"
 scripts/update-pot.sh >/dev/null
-git diff --quiet -- po/velatura.pot || { echo "po/velatura.pot is out of date: run scripts/update-pot.sh"; exit 1; }
+if ! cmp -s "$before" po/velatura.pot; then
+    rm -f "$before"
+    echo "po/velatura.pot was out of date and has been regenerated: commit it"; exit 1
+fi
+rm -f "$before"
 if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
     shots=$(mktemp -d)
     flow=$(scripts/gui-shots.sh "$shots" --flow 2>/dev/null | grep -E '^(FLOW|SANDBOX)' || true)
