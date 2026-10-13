@@ -65,6 +65,8 @@ pub struct Snapshot {
     pub window: Option<(i32, i32)>,
     pub day_night: DayNight,
     pub schedule: schedule::Status,
+    /// Velatura's own Shell extension: there or not, on or off.
+    pub extension: velatura_engine::companion::Status,
     /// Icons, cursor, wallpaper and fonts: what is in use, and what is
     /// installed to choose from. A kind the desktop lacks is not listed.
     pub look: Vec<(Kind, String, Vec<Choice>)>,
@@ -83,6 +85,7 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         window: engine::window_size(host),
         day_night: DayNight::load(host),
         schedule: schedule::status(host),
+        extension: velatura_engine::companion::status(host, &env),
         command: self_command(Some("velatura")),
         ..Snapshot::default()
     };

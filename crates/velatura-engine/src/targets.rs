@@ -587,7 +587,7 @@ pub(crate) fn data_dirs(host: &Host<'_>, env: Env<'_>) -> Vec<PathBuf> {
 }
 
 /// The uuids in the printed form of a list of strings: `['a', 'b']`.
-fn listed(printed: &str) -> Vec<&str> {
+pub(crate) fn listed(printed: &str) -> Vec<&str> {
     printed.split('\'').skip(1).step_by(2).collect()
 }
 
@@ -604,6 +604,11 @@ pub fn plan_shell(
 ) -> TargetPlan {
     if high_contrast(host) {
         return TargetPlan::skip(SHELL, Skip::HighContrast);
+    }
+    // Velatura's own extension, when it is on, is the better way in: its
+    // stylesheet sits with those of other extensions, not under them.
+    if crate::companion::status(host, env).active() {
+        return plan_shell_companion(host, theme, state, clear_old);
     }
     let Some(extension) = data_dirs(host, env)
         .into_iter()
@@ -653,39 +658,8 @@ pub fn plan_shell(
             pre,
         });
     }
-    // Folders of earlier applies are Velatura's own and are cleared away.
-    // They stay restorable: undo puts them back from the backup. A run with
-    // no one present leaves them for the next apply the user makes.
-    for (old, written) in state.owned.iter().filter(|_| clear_old) {
-        let old = PathBuf::from(old);
-        let generated = old.strip_prefix(&themes).is_ok_and(|rest| {
-            rest.to_string_lossy().starts_with("Velatura-")
-                && rest.ends_with("gnome-shell/gnome-shell.css")
-        });
-        if !generated || old == css {
-            continue;
-        }
-        match read_opt(host, &old)
-            .ok()
-            .flatten()
-            .as_deref()
-            .map(sha256_hex)
-        {
-            Some(hash) if hash == *written => {
-                plan.changes.push(Change::Owned {
-                    path: old.clone(),
-                    content: None,
-                    pre: Some(hash),
-                });
-                for dir in old.ancestors().skip(1).take(2) {
-                    plan.changes.push(Change::RemoveDir {
-                        path: dir.to_path_buf(),
-                    });
-                }
-            }
-            Some(_) => plan.notes.push(Note::KeptFile { path: old }),
-            None => {}
-        }
+    if clear_old {
+        clear_generated(host, state, Some(&css), &mut plan);
     }
     if now.effective != name {
         if now.writable {
@@ -736,7 +710,113 @@ pub fn plan_shell(
     plan
 }
 
-pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>) -> TargetPlan {
+/// Shell stylesheets Velatura wrote for an earlier theme, or for the other
+/// of its two ways into the Shell, are its own and are cleared away. They
+/// stay restorable: undo puts them back from the backup. `keep` is the one
+/// being written now.
+fn clear_generated(host: &Host<'_>, state: &State, keep: Option<&Path>, plan: &mut TargetPlan) {
+    let themes = host.dirs.data.join("themes");
+    let companion = crate::companion::stylesheet(host);
+    for (old, written) in &state.owned {
+        let old = PathBuf::from(old);
+        let generated = old == companion
+            || old.strip_prefix(&themes).is_ok_and(|rest| {
+                rest.to_string_lossy().starts_with("Velatura-")
+                    && rest.ends_with("gnome-shell/gnome-shell.css")
+            });
+        if !generated || Some(old.as_path()) == keep {
+            continue;
+        }
+        // The theme's folder and the one inside it; for the extension's
+        // stylesheet, the one folder made for it.
+        let levels = if old == companion { 1 } else { 2 };
+        match read_opt(host, &old)
+            .ok()
+            .flatten()
+            .as_deref()
+            .map(sha256_hex)
+        {
+            Some(hash) if hash == *written => {
+                plan.changes.push(Change::Owned {
+                    path: old.clone(),
+                    content: None,
+                    pre: Some(hash),
+                });
+                for dir in old.ancestors().skip(1).take(levels) {
+                    plan.changes.push(Change::RemoveDir {
+                        path: dir.to_path_buf(),
+                    });
+                }
+            }
+            Some(_) => plan.notes.push(Note::KeptFile { path: old }),
+            None => {}
+        }
+    }
+}
+
+/// The Shell through Velatura's own extension: one stylesheet at a fixed
+/// place, replaced in place. The extension sees the change and loads it,
+/// so there is no folder per theme and no setting to flip.
+fn plan_shell_companion(
+    host: &Host<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+    clear_old: bool,
+) -> TargetPlan {
+    let css = crate::companion::stylesheet(host);
+    let wanted = shell::render_for_extension(theme).into_bytes();
+    let current = read_opt(host, &css).ok().flatten();
+    let pre = current.as_deref().map(sha256_hex);
+    if pre.is_some() && !state.owned.contains_key(&path_str(&css)) {
+        return TargetPlan::skip(SHELL, Skip::ForeignFile(css));
+    }
+    if !inside_home(host, &host.dirs.data) {
+        return TargetPlan::skip(SHELL, Skip::OutsideHome(css));
+    }
+    let mut plan = TargetPlan::new(SHELL);
+    // Velatura's own data folder is there by the time this runs; only the
+    // folder for the stylesheet may have to be made.
+    if let Some(dir) = css.parent().filter(|dir| !exists(host, dir)) {
+        plan.changes.push(Change::CreateDir {
+            path: dir.to_path_buf(),
+        });
+    }
+    if current.as_deref() != Some(wanted.as_slice()) {
+        plan.changes.push(Change::Owned {
+            path: css.clone(),
+            content: Some(wanted),
+            pre,
+        });
+    }
+    if clear_old {
+        clear_generated(host, state, Some(&css), &mut plan);
+        // The name Velatura gave User Themes points at a folder that is
+        // going away; it goes back to what it was by default.
+        for (id, written) in &state.settings {
+            let Some((schema, "name")) = id.rsplit_once(' ') else {
+                continue;
+            };
+            if !schema.starts_with(USER_THEMES_SCHEMA) {
+                continue;
+            }
+            if let Ok(Some(now)) = host.settings.read(schema, "name")
+                && now.user.is_some()
+                && now.user == *written
+                && now.writable
+            {
+                plan.changes.push(Change::Setting {
+                    schema: schema.to_owned(),
+                    key: "name".to_owned(),
+                    value: None,
+                    pre: now.user,
+                });
+            }
+        }
+    }
+    plan
+}
+
+pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>, keep_style: bool) -> TargetPlan {
     let mut plan = TargetPlan::new(APPEARANCE);
     let scheme = match theme.colors.appearance {
         Appearance::Dark => "prefer-dark",
@@ -748,6 +828,9 @@ pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>) -> TargetPlan {
         ("accent-color", accent.setting_value()),
     ];
     for (key, value) in wanted {
+        if keep_style && key == "color-scheme" {
+            continue;
+        }
         match host.settings.read(INTERFACE_SCHEMA, key) {
             Err(SettingsError::Unavailable(why)) => {
                 return TargetPlan::skip(APPEARANCE, Skip::SettingsUnavailable(why));
@@ -810,7 +893,7 @@ pub fn plan(
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(host, env, theme, state, !opts.unattended),
-        _ => plan_appearance(host, theme),
+        _ => plan_appearance(host, theme, opts.keep_style),
     }
 }
 

@@ -48,6 +48,36 @@ pub fn folder(theme: &Resolved<'_>) -> String {
 }
 
 pub fn render(theme: &Resolved<'_>) -> String {
+    render_with(theme, false)
+}
+
+/// The same rules for Velatura's own extension, whose stylesheet sits
+/// beside those of other extensions instead of under them. Between two
+/// rules of the same weight the Shell does not go by which came last, so
+/// each selector's first part is written twice: one step heavier than the
+/// plain `#panel` an extension typically uses, and still lighter than a
+/// rule someone wrote on purpose for a narrower case.
+pub fn render_for_extension(theme: &Resolved<'_>) -> String {
+    render_with(theme, true)
+}
+
+/// `#panel .panel-button` as `#panel#panel .panel-button`.
+fn heavier(selector: &str) -> String {
+    let (first, rest) = match selector.split_once(' ') {
+        Some((first, rest)) => (first, format!(" {rest}")),
+        None => (selector, String::new()),
+    };
+    format!("{first}{first}{rest}")
+}
+
+fn render_with(theme: &Resolved<'_>, heavy: bool) -> String {
+    let weigh = |selector: &str| {
+        if heavy {
+            heavier(selector)
+        } else {
+            selector.to_owned()
+        }
+    };
     let ui = &theme.colors.ui;
     let raised = ui.surface.mix(ui.fg, 0.06);
     // (selectors, background, text)
@@ -88,12 +118,21 @@ pub fn render(theme: &Resolved<'_>) -> String {
         let _ = writeln!(
             out,
             "{} {{ background-color: {}; color: {}; }}",
-            selectors.join(", "),
+            selectors
+                .iter()
+                .map(|s| weigh(s))
+                .collect::<Vec<_>>()
+                .join(", "),
             background.hex(),
             text.hex()
         );
     }
-    let _ = writeln!(out, "#panel .panel-button {{ color: {}; }}", ui.fg.hex());
+    let _ = writeln!(
+        out,
+        "{} {{ color: {}; }}",
+        weigh("#panel .panel-button"),
+        ui.fg.hex()
+    );
     out
 }
 
@@ -140,6 +179,27 @@ mod tests {
             let mut all = SELECTORS.to_vec();
             all.sort_unstable();
             assert_eq!(used, all, "every listed selector is used exactly once");
+        }
+    }
+
+    /// For the extension the same rules, each selector one step heavier.
+    #[test]
+    fn the_extensions_rules_are_the_same_rules_made_heavier() {
+        for theme in bundled::themes() {
+            let resolved = Resolved::new(&theme, None).unwrap();
+            let (plain, heavy) = (render(&resolved), render_for_extension(&resolved));
+            assert_eq!(plain.lines().count(), heavy.lines().count());
+            for (a, b) in plain.lines().zip(heavy.lines()).skip(2) {
+                let (selectors, body) = a.split_once(" { ").unwrap();
+                let (heavier_selectors, same_body) = b.split_once(" { ").unwrap();
+                assert_eq!(body, same_body);
+                let want: Vec<String> = selectors.split(", ").map(heavier).collect();
+                assert_eq!(heavier_selectors, want.join(", "));
+            }
+            assert!(heavy.contains("#panel#panel { "));
+            assert!(heavy.contains("#panel#panel .panel-button { "));
+            assert!(heavy.contains(".dash-label.dash-label { "));
+            assert!(heavy.contains("#dash#dash .dash-background { "));
         }
     }
 

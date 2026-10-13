@@ -1,0 +1,8 @@
+{
+  "uuid": "velatura@rafael0rueda.github.io",
+  "name": "Velatura",
+  "description": "Loads the colors the Velatura app writes for the top bar, overview, menus and dialogs, and loads them again when they change. It holds no colors and no settings of its own: without the Velatura app it does nothing.",
+  "url": "https://github.com/rafael0rueda/Velatura",
+  "shell-version": ["47", "48", "49", "50", "51"],
+  "version-name": "1"
+}

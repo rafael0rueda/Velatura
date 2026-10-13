@@ -50,6 +50,9 @@ pub struct ApplyOpts {
     pub except: Vec<String>,
     /// Overwrite files Velatura made that were changed outside it.
     pub replace_changed: bool,
+    /// Leave the light or dark style as it is. Set by the engine itself
+    /// while the themes follow the style, whatever the caller gives.
+    pub keep_style: bool,
     /// No one is there to answer: the plan is for the schedule. It removes
     /// nothing, not even folders Velatura generated itself.
     pub unattended: bool,
@@ -70,6 +73,12 @@ pub fn plan_apply(
 ) -> Result<Plan, Error> {
     let state = State::load(host)?;
     let prefs = Prefs::load(host)?;
+    // The style leads and the theme follows: writing the style here
+    // would have the two chase each other.
+    let opts = &ApplyOpts {
+        keep_style: opts.keep_style || crate::schedule::follows_style(host),
+        ..opts.clone()
+    };
     let mut plans = Vec::new();
     for instance in targets::INSTANCES {
         // Naming a target outright overrides having turned it off.

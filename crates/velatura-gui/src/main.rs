@@ -615,17 +615,38 @@ fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
         .use_underline(true)
         .subtitle(reason.unwrap_or_default())
         .subtitle_lines(0)
-        .active(status.on)
+        .active(status.on && !status.follows_style)
         .sensitive(status.on || (snap.can_schedule && chosen))
         .build();
     let weak = Rc::downgrade(ui);
     switch.connect_active_notify(move |switch| {
         let on = switch.is_active();
         if let Some(ui) = weak.upgrade() {
-            glib::spawn_future_local(async move { set_schedule(&ui, on, None).await });
+            glib::spawn_future_local(async move { set_schedule(&ui, on, None, false).await });
         }
     });
     group.add(&switch);
+
+    // The other way to change by itself: with the desktop's style. One or
+    // the other is on, never both.
+    let follow = adw::SwitchRow::builder()
+        .title(tr("_Follow the Dark Style"))
+        .use_underline(true)
+        .subtitle(tr(
+            "The daytime theme with the light style, the nighttime theme with the dark style. Needs a light and a dark theme",
+        ))
+        .subtitle_lines(0)
+        .active(status.follows_style)
+        .sensitive(status.follows_style || (snap.can_schedule && chosen))
+        .build();
+    let weak = Rc::downgrade(ui);
+    follow.connect_active_notify(move |switch| {
+        let on = switch.is_active();
+        if let Some(ui) = weak.upgrade() {
+            glib::spawn_future_local(async move { set_schedule(&ui, on, None, true).await });
+        }
+    });
+    group.add(&follow);
 
     for (is_day, title, minutes) in [
         (true, tr("Daytime Theme _Begins"), status.times.day),
@@ -659,9 +680,12 @@ fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
                 } else {
                     times.night = minutes;
                 }
-                let on = ui.snap.borrow().schedule.on;
-                if on {
-                    set_schedule(&ui, true, Some(times)).await;
+                let by_clock = {
+                    let s = &ui.snap.borrow().schedule;
+                    s.on && !s.follows_style
+                };
+                if by_clock {
+                    set_schedule(&ui, true, Some(times), false).await;
                 } else {
                     let saved = data::run(move |host| times.save(host)).await;
                     if !matches!(saved, Some(Ok(()))) {
@@ -677,7 +701,7 @@ fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
 }
 
 /// Turn the schedule on or off, or give a running one new times.
-async fn set_schedule(ui: &U, on: bool, times: Option<Times>) {
+async fn set_schedule(ui: &U, on: bool, times: Option<Times>, follow: bool) {
     let home = ui.snap.borrow().home.clone();
     let times = times.unwrap_or(ui.snap.borrow().schedule.times);
     let command = ui.snap.borrow().command.clone();
@@ -685,6 +709,9 @@ async fn set_schedule(ui: &U, on: bool, times: Option<Times>) {
     loop {
         let command = command.clone();
         let done = data::run(move |host| match (on, command) {
+            (true, Some(command)) if follow => {
+                schedule::enable_follow(host, &StdSystemd, &command, anyway)
+            }
             (true, Some(command)) => schedule::enable(host, &StdSystemd, &command, times, anyway),
             (true, None) => Err(Refused::NotInstalled("velatura".into())),
             (false, _) => schedule::disable(host, &StdSystemd).map(|_| ()),
@@ -1470,6 +1497,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         page.add(&group);
     }
 
+    page.add(&extension_group(ui, snap));
     page.add(&look_group(ui, snap));
 
     // Shown only while there is something of Velatura's to remove.
@@ -1489,6 +1517,67 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         page.add(&group);
     }
     page.upcast()
+}
+
+/// Velatura's own Shell extension: what it is for, where it stands, and
+/// one button to install or remove it. Turning it on is left to the user.
+fn extension_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(tr("Shell Extension"))
+        .description(tr(
+            "Velatura's own extension themes the top bar and overview where other extensions bring their own colors",
+        ))
+        .build();
+    let status = &snap.extension;
+    let row = adw::ActionRow::builder()
+        .title(tr("Velatura Extension"))
+        .subtitle(glib::markup_escape_text(&velatura_text::extension(status)))
+        .subtitle_lines(0)
+        .build();
+    // A copy from a package is not Velatura's to remove or replace.
+    let action = match (&status.installed, status.by_velatura, status.outdated) {
+        (None, ..) => Some((tr("_Install"), true)),
+        (Some(_), true, true) => Some((tr("_Update"), true)),
+        (Some(_), true, false) => Some((tr("_Remove"), false)),
+        (Some(_), false, _) => None,
+    };
+    if let Some((label, install)) = action {
+        let button = gtk::Button::builder()
+            .label(label)
+            .use_underline(true)
+            .valign(gtk::Align::Center)
+            .build();
+        let weak = Rc::downgrade(ui);
+        button.connect_clicked(move |_| {
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
+            glib::spawn_future_local(async move {
+                let home = ui.snap.borrow().home.clone();
+                let done = data::run(move |host| {
+                    if install {
+                        velatura_engine::companion::install(host).map(|_| ())
+                    } else {
+                        velatura_engine::companion::remove(host).map(|_| ())
+                    }
+                })
+                .await;
+                refresh(&ui).await;
+                match done {
+                    Some(Ok(())) if install => toast(
+                        &ui,
+                        &tr("Extension installed. It can be turned on after signing out and in"),
+                    ),
+                    Some(Ok(())) => toast(&ui, &tr("Extension removed")),
+                    Some(Err(why)) => toast(&ui, &velatura_text::refused(&why, &home)),
+                    None => toast(&ui, &tr("The change could not be started")),
+                }
+            });
+        });
+        row.add_suffix(&button);
+    }
+    group.add(&row);
+    group
 }
 
 /// Icons, cursor, wallpaper and fonts: a choice among what is installed,

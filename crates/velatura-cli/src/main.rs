@@ -155,6 +155,10 @@ fn main() -> ExitCode {
         ["schedule"] | ["schedule", "status"] => cx.schedule_show(),
         ["schedule", "set"] => cx.schedule_set(),
         ["schedule", "off"] => cx.schedule_off(),
+        ["schedule", "follow"] => cx.schedule_follow(),
+        ["extension"] | ["extension", "status"] => cx.extension_show(),
+        ["extension", "install"] => cx.extension_install(),
+        ["extension", "remove"] => cx.extension_remove(),
         ["theme", "import", file] => cx.theme_import(file),
         ["theme", "export", theme] => cx.theme_export(theme, None),
         ["theme", "export", theme, file] => cx.theme_export(theme, Some(file)),
@@ -793,6 +797,7 @@ impl Cx<'_> {
     fn schedule_json(&self, s: &schedule::Status) -> Value {
         json!({
             "on": s.on,
+            "follows_style": s.follows_style,
             "damaged": s.damaged,
             "day_at": schedule::format_time(s.times.day),
             "night_at": schedule::format_time(s.times.night),
@@ -882,6 +887,73 @@ impl Cx<'_> {
         println!(
             "Apps that are already open keep their colors until reopened.\nTo switch now: velatura switch auto\nTo turn it off: velatura schedule off"
         );
+        Ok(OK)
+    }
+
+    /// Follow the desktop's light and dark style in place of the clock.
+    fn schedule_follow(&self) -> Outcome {
+        let Some(exe) = self_command(None) else {
+            return Err(Exit {
+                code: FAILED,
+                message: "Velatura cannot tell where its own command is.".to_owned(),
+            });
+        };
+        schedule::enable_follow(&self.host, &StdSystemd, &exe, self.args.yes)
+            .map_err(|why| self.refuse(why))?;
+        println!("{}.", text::schedule(&schedule::status(&self.host)));
+        println!(
+            "From now on, applying a theme leaves the light or dark style as it is.\nTo turn it off: velatura schedule off"
+        );
+        Ok(OK)
+    }
+
+    fn extension_show(&self) -> Outcome {
+        let s = velatura_engine::companion::status(&self.host, &env);
+        if self.args.json {
+            self.emit(json!({"extension": {
+                "uuid": velatura_engine::companion::UUID,
+                "installed": s.installed.as_ref().map(|p| p.to_string_lossy()),
+                "by_velatura": s.by_velatura, "outdated": s.outdated, "enabled": s.enabled,
+            }}));
+            return Ok(OK);
+        }
+        println!("{}.", text::extension(&s));
+        if let Some(dir) = &s.installed {
+            println!("It is in {}.", text::path(dir, self.home));
+        } else {
+            println!("To install it: velatura extension install");
+        }
+        Ok(OK)
+    }
+
+    fn extension_install(&self) -> Outcome {
+        let changed =
+            velatura_engine::companion::install(&self.host).map_err(|why| self.refuse(why))?;
+        let s = velatura_engine::companion::status(&self.host, &env);
+        if changed {
+            println!(
+                "Installed in {}.",
+                text::path(&s.installed.clone().unwrap_or_default(), self.home)
+            );
+            println!("GNOME Shell sees a new or changed extension after signing out and in.");
+        }
+        println!("{}.", text::extension(&s));
+        Ok(OK)
+    }
+
+    fn extension_remove(&self) -> Outcome {
+        match velatura_engine::companion::remove(&self.host).map_err(|why| self.refuse(why))? {
+            None => println!("Velatura has not installed its extension here."),
+            Some(kept) => {
+                println!("Velatura's extension was removed.");
+                for p in &kept {
+                    println!(
+                        "Note: {}",
+                        text::note(&Note::KeptFile { path: p.clone() }, self.home)
+                    );
+                }
+            }
+        }
         Ok(OK)
     }
 
@@ -1131,6 +1203,7 @@ impl Cx<'_> {
             except: self.args.except.clone(),
             replace_changed: self.args.replace_changed,
             unattended: false,
+            keep_style: false,
         };
         let plan =
             self.with_theme(spec, |r, _| engine::plan_apply(&self.host, &env, r, &opts))??;

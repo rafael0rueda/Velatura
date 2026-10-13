@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2d – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 2d – Velatura's Shell extension, and following the dark style</h1>
+<p class="lead">Branch <code>phase-2d-extension</code>. Completed 2026-10-13. The fourth slice of Phase 2 (<a href="../decisions.html#d47">D47</a>). Its exit condition in the roadmap: the Shell shows the theme where other extensions' stylesheets win today. It does, in a real GNOME Shell 50 started by the gate.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The extension was not installed in the real session, and no systemd unit was written. Everything ran in throw-away sessions.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Velatura's own Shell extension</strong>, in <code>extension/</code>: about fifty lines that load one stylesheet, <code>~/.local/share/velatura/shell/gnome-shell.css</code>, and load it again when that file changes. It holds no colours and no settings, starts no programs and patches nothing in the Shell, so it is the same for every theme and never needs updating for one.</li>
+<li><strong>Installing it.</strong> <code>velatura extension install</code>, or Install in the new Shell Extension group on the Apps &amp; Desktop page, puts the two files in the user's extensions folder. <code>velatura extension</code> says where it stands; <code>extension remove</code> takes Velatura's copy away. Velatura does not turn it on (<a href="../decisions.html#d44">D44</a>): it says that the Shell sees a new extension after signing out and in, and where to turn it on.</li>
+<li><strong>The Shell target uses it when it is on.</strong> The top bar and overview then get one stylesheet in one place, replaced in place: no folder per theme and no setting to flip. What was made for User Themes is cleared in the same apply, and the other way round if the extension is turned off again. Undo walks back through either move.</li>
+<li><strong>It wins where User Themes loses.</strong> Between two rules of the same weight the Shell does not go by which stylesheet was loaded last, so for the extension every selector's first part is written twice (<code>#panel#panel</code>). That is one step heavier than the plain <code>#panel</code> an extension typically uses, and still lighter than a rule written on purpose for a narrower case, which keeps winning.</li>
+<li><strong>Following the dark style.</strong> <code>velatura schedule follow</code>, or Follow the Dark Style on the Themes page, changes to the nighttime theme when the desktop goes to its dark style and to the daytime theme when it goes back. It needs a light theme for the day and a dark one for the night, and replaces the clock: one or the other is on. While it is on, applying a theme leaves the style setting alone, so the two cannot chase each other.</li>
+<li><strong>A packing script</strong>, <code>scripts/pack-extension.sh</code>, makes the zip that extensions.gnome.org takes.</li>
+</ul>
+
+<h2>How following works</h2>
+<p>There is still no process that stays running. A systemd path unit watches the file the desktop keeps its settings in and starts <code>velatura switch auto</code> when it changes. That file changes with any setting, so the command is started often; it compares the style with the one it last saw to and does nothing unless they differ. A theme picked by hand therefore stays until the style changes again.</p>
+
+<h2>Tests and checks</h2>
+<ul>
+<li><strong>In a real GNOME Shell 50, in the gate</strong>: another extension colours the panel; with User Themes the theme loses to it; with Velatura's extension on, the panel shows Ember, then Aetherius after the file is replaced while the Shell runs, then the other extension's colours again after undo. Seven checks in all, with no error from the extension in the Shell's log.</li>
+<li>Seven engine tests: install, update and remove without a trace, and a folder of that name that is not Velatura's left alone; apply and undo through the extension; moving between User Themes and the extension in both directions; the exhaustive crash test; following refused without a light and dark pair; the theme following the style and never setting it.</li>
+<li>The published files are checked for what they must not contain: nothing that starts a program, reaches the network or reads settings, and everything connected in <code>enable()</code> undone in <code>disable()</code>.</li>
+<li>The command end to end, and the rules for the extension rendered and compared with the User Themes ones.</li>
+<li>132 tests in all. The translation template has 334 strings.</li>
+</ul>
+
+<h2>Not done, and what only the owner can do</h2>
+<ul>
+<li><strong>Publishing on extensions.gnome.org.</strong> It needs the owner's account there, and a review by GNOME's reviewers. The zip is ready. Until it is published the extension is installed from the app, which means signing out and in once.</li>
+<li><strong>Following the dark style has not run in a real session.</strong> The unit files are written and the logic is tested, but whether systemd starts the command on every change of the settings file can only be seen with a real user session, which waits for the owner's go-ahead. <code>systemd-analyze verify</code> accepts the files.</li>
+<li><strong>A real GNOME Shell 51</strong>: the Shell check runs on 50, the version installed here.</li>
+<li><strong>Extensions with heavier rules still win</strong> where those rules apply, by design.</li>
+<li>The lock screen keeps the stock look: extensions are not active there.</li>
+</ul>
+
+</main>
+</body>
+</html>

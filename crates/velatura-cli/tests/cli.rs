@@ -596,3 +596,61 @@ fn themes_in_and_out_of_the_library() {
         0
     );
 }
+
+/// Velatura's own Shell extension from the command, and the refusal to
+/// follow the dark style with two dark themes.
+#[test]
+fn the_extension_from_the_command() {
+    if !(have("dbus-run-session") && have("gsettings")) {
+        assert!(
+            std::env::var_os("VELATURA_CI").is_none(),
+            "dbus-run-session and gsettings are required in CI"
+        );
+        eprintln!("SKIPPED: dbus-run-session or gsettings is not installed");
+        return;
+    }
+    let sb = Sandbox::named("extension");
+    let dir = sb
+        .home()
+        .join(".local/share/gnome-shell/extensions/velatura@rafael0rueda.github.io");
+    let (code, out, _) = sb.velatura(&["extension"]);
+    assert_eq!(code, 0);
+    assert!(
+        out.contains("is not installed") && out.contains("velatura extension install"),
+        "{out}"
+    );
+
+    let (code, out, err) = sb.velatura(&["extension", "install"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(out.contains("after signing out and in"), "{out}");
+    assert!(out.contains("installed and turned off"), "{out}");
+    assert!(dir.join("metadata.json").is_file() && dir.join("extension.js").is_file());
+    // Installing does not turn it on: that is left to the user.
+    let enabled = sb.run(
+        Path::new("gsettings"),
+        &["get", "org.gnome.shell", "enabled-extensions"],
+    );
+    assert!(!String::from_utf8_lossy(&enabled.stdout).contains("velatura"));
+    let (_, out, _) = sb.velatura(&["extension", "--json"]);
+    assert!(out.contains("\"by_velatura\": true"), "{out}");
+
+    let (code, out, _) = sb.velatura(&["extension", "remove"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("was removed"), "{out}");
+    assert!(!sb.home().join(".local/share/gnome-shell").exists());
+    assert!(
+        sb.velatura(&["extension", "remove"])
+            .1
+            .contains("has not installed")
+    );
+
+    // Both bundled themes are dark: not a pair to follow the style with.
+    assert_eq!(sb.velatura(&["switch", "set", "day", "ember"]).0, 0);
+    assert_eq!(sb.velatura(&["switch", "set", "night", "aetherius"]).0, 0);
+    let (code, _, err) = sb.velatura(&["schedule", "follow"]);
+    assert_eq!(code, 2, "{err}");
+    assert!(
+        err.contains("needs a light theme for the day and a dark theme for the night"),
+        "{err}"
+    );
+}

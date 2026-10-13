@@ -6,6 +6,7 @@
 //! text for people is the caller's job.
 
 pub mod block;
+pub mod companion;
 pub mod engine;
 #[cfg(feature = "gio")]
 pub mod gio_settings;
