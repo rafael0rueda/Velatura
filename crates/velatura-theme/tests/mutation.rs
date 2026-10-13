@@ -3,7 +3,9 @@
 //! Nothing may panic, and whatever loads must render to well-formed output.
 //! Deterministic, so a failure can be reproduced from its seed.
 
-use velatura_theme::{Color, Resolved, bundled, ghostty, gtk, kitty, parse_theme};
+use velatura_theme::{
+    Color, Resolved, bundled, ghostty, gtk, kitty, nvim, parse_theme, starship, tmux,
+};
 
 struct Rng(u64);
 
@@ -94,6 +96,38 @@ fn damaged_theme_files_never_panic_and_never_produce_bad_output() {
                 for line in ghostty::render(&r).lines().skip(2) {
                     let value = line.rsplit('=').next().unwrap().trim();
                     assert!(Color::parse(value).is_ok(), "seed {seed}: {line:?}");
+                }
+                for line in tmux::render(&r).lines().skip(2) {
+                    let ok = line.strip_prefix("set -g ").is_some_and(|rest| {
+                        rest.bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b" -=#,\"".contains(&b))
+                    });
+                    assert!(
+                        ok && line.matches('"').count() == 2,
+                        "seed {seed}: {line:?}"
+                    );
+                }
+                let lines = starship::render(&r);
+                for line in lines.lines().skip(1) {
+                    let value = line.rsplit_once(" = ").expect("seed reproduces").1;
+                    assert!(
+                        Color::parse(value.trim_matches('"')).is_ok(),
+                        "seed {seed}: {line:?}"
+                    );
+                }
+                assert!(lines.parse::<toml::Table>().is_ok(), "seed {seed}");
+                // In the Lua files a theme can put nothing but colours:
+                // every quoted string is a fixed word or a colour.
+                for text in [nvim::render(&r), nvim::render_palette(&r)] {
+                    for line in text.lines().skip(2) {
+                        assert!(
+                            line.bytes()
+                                .all(|b| b.is_ascii_alphanumeric()
+                                    || b" @_.,=(){}[]#\"".contains(&b)),
+                            "seed {seed}: {line:?}"
+                        );
+                        assert_eq!(line.matches('"').count() % 2, 0, "seed {seed}: {line:?}");
+                    }
                 }
                 for line in gtk::render(&r).lines().skip(2) {
                     assert!(

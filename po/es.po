@@ -568,6 +568,9 @@ msgstr "Escritorio"
 msgid "Terminals"
 msgstr "Terminales"
 
+msgid "Command-Line Apps"
+msgstr "Aplicaciones de línea de órdenes"
+
 msgid "Apps"
 msgstr "Aplicaciones"
 
@@ -808,6 +811,15 @@ msgstr "Kitty"
 msgid "Ghostty"
 msgstr "Ghostty"
 
+msgid "tmux"
+msgstr "tmux"
+
+msgid "Neovim"
+msgstr "Neovim"
+
+msgid "Starship"
+msgstr "Starship"
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr "Aplicaciones (GTK 4 y libadwaita)"
 
@@ -904,6 +916,10 @@ msgid "Take what Velatura added out of the list in {1}"
 msgstr "Sacar de la lista en {1} lo que añadió Velatura"
 
 #, rust-format
+msgid "Add a marked block with Velatura's palette at the top of {1}"
+msgstr "Añadir un bloque marcado con la paleta de Velatura al principio de {1}"
+
+#, rust-format
 msgid "Add a marked block with one line at the end of {1}"
 msgstr "Añadir un bloque marcado con una línea al final de {1}"
 
@@ -919,8 +935,8 @@ msgstr "Actualizar el bloque de Velatura en {1}"
 msgid "Set {1} to {2}"
 msgstr "Poner {1} en {2}"
 
-msgid "Left out: adding a line to the settings file was not agreed to"
-msgstr "Se omite: no se aceptó añadir una línea al archivo de configuración"
+msgid "Left out: adding to its settings was not agreed to"
+msgstr "Se omite: no se aceptó añadir nada a su configuración"
 
 #, rust-format
 msgid "Left out: {1} leads outside the home folder"
@@ -964,6 +980,18 @@ msgstr "Se omite: la barra superior y la vista de actividades se recolorean medi
 msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
 msgstr "Se omite: Velatura no se ha comprobado con GNOME Shell {1}, así que la barra superior y la vista de actividades se dejan como están. Para darles el tema de todos modos: velatura apply <tema> --only gnome:shell"
 
+#, rust-format
+msgid "Left out: {1} has characters in its name that cannot be written into a settings file"
+msgstr "Se omite: {1} tiene caracteres en su nombre que no se pueden escribir en un archivo de configuración"
+
+#, rust-format
+msgid "Left out: {1} has an error in it, so nothing is added to it"
+msgstr "Se omite: {1} contiene un error, así que no se le añade nada"
+
+#, rust-format
+msgid "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone"
+msgstr "Se omite: {1} ya elige una paleta, y su indicador está escrito para los nombres de esa. Velatura no cambia esa elección"
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr "Se omite: las aplicaciones antiguas solo se pueden recolorear con el tema adw-gtk3, que no está instalado. Se puede instalar sin permisos de administrador en ~/.local/share/themes, o con el paquete adw-gtk3-theme"
 
@@ -980,6 +1008,16 @@ msgstr "Si las ventanas abiertas de Kitty conservan los colores anteriores, puls
 
 msgid "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them"
 msgstr "Para actualizar las ventanas abiertas de Ghostty, pulse Ctrl+Mayús+Coma en una de ellas"
+
+#, rust-format
+msgid "tmux sessions that are running keep their colors until this is run in one of them: tmux source-file {1}"
+msgstr "Las sesiones de tmux en marcha conservan sus colores hasta que se ejecute esto en una de ellas: tmux source-file {1}"
+
+msgid "Neovim shows the theme once its settings select the colorscheme named velatura. To try it in an open Neovim: :colorscheme velatura"
+msgstr "Neovim muestra el tema cuando su configuración selecciona el esquema de colores llamado velatura. Para probarlo en un Neovim abierto: :colorscheme velatura"
+
+msgid "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory"
+msgstr "El indicador muestra los colores del tema donde la configuración de Starship los nombra, como accent, surface o directory"
 
 msgid "Apps that are already open keep their colors until reopened"
 msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"

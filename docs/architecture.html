@@ -176,7 +176,7 @@ velatura schedule set --day 07:00 --night 20:00 | off | status
 velatura theme import|export|resolve</pre>
 <ul>
 <li>Words match the GUI: Undo, History, Preview. One glossary is shared by GUI, CLI and docs.</li>
-<li>The first apply that adds a line to a user's file needs confirmation on a terminal or <code>--yes</code>. Without a terminal and without <code>--yes</code> it changes nothing and exits with the conflict code.</li>
+<li>The first apply that adds a line to a user's file, or puts files into Neovim's settings folder when that exists, needs confirmation on a terminal or <code>--yes</code>. Without a terminal and without <code>--yes</code> it changes nothing and exits with the conflict code.</li>
 <li><code>--json</code> on every command, with a format number, stable codes and a documented exit-code table. Human output is translated; command names, JSON keys and exit codes are not.</li>
 </ul>
 

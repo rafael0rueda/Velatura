@@ -169,8 +169,15 @@ fn all_five_apply_and_undo_to_the_exact_start() {
     let p = plan(&host, &t[1]);
     assert_eq!(p.needing_consent(), [KITTY, GHOSTTY, GTK4, GTK3]);
     let report = engine::execute(&host, &p, &everyone()).unwrap();
-    // Flatpak Apps is off until turned on; nothing else is left out.
-    assert_eq!(report.skipped, [(FLATPAK.to_owned(), Skip::NotSelected)],);
+    // Flatpak Apps is off until turned on, and the command-line apps are
+    // not in this home (their tests are in cli_apps.rs); nothing else is
+    // left out.
+    let left_out: Vec<_> = report
+        .skipped
+        .iter()
+        .filter(|(_, why)| *why != Skip::NotInstalled)
+        .collect();
+    assert_eq!(left_out, [&(FLATPAK.to_owned(), Skip::NotSelected)]);
 
     assert!(
         home.read(".config/ghostty/velatura.conf")

@@ -79,6 +79,14 @@ else
     echo "NOT RUN: Ghostty is not installed (it is not packaged for the CI image)"
 fi
 
+# tmux, Neovim and Starship load theirs, each in a throw-away home.
+if [ -n "${VELATURA_CI:-}" ]; then
+    for app in tmux nvim; do
+        command -v "$app" >/dev/null 2>&1 || { echo "$app is required in CI"; exit 1; }
+    done
+fi
+scripts/apps-accept.sh "$golden"
+
 step "app"
 # The window, driven for real in a throw-away session: first apply through
 # the confirmation, then undo, with the sandbox's files checked after.

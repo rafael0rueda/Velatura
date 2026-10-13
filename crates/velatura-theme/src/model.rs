@@ -65,7 +65,7 @@ pub const DIFF_ROLES: [&str; 4] = ["add", "change", "delete", "text"];
 pub const DIAGNOSTIC_ROLES: [&str; 5] = ["error", "warning", "info", "hint", "ok"];
 
 /// Per-app slots that targets declare. A theme may only fill these.
-pub const SLOTS: [(&str, &[&str]); 1] = [("starship", &["directory", "git", "language"])];
+pub const SLOTS: [(&str, &[&str]); 1] = [("starship", &crate::starship::SLOTS)];
 
 const SUGGESTS: [&str; 2] = ["icon_theme", "cursor_theme"];
 
@@ -229,6 +229,70 @@ impl Theme {
 }
 
 impl Variant {
+    /// The colour of a code role: the theme's own, or one taken from the
+    /// terminal and interface colours when the theme does not give it.
+    /// `role` is one of [`SYNTAX_ROLES`]; anything else is the text colour.
+    pub fn syntax_color(&self, role: &str) -> Color {
+        if let Some(color) = self.syntax.get(role) {
+            return *color;
+        }
+        let (ui, ansi) = (&self.ui, &self.ansi);
+        match role {
+            "comment" => ui.fg_subtle,
+            "keyword" => ansi[5],
+            "string" => ansi[2],
+            "number" => ansi[13],
+            "constant" => ansi[3],
+            "function" => ansi[4],
+            "type" => ansi[6],
+            "parameter" | "operator" | "punctuation" => ui.fg_muted,
+            "property" => ansi[12],
+            "tag" => ansi[1],
+            "attribute" => ansi[11],
+            "builtin" => ansi[14],
+            "escape" => ansi[9],
+            _ => ui.fg,
+        }
+    }
+
+    /// The colour of a diagnostic role, one of [`DIAGNOSTIC_ROLES`].
+    pub fn diagnostic_color(&self, role: &str) -> Color {
+        if let Some(color) = self.diagnostic.get(role) {
+            return *color;
+        }
+        match role {
+            "error" => self.ui.error,
+            "warning" => self.ui.warning,
+            "info" => self.ansi[4],
+            "hint" => self.ansi[6],
+            _ => self.ui.success,
+        }
+    }
+
+    /// The background of a changed line, for one of [`DIFF_ROLES`]. Without
+    /// one of its own it is the background tinted towards a signal colour.
+    pub fn diff_color(&self, role: &str) -> Color {
+        if let Some(color) = self.diff.get(role) {
+            return *color;
+        }
+        let (toward, by) = match role {
+            "add" => (self.ui.success, 0.2),
+            "change" => (self.ui.warning, 0.2),
+            "delete" => (self.ui.error, 0.2),
+            _ => (self.ansi[4], 0.35),
+        };
+        self.ui.bg.mix(toward, by)
+    }
+
+    /// The colour of one of an app's own slots, or `fallback`.
+    pub fn slot(&self, app: &str, name: &str, fallback: Color) -> Color {
+        self.slots
+            .get(app)
+            .and_then(|slots| slots.get(name))
+            .copied()
+            .unwrap_or(fallback)
+    }
+
     /// What the derivation rule gives for every role, from this variant's
     /// background, text, accent and terminal colours.
     pub fn automatic(&self) -> Ui {

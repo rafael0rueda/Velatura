@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 3a – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 3a – tmux, Neovim and Starship</h1>
+<p class="lead">Branch <code>phase-3a-cli-apps</code>. Completed 2026-10-13. The first of four slices of Phase 3 (<a href="../decisions.html#d54">D54</a>, which also leaves Obsidian out of the project). The exit condition of Phase 3 applies to each target: it passes the same transaction tests as the others. The three in this slice do.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The three apps were run in throw-away home folders. What applying would do there was looked at with copies of the owner's settings; see the last section.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>tmux.</strong> A file of Velatura's own, <code>~/.config/tmux/velatura.conf</code>, sets the colours of the status line, the window list, pane borders, messages, copy mode and the clock: fourteen options that tmux has had since version 2.9. One line in a marked block at the end of the user's settings loads it: <code>source-file -q ~/.config/tmux/velatura.conf</code>. With <code>-q</code>, tmux says nothing where the file is not there, as on another machine that shares the settings. The block goes into the file tmux reads last: <code>tmux.conf</code> in the settings folder, or <code>~/.tmux.conf</code> when that is the only one.</li>
+<li><strong>Neovim.</strong> A colourscheme that stands by itself, <code>~/.config/nvim/colors/velatura.lua</code>: about 160 highlight groups for the editor, code, Tree-sitter, diagnostics, changes and about ten widely used plugins, and the sixteen terminal colours. No plugin is needed. Beside it, <code>lua/velatura/palette.lua</code> gives the same colours as a table, for people who keep a colourscheme of their own: <code>require("velatura.palette")</code>. Nothing of the user's is edited; choosing the colourscheme stays theirs, and the result says how.</li>
+<li><strong>Starship.</strong> The palette <code>velatura</code>, with the seventeen interface colours and the three slots a theme can set for the prompt (<code>directory</code>, <code>git</code>, <code>language</code>), and the line that selects it. Starship cannot load a second file, so these lines go into <code>starship.toml</code> itself, in a marked block at its top. The prompt shows a colour only where its settings name one.</li>
+<li><strong>Colours a theme does not give.</strong> Code, diagnostic and changed-line colours are optional in a theme. Where one is missing it is taken from the terminal and interface colours, so every theme gives a complete Neovim colourscheme, a theme made in the editor included.</li>
+<li><strong>In the app,</strong> a group Command-Line Apps on Apps &amp; Desktop, with a switch for each. In the command, <code>tmux</code>, <code>nvim</code> and <code>starship</code> for <code>--only</code> and <code>--except</code>, and in <code>velatura targets</code>.</li>
+<li><strong>What is reported.</strong> Lines after the block in tmux's settings that set the same options and so win; that running tmux sessions keep their colours until the settings are loaded again, with the command; and for Starship and Neovim what the user has to do for the colours to show.</li>
+</ul>
+
+<h2>What the apps showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>Does tmux read both <code>~/.tmux.conf</code> and the file in its settings folder?</td><td>Yes, in that order (tmux 3.7), so the second has the last word. The block goes there when it exists.</td></tr>
+<tr><td>Can the palette sit at the top of <code>starship.toml</code>, before the user's own tables?</td><td>Yes, written as keys of the file's root with dots (<code>palettes.velatura.accent = …</code>). Tables that follow, other palettes among them, still read. A table header at the end of the file could hold the palette but not the line that selects it, which must come before the first table.</td></tr>
+<tr><td>What if the file already selects a palette?</td><td>Its prompt is written for that palette's names, and a second <code>palette</code> line would make the file invalid. Velatura leaves the file alone and says why.</td></tr>
+<tr><td>Is a Lua table key always a plain word?</td><td>No: <code>function</code> is a word of the language. The table writes its keys in brackets.</td></tr>
+</table></div>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Nine transaction tests for the three targets in <code>tests/cli_apps.rs</code>: apply, apply again (nothing changes), another theme, and two undos back to the exact start; a crash at every step, from a clean home and from an applied one; lines the user wrote since are kept by undo; apps that are not installed are left out; tmux's two files; a settings folder whose name tmux could misread; files in Neovim's folder that are not Velatura's, or were edited; Starship settings that select a palette, define <code>velatura</code> themselves, or do not read; <code>STARSHIP_CONFIG</code>, inside and outside the home folder.</li>
+<li>One test for a marked block at the top of a file: added and taken out byte for byte, with Windows line endings and a byte order mark.</li>
+<li>Golden files for the four generated texts of each bundled theme. The damaged-theme test now sends every theme that loads through the new renderers too.</li>
+<li><strong>The apps accept them.</strong> <code>scripts/apps-accept.sh</code>, part of the gate: tmux loads each file and shows the option; Neovim loads the colourscheme twice and computes the colours of the file, and reads the table; Starship renders a prompt that names two of the palette's colours, without a warning. tmux and Neovim are required in CI. Starship is not packaged for the CI image, so there it is checked on the development machine only.</li>
+<li>152 tests in all. The translation template has 365 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Phase 3 is built in four slices</strong> (<a href="../decisions.html#d54">D54</a>), as Phases 1 and 2 were.</li>
+<li><strong>Starship's lines are a marked block, not a key-level edit</strong> (<a href="../decisions.html#d55">D55</a>). The plan had single keys added to the file, as for Flatpak. A block at the top does the same with the mechanism the other targets use: undo finds it by its markers and takes it out of the file as it is then.</li>
+<li><strong>Neovim gets the colourscheme and the table</strong>, not one or the other. The plan offered the table "instead", for people with their own colourscheme; a choice would need a setting, and the second file costs nothing.</li>
+<li><strong>The first files in an existing Neovim folder need agreement</strong> (<a href="../decisions.html#d55">D55</a>), although no file of the user's is edited. Otherwise a scheduled switch, with no one present, would put files into that folder the first time this version runs.</li>
+<li><strong>The agreement wording is wider.</strong> "Adding a line to a settings file" became "adding to the settings of an app", in the command's help and in the reason shown when it was not agreed to.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>On the owner's machine, Starship is left out.</strong> Its <code>starship.toml</code> selects a palette of its own, <code>aetherius</code>, and the prompt is written for that palette's names. To have the prompt follow the theme, the prompt has to name Velatura's colours and drop its own <code>palette</code> line; that is the owner's file to change.</li>
+<li><strong>The owner's tmux settings set colours inside <code>status-left</code> and <code>status-right</code></strong>, as text. Velatura sets the styles around them, not the text of those two, so those segments keep their colours until they are written without fixed ones.</li>
+<li><strong>Neovim: the look was not judged by eye.</strong> The check is that Neovim loads the file and computes its colours. Whether code reads well in both bundled themes needs a person in an editor.</li>
+<li><strong><code>NVIM_APPNAME</code></strong> and other settings folders of Neovim's are not looked for; only <code>~/.config/nvim</code>.</li>
+<li><strong>tmux plugins that draw the status line</strong> (themes installed through a plugin manager) set their own colours when they load, and may win. They are not detected.</li>
+<li><strong>Applying these three on the owner's desktop</strong> was not done: it needs the owner's go-ahead.</li>
+</ul>
+
+</main>
+</body>
+</html>

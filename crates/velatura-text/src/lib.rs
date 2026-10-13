@@ -56,7 +56,7 @@ Usage:
 
 Options:
   --preview             show what would change and change nothing
-  --yes                 agree to adding a line to a settings file
+  --yes                 agree to adding to the settings of an app
   --only <target>       apply to this target only (may be repeated)
   --except <target>     leave this target out (may be repeated)
   --replace-changed     overwrite Velatura files that were changed by hand
@@ -147,6 +147,9 @@ pub fn instance(id: &str) -> String {
     match id {
         "kitty:default" => t("Kitty"),
         "ghostty:default" => t("Ghostty"),
+        "tmux:default" => t("tmux"),
+        "nvim:default" => t("Neovim"),
+        "starship:default" => t("Starship"),
         "gtk4:default" => t("Apps (GTK 4 and libadwaita)"),
         "gtk3:default" => t("Older Apps (GTK 3)"),
         "gnome:shell" => t("Top Bar and Overview"),
@@ -300,6 +303,10 @@ pub fn change(c: &Change, home: &Path) -> String {
                 "Remove {1} (created by Velatura, holds nothing else)",
                 path(p, home)
             ),
+            (_, None, Some(body)) if body.lines().count() > 1 => tf!(
+                "Add a marked block with Velatura's palette at the top of {1}",
+                path(p, home)
+            ),
             (_, None, Some(_)) => tf!(
                 "Add a marked block with one line at the end of {1}",
                 path(p, home)
@@ -319,7 +326,7 @@ pub fn skip(why: &Skip, home: &Path) -> String {
     match why {
         Skip::NotInstalled => t("Not installed"),
         Skip::NotSelected => t("Left out"),
-        Skip::NoConsent => t("Left out: adding a line to the settings file was not agreed to"),
+        Skip::NoConsent => t("Left out: adding to its settings was not agreed to"),
         Skip::OutsideHome(p) => {
             tf!("Left out: {1} leads outside the home folder", path(p, home))
         }
@@ -358,6 +365,18 @@ pub fn skip(why: &Skip, home: &Path) -> String {
             "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell",
             clean_text(version, 20)
         ),
+        Skip::UnusualPath(p) => tf!(
+            "Left out: {1} has characters in its name that cannot be written into a settings file",
+            path(p, home)
+        ),
+        Skip::Invalid(p) => tf!(
+            "Left out: {1} has an error in it, so nothing is added to it",
+            path(p, home)
+        ),
+        Skip::OwnPalette(p) => tf!(
+            "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone",
+            path(p, home)
+        ),
         Skip::NeedsAdwGtk3 => t(
             "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
         ),
@@ -385,6 +404,16 @@ pub fn note(n: &Note, home: &Path) -> String {
         Note::GhosttyReload => {
             t("To update open Ghostty windows, press Ctrl+Shift+Comma in one of them")
         }
+        Note::TmuxReload { conf } => tf!(
+            "tmux sessions that are running keep their colors until this is run in one of them: tmux source-file {1}",
+            path(conf, home)
+        ),
+        Note::NeovimSelect => t(
+            "Neovim shows the theme once its settings select the colorscheme named velatura. To try it in an open Neovim: :colorscheme velatura",
+        ),
+        Note::StarshipNames => t(
+            "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory",
+        ),
         Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
         Note::LinkedFile { path: p, real } => tf!(
             "{1} is a link. The change is written to {2}",
@@ -745,6 +774,9 @@ mod tests {
             let same_on_purpose = [
                 "Kitty",
                 "Ghostty",
+                "tmux",
+                "Neovim",
+                "Starship",
                 "General",
                 "Cursor",
                 "Error",
