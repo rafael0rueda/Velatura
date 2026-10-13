@@ -29,9 +29,22 @@ pub const GTK4: &str = "gtk4:default";
 pub const GTK3: &str = "gtk3:default";
 pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
+pub const FLATPAK: &str = "flatpak:global";
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 6] = [KITTY, GHOSTTY, GTK4, GTK3, SHELL, APPEARANCE];
+pub const INSTANCES: [&str; 7] = [KITTY, GHOSTTY, GTK4, GTK3, FLATPAK, SHELL, APPEARANCE];
+
+/// Instances that are left out until the user turns them on, because they
+/// change more than colours.
+pub const OPT_IN: [&str; 1] = [FLATPAK];
+
+/// The name of Velatura's span in Flatpak's overrides file. Unlike the
+/// others it is not a marked block: see [`crate::keyfile`].
+pub const FLATPAK_SPAN: &str = "flatpak";
+pub const FLATPAK_GROUP: &str = "Context";
+pub const FLATPAK_KEY: &str = "filesystems";
+/// Read-only access to the two folders the GTK targets write to.
+const FLATPAK_ACCESS: [&str; 2] = ["xdg-config/gtk-3.0:ro", "xdg-config/gtk-4.0:ro"];
 
 pub const INTERFACE_SCHEMA: &str = "org.gnome.desktop.interface";
 const A11Y_SCHEMA: &str = "org.gnome.desktop.a11y.interface";
@@ -472,11 +485,99 @@ pub fn plan_gtk3(
     plan
 }
 
+/// True if a list member already decides access to the folder `want`
+/// names: granted in any mode, or denied. Either way it is the user's.
+fn same_folder(have: &str, want: &str) -> bool {
+    let folder = |m: &str| {
+        m.trim_start_matches('!')
+            .split(':')
+            .next()
+            .unwrap_or("")
+            .trim_end_matches('/')
+            .to_owned()
+    };
+    folder(have) == folder(want)
+}
+
+/// Flatpak apps cannot see the GTK folders in the home folder, so the
+/// colour files never reach them. This adds read-only access to those two
+/// folders to Flatpak's per-user overrides, for every app, as members of
+/// one list. Members that were already there are not Velatura's and are
+/// never taken out.
+pub fn plan_flatpak(host: &Host<'_>, env: Env<'_>, state: &State) -> TargetPlan {
+    let home = host.dirs.data.join("flatpak");
+    let system = Path::new("/var/lib/flatpak");
+    if !exists(host, &home) && !exists(host, system) && !on_path(host, env, "flatpak") {
+        return TargetPlan::skip(FLATPAK, Skip::NotInstalled);
+    }
+    if !inside_home(host, &host.dirs.data) {
+        return TargetPlan::skip(FLATPAK, Skip::OutsideHome(home));
+    }
+    let mut plan = TargetPlan::new(FLATPAK);
+    let dir = home.join("overrides");
+    for level in [&home, &dir] {
+        match host.fs.kind(level) {
+            Ok(None) => plan.changes.push(Change::CreateDir {
+                path: level.clone(),
+            }),
+            Ok(Some(Kind::Dir)) => {}
+            _ => return TargetPlan::skip(FLATPAK, Skip::NotAFile(level.clone())),
+        }
+    }
+    let file = dir.join("global");
+    let current = match host.fs.kind(&file) {
+        Ok(None) => None,
+        Ok(Some(Kind::File)) => match host.fs.read(&file) {
+            Ok(bytes) => Some(bytes),
+            Err(_) => return TargetPlan::skip(FLATPAK, Skip::Unreadable(file)),
+        },
+        _ => return TargetPlan::skip(FLATPAK, Skip::NotAFile(file)),
+    };
+    if current.is_some() && host.fs.links(&file).unwrap_or(1) > 1 {
+        return TargetPlan::skip(FLATPAK, Skip::HardLinked(file));
+    }
+    let before = current.clone().unwrap_or_default();
+    let Some(edit) = crate::keyfile::add(
+        &before,
+        FLATPAK_GROUP,
+        FLATPAK_KEY,
+        &FLATPAK_ACCESS,
+        &same_folder,
+    ) else {
+        return TargetPlan::skip(FLATPAK, Skip::Unreadable(file));
+    };
+    if edit.added.is_empty() {
+        // Already granted, by Velatura earlier or by the user.
+        plan.changes.clear();
+        return plan;
+    }
+    // Something was added before and part of it is gone again: the list is
+    // the user's to arrange, so it is not second-guessed.
+    if state.blocks.contains_key(&path_str(&file)) {
+        plan.changes.clear();
+        plan.notes.push(Note::KeptFile { path: file });
+        return plan;
+    }
+    plan.needs_consent = current.is_some() && !state.consents.contains(FLATPAK);
+    plan.changes.push(Change::Block {
+        path: file,
+        target: FLATPAK_SPAN.to_owned(),
+        pre: current.as_deref().map(sha256_hex),
+        content: Some(edit.content),
+        body_before: None,
+        body_after: Some(edit.receipt),
+        added_eol: edit.added_eol,
+        created_file: current.is_none(),
+    });
+    plan.notes.push(Note::GtkRestart);
+    plan
+}
+
 pub const USER_THEMES: &str = "user-theme@gnome-shell-extensions.gcampax.github.com";
 const USER_THEMES_SCHEMA: &str = "org.gnome.shell.extensions.user-theme";
 
 /// Where the system keeps shared data, the user's folder first.
-fn data_dirs(host: &Host<'_>, env: Env<'_>) -> Vec<PathBuf> {
+pub(crate) fn data_dirs(host: &Host<'_>, env: Env<'_>) -> Vec<PathBuf> {
     let mut dirs = vec![host.dirs.data.clone()];
     let system = env("XDG_DATA_DIRS")
         .filter(|v| !v.is_empty())
@@ -707,6 +808,7 @@ pub fn plan(
         GHOSTTY => plan_ghostty(host, env, theme, state, replace_changed),
         GTK4 => plan_gtk4(host, env, theme, state, replace_changed),
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
+        FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(host, env, theme, state, !opts.unattended),
         _ => plan_appearance(host, theme),
     }

@@ -105,6 +105,9 @@ pub struct BlockRecord {
     pub target: String,
     pub added_eol: bool,
     pub created_file: bool,
+    /// What was put in the file. Only a span without markers needs it, to
+    /// know its own part again.
+    pub body: Option<String>,
 }
 
 /// What Velatura has put on this machine and still considers its own.
@@ -161,6 +164,7 @@ impl State {
                     target: get_str(b, "target")?,
                     added_eol: get_bool(b, "added_eol"),
                     created_file: get_bool(b, "created_file"),
+                    body: get_opt(b, "body"),
                 },
             );
         }
@@ -181,7 +185,10 @@ impl State {
             .map(|(path, b)| {
                 (
                     path.clone(),
-                    json!({"target": b.target, "added_eol": b.added_eol, "created_file": b.created_file}),
+                    match &b.body {
+                        Some(body) => json!({"target": b.target, "added_eol": b.added_eol, "created_file": b.created_file, "body": body}),
+                        None => json!({"target": b.target, "added_eol": b.added_eol, "created_file": b.created_file}),
+                    },
                 )
             })
             .collect();
@@ -235,6 +242,9 @@ impl State {
                                 target: target.clone(),
                                 added_eol: *added_eol,
                                 created_file: *created_file,
+                                body: (target == crate::targets::FLATPAK_SPAN)
+                                    .then(|| body_after.clone())
+                                    .flatten(),
                             },
                         );
                     } else {
@@ -252,6 +262,17 @@ impl State {
     }
 }
 
+impl Prefs {
+    /// True if `instance` takes part when a theme is applied.
+    pub fn takes_part(&self, instance: &str) -> bool {
+        if crate::targets::OPT_IN.contains(&instance) {
+            self.included.contains(instance)
+        } else {
+            !self.excluded.contains(instance)
+        }
+    }
+}
+
 // ---------------------------------------------------------------- prefs
 
 /// Choices that are about this machine, not about any one theme.
@@ -259,6 +280,8 @@ impl State {
 pub struct Prefs {
     /// Instances the user turned off: left out when a theme is applied.
     pub excluded: BTreeSet<String>,
+    /// Instances that are off unless turned on, and were turned on.
+    pub included: BTreeSet<String>,
     /// Width and height of the app window when it was last closed.
     pub window: Option<(i32, i32)>,
 }
@@ -279,8 +302,18 @@ impl Prefs {
             .and_then(|a| a.iter().map(|x| x.as_str().map(str::to_owned)).collect())
             .ok_or(StoreError::Damaged(path))?;
         let size = |k: &str| v.get(k).and_then(Value::as_i64).map(|n| n as i32);
+        let included = v
+            .get("included")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default();
         Ok(Self {
             excluded,
+            included,
             window: size("window_width").zip(size("window_height")),
         })
     }
@@ -292,6 +325,7 @@ impl Prefs {
             &to_bytes(&json!({
                 "version": VERSION,
                 "excluded": self.excluded,
+                "included": self.included,
                 "window_width": self.window.map(|w| w.0),
                 "window_height": self.window.map(|w| w.1),
             })),

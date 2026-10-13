@@ -8,6 +8,7 @@
 use std::path::Path;
 
 use velatura_engine::library::Why;
+use velatura_engine::look::{Kind, Rejected};
 use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{LastRun, Period, Problem, Refused, Status, format_time};
 use velatura_engine::targets::OtherTool;
@@ -31,6 +32,10 @@ Usage:
   velatura schedule                whether the themes change by the clock
   velatura schedule set            turn that on; with --day and --night, set the times
   velatura schedule off            turn it off and remove its timer
+  velatura look                    icons, cursor, wallpaper and fonts in use
+  velatura look list <what>        what is installed: icons, cursor or wallpaper
+  velatura look set <what> <name>  choose one; also font, document-font, monospace-font
+  velatura look reset <what>       go back to the desktop's default
   velatura undo                    reverse the most recent change
   velatura history                 backups, newest first
   velatura restore <id>            go back to the state before backup <id>
@@ -106,6 +111,8 @@ pub fn instance(id: &str) -> String {
         "gtk3:default" => "Older Apps (GTK 3)",
         "gnome:shell" => "Top Bar and Overview",
         "gnome:appearance" => "Style and Accent Color",
+        "flatpak:global" => "Flatpak Apps",
+        "gnome:look" => "Icons, Cursor, Wallpaper and Fonts",
         "" => "Changes",
         other => return other.to_owned(),
     })
@@ -117,6 +124,13 @@ fn setting_name(key: &str) -> String {
         "accent-color" => "Accent Color",
         "gtk-theme" => "Legacy Application Theme",
         "name" => "Shell Theme",
+        "icon-theme" => "Icons",
+        "cursor-theme" => "Cursor",
+        "picture-uri" => "Wallpaper",
+        "picture-uri-dark" => "Wallpaper for the Dark Style",
+        "font-name" => "Interface Font",
+        "document-font-name" => "Document Font",
+        "monospace-font-name" => "Monospace Font",
         other => return other.to_owned(),
     })
 }
@@ -124,16 +138,74 @@ fn setting_name(key: &str) -> String {
 fn setting_value(key: &str, value: Option<&str>) -> String {
     match (key, value) {
         (_, None) => t("the default"),
-        ("gtk-theme" | "name", Some(v)) => v.to_owned(),
-        ("color-scheme", Some("prefer-dark")) => t("Dark"),
-        ("color-scheme", Some("default")) => t("Default"),
-        ("color-scheme", Some("prefer-light")) => t("Light"),
-        (_, Some(v)) => {
-            let mut c = v.chars();
-            c.next()
-                .map(|f| f.to_uppercase().chain(c).collect())
-                .unwrap_or_default()
+        ("picture-uri" | "picture-uri-dark", Some(v)) => clean_text(&picture_name(v), 80),
+        ("color-scheme" | "accent-color", Some(v)) if !v.is_empty() => match v {
+            "prefer-dark" => t("Dark"),
+            "default" => t("Default"),
+            "prefer-light" => t("Light"),
+            v => {
+                let mut c = v.chars();
+                c.next()
+                    .map(|f| f.to_uppercase().chain(c).collect())
+                    .unwrap_or_default()
+            }
+        },
+        // A name: a theme, a font. Shown as it is.
+        (_, Some(v)) => clean_text(v, 120),
+    }
+}
+
+/// The file name at the end of a picture's address, without `%XX` codes.
+fn picture_name(uri: &str) -> String {
+    let last = uri.rsplit('/').next().unwrap_or(uri);
+    let mut out = Vec::new();
+    let bytes = last.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let hex = bytes
+            .get(i + 1..i + 3)
+            .and_then(|h| std::str::from_utf8(h).ok())
+            .and_then(|h| u8::from_str_radix(h, 16).ok());
+        match (bytes[i], hex) {
+            (b'%', Some(byte)) => {
+                out.push(byte);
+                i += 3;
+            }
+            (b, _) => {
+                out.push(b);
+                i += 1;
+            }
         }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// What a desktop setting is called, from its key.
+pub fn setting_title(key: &str) -> String {
+    setting_name(key)
+}
+
+/// What one of the desktop choices is called.
+pub fn look_name(kind: Kind) -> String {
+    setting_name(kind.keys()[0].1)
+}
+
+/// A current value of one of the desktop choices, for display.
+pub fn look_value(kind: Kind, value: &str) -> String {
+    setting_value(kind.keys()[0].1, Some(value))
+}
+
+/// Why a choice of icons, cursor, wallpaper or font was not accepted.
+pub fn rejected_choice(kind: Kind, why: &Rejected) -> Option<String> {
+    match why {
+        Rejected::NotInstalled if kind == Kind::Wallpaper => Some(t(
+            "Not one of the installed wallpapers, and not the full path of a picture",
+        )),
+        Rejected::NotInstalled => Some(t("No installed theme has that name")),
+        Rejected::NotAFont => Some(t(
+            "A font is written as its name and a size, for example Adwaita Sans 11",
+        )),
+        Rejected::Engine(_) => None,
     }
 }
 
@@ -156,6 +228,26 @@ pub fn change(c: &Change, home: &Path) -> String {
             (Some(_), None) => tf!("Create {1}", path(p, home)),
             (Some(_), Some(_)) => tf!("Update {1}", path(p, home)),
             (None, _) => tf!("Remove {1} (created by Velatura)", path(p, home)),
+        },
+        Change::Block {
+            path: p,
+            target,
+            content,
+            body_after,
+            ..
+        } if target == velatura_engine::targets::FLATPAK_SPAN => match (content, body_after) {
+            (None, _) => tf!(
+                "Remove {1} (created by Velatura, holds nothing else)",
+                path(p, home)
+            ),
+            (_, Some(_)) => tf!(
+                "Let Flatpak apps read the two GTK settings folders, by adding to a list in {1}",
+                path(p, home)
+            ),
+            (_, None) => tf!(
+                "Take what Velatura added out of the list in {1}",
+                path(p, home)
+            ),
         },
         Change::Block {
             path: p,

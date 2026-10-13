@@ -19,6 +19,7 @@ use gtk::{gio, glib};
 use velatura_engine::engine::{self, ApplyOpts, Error, Report};
 use velatura_engine::host::StdSystemd;
 use velatura_engine::library::Entry;
+use velatura_engine::look::{self, Kind};
 use velatura_engine::plan::{Note, Plan, Skip};
 use velatura_engine::schedule::{self, Refused, Times};
 use velatura_engine::store::DayNight;
@@ -711,7 +712,7 @@ fn open_theme(ui: &U, id: &str, variant: &str) {
     let fact = |title: String, value: String| {
         let row = adw::ActionRow::builder()
             .title(title)
-            .subtitle(value)
+            .subtitle(glib::markup_escape_text(&value))
             .build();
         row.add_css_class("property");
         row
@@ -734,6 +735,48 @@ fn open_theme(ui: &U, id: &str, variant: &str) {
     ));
     if !entry.theme.author.is_empty() {
         facts.add(&fact(tr("Author"), entry.theme.author.clone()));
+    }
+    // What the theme's author suggests to go with it. Only a name, matched
+    // against what is installed; used only if the user says so.
+    for (key, kind, title) in [
+        ("icon_theme", Kind::Icons, tr("Suggested Icons")),
+        ("cursor_theme", Kind::Cursor, tr("Suggested Cursor")),
+    ] {
+        let Some(name) = resolved.colors.suggests.get(key) else {
+            continue;
+        };
+        let look = snap.look.iter().find(|(k, ..)| *k == kind);
+        let installed = look.is_some_and(|(_, _, found)| found.iter().any(|c| c.value == *name));
+        let in_use = look.is_some_and(|(_, current, _)| current == name);
+        let row = fact(
+            title,
+            if in_use {
+                format!("{name} · {}", tr("In use"))
+            } else if installed {
+                name.clone()
+            } else {
+                format!("{name} · {}", tr("Not installed"))
+            },
+        );
+        if installed && !in_use {
+            let button = gtk::Button::builder()
+                .label(tr("Use"))
+                .valign(gtk::Align::Center)
+                .build();
+            let weak = Rc::downgrade(ui);
+            let name = name.clone();
+            button.connect_clicked(move |_| {
+                if let Some(ui) = weak.upgrade() {
+                    let name = name.clone();
+                    glib::spawn_future_local(async move {
+                        choose_look(&ui, kind, name).await;
+                        ui.nav.pop_to_tag("main");
+                    });
+                }
+            });
+            row.add_suffix(&button);
+        }
+        facts.add(&row);
     }
 
     let apply = gtk::Button::builder()
@@ -1128,7 +1171,10 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     let groups = [
         (tr("Desktop"), vec![targets::APPEARANCE, targets::SHELL]),
         (tr("Terminals"), vec![targets::KITTY, targets::GHOSTTY]),
-        (tr("Apps"), vec![targets::GTK4, targets::GTK3]),
+        (
+            tr("Apps"),
+            vec![targets::GTK4, targets::GTK3, targets::FLATPAK],
+        ),
     ];
     for (title, members) in groups {
         let group = adw::PreferencesGroup::builder().title(title).build();
@@ -1137,6 +1183,13 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 RowState::Themed if row.included => (tr("Themed"), true),
                 RowState::Themed => (tr("Themed, and left out of the next apply"), true),
                 RowState::Ready if row.included => (tr("Included in the next apply"), true),
+                // Off until turned on, so the row says what turning on does.
+                RowState::Ready if row.instance == targets::FLATPAK => (
+                    tr(
+                        "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",
+                    ),
+                    true,
+                ),
                 RowState::Ready => (tr("Left out"), true),
                 RowState::Shadowed(note) => (
                     format!(
@@ -1185,8 +1238,10 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         page.add(&group);
     }
 
+    page.add(&look_group(ui, snap));
+
     // Shown only while there is something of Velatura's to remove.
-    if snap.applied.is_some() {
+    if snap.applied.is_some() || !snap.history.is_empty() {
         let group = adw::PreferencesGroup::new();
         let remove = adw::ButtonRow::builder()
             .title(tr("_Remove Everything Velatura Added"))
@@ -1202,6 +1257,93 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         page.add(&group);
     }
     page.upcast()
+}
+
+/// Icons, cursor, wallpaper and fonts: a choice among what is installed,
+/// made at once and undone like any other change.
+fn look_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(tr("Icons, Wallpaper and Fonts"))
+        .description(tr("These stay as chosen when the theme changes"))
+        .build();
+    for (kind, current, choices) in &snap.look {
+        let kind = *kind;
+        let title = velatura_text::look_name(kind);
+        if matches!(kind, Kind::Font | Kind::DocumentFont | Kind::MonospaceFont) {
+            let button = gtk::FontDialogButton::builder()
+                .dialog(&gtk::FontDialog::builder().title(title.as_str()).build())
+                .font_desc(&gtk::pango::FontDescription::from_string(current))
+                .valign(gtk::Align::Center)
+                .build();
+            let weak = Rc::downgrade(ui);
+            button.connect_font_desc_notify(move |button| {
+                let (Some(ui), Some(font)) = (weak.upgrade(), button.font_desc()) else {
+                    return;
+                };
+                let font = font.to_string();
+                glib::spawn_future_local(async move { choose_look(&ui, kind, font).await });
+            });
+            let row = adw::ActionRow::builder().title(title).build();
+            row.add_suffix(&button);
+            row.set_activatable_widget(Some(&button));
+            group.add(&row);
+            continue;
+        }
+        // What is in use may be something that was not found installed.
+        let mut values: Vec<String> = choices.iter().map(|c| c.value.clone()).collect();
+        let mut names: Vec<String> = choices.iter().map(|c| c.name.clone()).collect();
+        let selected = values.iter().position(|v| v == current).unwrap_or_else(|| {
+            values.insert(0, current.clone());
+            names.insert(0, velatura_text::look_value(kind, current));
+            0
+        });
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        let row = adw::ComboRow::builder()
+            .title(title)
+            .model(&gtk::StringList::new(&names))
+            .selected(selected as u32)
+            .sensitive(values.len() > 1)
+            .build();
+        let weak = Rc::downgrade(ui);
+        row.connect_selected_notify(move |row| {
+            let (Some(ui), Some(value)) =
+                (weak.upgrade(), values.get(row.selected() as usize).cloned())
+            else {
+                return;
+            };
+            glib::spawn_future_local(async move { choose_look(&ui, kind, value).await });
+        });
+        group.add(&row);
+    }
+    group
+}
+
+async fn choose_look(ui: &U, kind: Kind, value: String) {
+    if busy(ui) {
+        return;
+    }
+    ui.busy.set(true);
+    let done = data::run(move |host| {
+        look::plan_select(host, &data::env, kind, Some(&value))
+            .map(|plan| engine::execute(host, &plan, &[]))
+    })
+    .await;
+    ui.busy.set(false);
+    refresh(ui).await;
+    match done {
+        Some(Ok(Ok(report))) if report.changes.is_empty() => {}
+        Some(Ok(Ok(_))) => toast_with_undo(
+            ui,
+            &tr("{what} changed").replace("{what}", &velatura_text::look_name(kind)),
+        ),
+        Some(Ok(Err(e))) => result_page(ui, &tr("Not Changed"), false, &[error_text(&e)], false),
+        Some(Err(why)) => toast(
+            ui,
+            &velatura_text::rejected_choice(kind, &why)
+                .unwrap_or_else(|| tr("The choice could not be saved")),
+        ),
+        None => toast(ui, &tr("The change could not be started")),
+    }
 }
 
 /// Undoable, so it is done at once and Undo is offered, with no question.
@@ -1268,6 +1410,15 @@ fn history_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             }
             ("scheduled", Some(label)) => {
                 tr("Switched to {theme} on schedule").replace("{theme}", &theme_name(snap, label))
+            }
+            ("select", _) => {
+                let what = m.records.iter().find_map(|r| match r {
+                    velatura_engine::store::Record::Setting { key, .. } => {
+                        Some(velatura_text::setting_title(key))
+                    }
+                    _ => None,
+                });
+                tr("Changed {what}").replace("{what}", &what.unwrap_or_default())
             }
             ("restore-original", _) => tr("Removed everything Velatura added"),
             _ => tr("Change"),

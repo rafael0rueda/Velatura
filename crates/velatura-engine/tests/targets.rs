@@ -12,7 +12,7 @@ use velatura_engine::host::{Dirs, Faults, Fs, Host, MemSettings, Settings, StdFs
 use velatura_engine::plan::{Note, Plan, Skip, TargetPlan};
 use velatura_engine::store;
 use velatura_engine::targets::{
-    self, GHOSTTY, GTK3, GTK4, INSTANCES, INTERFACE_SCHEMA, KITTY, OtherTool, SHELL,
+    self, FLATPAK, GHOSTTY, GTK3, GTK4, INSTANCES, INTERFACE_SCHEMA, KITTY, OtherTool, SHELL,
 };
 use velatura_theme::{Resolved, Theme, bundled};
 
@@ -169,7 +169,8 @@ fn all_five_apply_and_undo_to_the_exact_start() {
     let p = plan(&host, &t[1]);
     assert_eq!(p.needing_consent(), [KITTY, GHOSTTY, GTK4, GTK3]);
     let report = engine::execute(&host, &p, &everyone()).unwrap();
-    assert!(report.skipped.is_empty(), "{:?}", report.skipped);
+    // Flatpak Apps is off until turned on; nothing else is left out.
+    assert_eq!(report.skipped, [(FLATPAK.to_owned(), Skip::NotSelected)],);
 
     assert!(
         home.read(".config/ghostty/velatura.conf")
@@ -331,7 +332,11 @@ fn gtk3_needs_adw_gtk3_and_finds_it_in_any_theme_folder() {
     let before = home.read(".config/gtk-3.0/gtk.css");
 
     let report = apply(&host, &t[0]);
-    assert_eq!(report.skipped, [(GTK3.to_owned(), Skip::NeedsAdwGtk3)]);
+    assert!(
+        report
+            .skipped
+            .contains(&(GTK3.to_owned(), Skip::NeedsAdwGtk3))
+    );
     assert_eq!(home.read(".config/gtk-3.0/gtk.css"), before);
     assert!(
         settings
@@ -614,7 +619,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     let settings = MemSettings::gnome();
     let host = home.host(&StdFs, &settings);
     engine::set_included(&host, GHOSTTY, false).unwrap();
-    assert_eq!(engine::excluded(&host).unwrap(), [GHOSTTY]);
+    assert_eq!(engine::excluded(&host).unwrap(), [GHOSTTY, FLATPAK]);
     let p = plan(&host, &t[0]);
     assert_eq!(target(&p, GHOSTTY).skipped, Some(Skip::NotSelected));
     assert!(target(&p, KITTY).skipped.is_none());
@@ -631,7 +636,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     assert!(target(&plan(&host, &t[0]), GHOSTTY).skipped.is_none());
     engine::save_window_size(&host, 900, 640).unwrap();
     assert_eq!(engine::window_size(&host), Some((900, 640)));
-    assert!(engine::excluded(&host).unwrap().is_empty());
+    assert_eq!(engine::excluded(&host).unwrap(), [FLATPAK]);
 }
 
 #[test]

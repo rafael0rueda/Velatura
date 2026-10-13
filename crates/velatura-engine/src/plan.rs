@@ -179,6 +179,8 @@ pub enum Cause {
     Apply,
     /// An apply made by the schedule, with no one there to answer.
     Scheduled,
+    /// A choice of icons, cursor, wallpaper or font. The theme in use stays.
+    Select,
     Undo,
     RestoreOriginal,
 }
@@ -188,6 +190,7 @@ impl Cause {
         match self {
             Self::Apply => "apply",
             Self::Scheduled => "scheduled",
+            Self::Select => "select",
             Self::Undo => "undo",
             Self::RestoreOriginal => "restore-original",
         }

@@ -10,7 +10,9 @@ pub mod engine;
 #[cfg(feature = "gio")]
 pub mod gio_settings;
 pub mod host;
+pub mod keyfile;
 pub mod library;
+pub mod look;
 pub mod plan;
 pub mod schedule;
 pub mod store;

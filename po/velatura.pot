@@ -187,6 +187,18 @@ msgstr ""
 msgid "Author"
 msgstr ""
 
+msgid "Suggested Icons"
+msgstr ""
+
+msgid "Suggested Cursor"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "Use"
+msgstr ""
+
 msgid "Applied"
 msgstr ""
 
@@ -279,6 +291,11 @@ msgstr ""
 msgid "Included in the next apply"
 msgstr ""
 
+msgid ""
+"Lets every Flatpak app read the two GTK settings folders, so the colors "
+"reach them"
+msgstr ""
+
 msgid "Left out"
 msgstr ""
 
@@ -289,6 +306,19 @@ msgid "Unofficial: may stop working after a GNOME update"
 msgstr ""
 
 msgid "_Remove Everything Velatura Added"
+msgstr ""
+
+msgid "Icons, Wallpaper and Fonts"
+msgstr ""
+
+msgid "These stay as chosen when the theme changes"
+msgstr ""
+
+#, rust-format
+msgid "{what} changed"
+msgstr ""
+
+msgid "Not Changed"
 msgstr ""
 
 msgid "Nothing to remove"
@@ -315,6 +345,10 @@ msgstr ""
 
 #, rust-format
 msgid "Switched to {theme} on schedule"
+msgstr ""
+
+#, rust-format
+msgid "Changed {what}"
 msgstr ""
 
 msgid "Removed everything Velatura added"
@@ -463,6 +497,15 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
+msgid "Not one of the installed wallpapers, and not the full path of a picture"
+msgstr ""
+
+msgid "No installed theme has that name"
+msgstr ""
+
+msgid "A font is written as its name and a size, for example Adwaita Sans 11"
+msgstr ""
+
 #, rust-format
 msgid "Create the folder {1}"
 msgstr ""
@@ -488,6 +531,16 @@ msgid "Remove {1} (created by Velatura, holds nothing else)"
 msgstr ""
 
 #, rust-format
+msgid ""
+"Let Flatpak apps read the two GTK settings folders, by adding to a list in "
+"{1}"
+msgstr ""
+
+#, rust-format
+msgid "Take what Velatura added out of the list in {1}"
+msgstr ""
+
+#, rust-format
 msgid "Add a marked block with one line at the end of {1}"
 msgstr ""
 
@@ -501,9 +554,6 @@ msgstr ""
 
 #, rust-format
 msgid "Set {1} to {2}"
-msgstr ""
-
-msgid "Not installed"
 msgstr ""
 
 msgid "Left out: adding a line to the settings file was not agreed to"
