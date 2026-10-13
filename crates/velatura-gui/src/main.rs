@@ -875,10 +875,21 @@ async fn import_theme(ui: &U) {
     else {
         return;
     };
+    import_file(ui, path).await;
+}
+
+/// Look at a file as a theme, ask, and put it in the library.
+async fn import_file(ui: &U, path: std::path::PathBuf) {
     let home = ui.snap.borrow().home.clone();
     let looked = data::run(move |host| library::inspect(host, &path)).await;
-    let (loaded, source, from) = match looked {
-        Some(Ok(found)) => (found.loaded, found.source, found.from),
+    let (loaded, mut source, from, accents, usual) = match looked {
+        Some(Ok(found)) => (
+            found.loaded,
+            found.source,
+            found.from,
+            found.accents,
+            found.accent,
+        ),
         Some(Err(why)) => {
             toast(ui, &velatura_text::library_refused(&why, &home));
             return;
@@ -917,10 +928,76 @@ async fn import_theme(ui: &U) {
         Some(&tr("Import {name}?").replace("{name}", &theme.name)),
         Some(&body),
     );
+    // A file in another format names no accent: any of its colours can
+    // be it, chosen here, with the strip above showing the result.
+    let chosen = Rc::new(Cell::new(usual));
     if let Some(resolved) = Resolved::new(&theme, None) {
-        let swatches = widgets::swatches(&resolved);
-        swatches.set_halign(gtk::Align::Center);
-        alert.set_extra_child(Some(&swatches));
+        let column = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(12)
+            .halign(gtk::Align::Center)
+            .build();
+        let strip = adw::Bin::builder().halign(gtk::Align::Center).build();
+        strip.set_child(Some(&widgets::swatches(&resolved)));
+        column.append(&strip);
+        if accents.len() > 1 {
+            let title = gtk::Label::builder()
+                .label(tr("Accent Color"))
+                .css_classes(["heading"])
+                .build();
+            column.append(&title);
+            // Up to eight in one line; more, as a base24 scheme has, in
+            // lines of seven.
+            let per_line = if accents.len() <= 8 { accents.len() } else { 7 } as u32;
+            let choices = gtk::FlowBox::builder()
+                .selection_mode(gtk::SelectionMode::None)
+                .max_children_per_line(per_line)
+                .min_children_per_line(per_line)
+                .homogeneous(true)
+                .column_spacing(4)
+                .row_spacing(4)
+                .halign(gtk::Align::Center)
+                .build();
+            choices
+                .update_relation(&[gtk::accessible::Relation::LabelledBy(&[title.upcast_ref()])]);
+            let outline = resolved.colors.ui.border;
+            let mut first: Option<gtk::ToggleButton> = None;
+            for (i, (name, color)) in accents.iter().enumerate() {
+                // The name is one of the format's own, not text of the file.
+                let said = format!("{name} {}", color.hex());
+                let marked = Rc::new(Cell::new(i == usual));
+                let dot = widgets::dot(*color, outline, marked.clone());
+                let button = gtk::ToggleButton::builder()
+                    .child(&dot)
+                    .tooltip_text(&said)
+                    .css_classes(["flat", "circular"])
+                    .active(i == usual)
+                    .build();
+                button.update_property(&[gtk::accessible::Property::Label(&said)]);
+                match &first {
+                    Some(group) => button.set_group(Some(group)),
+                    None => first = Some(button.clone()),
+                }
+                let (chosen, strip, theme, color) =
+                    (chosen.clone(), strip.clone(), theme.clone(), *color);
+                button.connect_toggled(move |button| {
+                    marked.set(button.is_active());
+                    dot.queue_draw();
+                    if !button.is_active() {
+                        return;
+                    }
+                    chosen.set(i);
+                    if let Some(with) = velatura_theme::import::with_accent(&theme, color)
+                        && let Some(resolved) = Resolved::new(&with, None)
+                    {
+                        strip.set_child(Some(&widgets::swatches(&resolved)));
+                    }
+                });
+                choices.insert(&button, -1);
+            }
+            column.append(&choices);
+        }
+        alert.set_extra_child(Some(&column));
     }
     alert.add_response("cancel", &tr("_Cancel"));
     match clash {
@@ -941,6 +1018,13 @@ async fn import_theme(ui: &U) {
     let answer = alert.choose_future(Some(&ui.window)).await;
     if answer == "cancel" {
         return;
+    }
+    if chosen.get() != usual
+        && let Some((_, color)) = accents.get(chosen.get())
+        && let Some(with) = velatura_theme::import::with_accent(&theme, *color)
+    {
+        source = velatura_theme::model::to_toml(&with);
+        theme = with;
     }
     let replace = answer == "replace";
     let keep_both = answer == "both";

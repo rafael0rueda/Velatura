@@ -27,6 +27,53 @@ pub struct Incomplete {
     pub missing: Vec<String>,
 }
 
+/// A theme read from another format, with what there is to choose from.
+#[derive(Clone, Debug)]
+pub struct Imported {
+    pub loaded: Loaded,
+    pub format: Format,
+    /// The file's colours that can be the accent, by their names in the
+    /// file. These formats name no accent, so one of these is taken.
+    pub accents: Vec<(String, Color)>,
+    /// Which of `accents` the theme has until another is chosen.
+    pub accent: usize,
+}
+
+/// `theme` with another accent. Colours that follow the accent, such as
+/// links, follow the new one; colours the file gave stay.
+pub fn with_accent(theme: &Theme, accent: Color) -> Option<Theme> {
+    let mut draft = crate::editor::Draft::open(theme, theme.default_variant())?;
+    draft.set_role("accent", accent);
+    parse_theme(&to_toml(&draft.theme)).ok().map(|l| l.theme)
+}
+
+/// The colours that can be the accent: each colour once, without
+/// background and text, and with the one taken by default among them.
+fn candidates(
+    named: Vec<(String, Color)>,
+    default: &str,
+    (bg, fg): (Color, Color),
+) -> (Vec<(String, Color)>, usize) {
+    let mut out: Vec<(String, Color)> = Vec::new();
+    for (name, color) in named {
+        let is_default = name == default;
+        if !is_default && (color == bg || color == fg) {
+            continue;
+        }
+        match out.iter().position(|(_, c)| *c == color) {
+            // A colour the default shares with another goes by its name.
+            Some(i) if is_default => out[i].0 = name,
+            Some(_) => {}
+            None => out.push((name, color)),
+        }
+    }
+    let at = out
+        .iter()
+        .position(|(name, _)| name == default)
+        .unwrap_or(0);
+    (out, at)
+}
+
 /// A colour as these formats write one: six hex digits, with or without `#`.
 fn color(value: &str) -> Option<Color> {
     let digits = value.strip_prefix('#').unwrap_or(value);
@@ -116,7 +163,7 @@ const BASE24: [&str; 8] = [
 
 /// A base16 scheme, or a base24 one when it has the eight further colours:
 /// the sixteen-colour styling the format's guidelines describe.
-fn base16(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>> {
+fn base16(text: &str, stem: &str) -> Option<Result<Imported, Incomplete>> {
     let pairs = yaml_pairs(text);
     let get = |name: &str| {
         pairs
@@ -217,9 +264,28 @@ fn base16(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>
         license: String::new(),
     };
     v.name = clean_text(&meta.name, 64);
+    let mut named: Vec<(String, Color)> = BASE16[8..]
+        .iter()
+        .map(|name| (*name).to_owned())
+        .zip(b[8..].iter().copied())
+        .collect();
+    if format == Format::Base24 {
+        named.extend(
+            BASE24[2..]
+                .iter()
+                .zip(&more[2..])
+                .filter_map(|(name, color)| Some(((*name).to_owned(), (*color)?))),
+        );
+    }
+    let (accents, at) = candidates(named, "base0D", (bg, fg));
     Some(
         finish(meta, stem, v)
-            .map(|loaded| (loaded, format))
+            .map(|loaded| Imported {
+                loaded,
+                format,
+                accents,
+                accent: at,
+            })
             .ok_or(Incomplete {
                 format,
                 missing: Vec::new(),
@@ -230,7 +296,7 @@ fn base16(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>
 /// A Kitty theme: `key value` lines, and what its header comments say of
 /// it (`## name: …`). Values that are not colours (`none`, `background`)
 /// are passed over.
-fn kitty(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>> {
+fn kitty(text: &str, stem: &str) -> Option<Result<Imported, Incomplete>> {
     let mut colors: BTreeMap<&str, Color> = BTreeMap::new();
     let mut about: BTreeMap<String, String> = BTreeMap::new();
     for line in text.lines() {
@@ -303,9 +369,24 @@ fn kitty(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>>
         license: said("license"),
     };
     v.name = clean_text(&meta.name, 64);
+    let default = if get("active_border_color") == Some(accent) {
+        "active_border_color"
+    } else {
+        "color4"
+    };
+    let named: Vec<(String, Color)> = std::iter::once("active_border_color".to_owned())
+        .chain((1..=6).chain(9..=14).map(|i| format!("color{i}")))
+        .filter_map(|name| get(&name).map(|color| (name, color)))
+        .collect();
+    let (accents, at) = candidates(named, default, (bg, fg));
     Some(
         finish(meta, stem, v)
-            .map(|loaded| (loaded, Format::Kitty))
+            .map(|loaded| Imported {
+                loaded,
+                format: Format::Kitty,
+                accents,
+                accent: at,
+            })
             .ok_or(Incomplete {
                 format: Format::Kitty,
                 missing: Vec::new(),
@@ -315,7 +396,7 @@ fn kitty(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>>
 
 /// Read `text` as a theme in another format. `None` when it is in none of
 /// the formats known here.
-pub fn read(text: &str, stem: &str) -> Option<Result<(Loaded, Format), Incomplete>> {
+pub fn read(text: &str, stem: &str) -> Option<Result<Imported, Incomplete>> {
     base16(text, stem).or_else(|| kitty(text, stem))
 }
 
@@ -335,9 +416,10 @@ mod tests {
 
     #[test]
     fn a_base16_scheme_in_either_layout_becomes_the_same_theme() {
-        let (old, format) = read(OCEAN, "ocean").unwrap().unwrap();
-        assert_eq!(format, Format::Base16);
-        let (new, _) = read(OCEAN_NEW, "whatever").unwrap().unwrap();
+        let ocean = read(OCEAN, "ocean").unwrap().unwrap();
+        assert_eq!(ocean.format, Format::Base16);
+        let old = &ocean.loaded;
+        let new = read(OCEAN_NEW, "whatever").unwrap().unwrap().loaded;
         assert_eq!(old.theme, new.theme);
         assert!(old.warnings.is_empty(), "{:?}", old.warnings);
         let t = &old.theme;
@@ -364,8 +446,10 @@ mod tests {
 
     #[test]
     fn a_base24_scheme_brings_its_bright_colours_and_says_light() {
-        let (loaded, format) = read(ONE_LIGHT, "one-light").unwrap().unwrap();
-        assert_eq!(format, Format::Base24);
+        let light = read(ONE_LIGHT, "one-light").unwrap().unwrap();
+        assert_eq!(light.format, Format::Base24);
+        assert_eq!(light.accents.len(), 14);
+        let loaded = &light.loaded;
         let v = &loaded.theme.variants["default"];
         assert_eq!(v.appearance, Appearance::Light);
         assert_eq!(hex(v.ansi[1]), "#e05661");
@@ -376,8 +460,9 @@ mod tests {
 
     #[test]
     fn a_kitty_theme_becomes_a_theme_and_goes_back_out_the_same() {
-        let (loaded, format) = read(DRACULA, "dracula").unwrap().unwrap();
-        assert_eq!(format, Format::Kitty);
+        let dracula = read(DRACULA, "dracula").unwrap().unwrap();
+        assert_eq!(dracula.format, Format::Kitty);
+        let loaded = &dracula.loaded;
         let t = &loaded.theme;
         assert_eq!((t.id.as_str(), t.name.as_str()), ("dracula", "Dracula"));
         assert_eq!(t.license, "MIT");
@@ -407,7 +492,10 @@ mod tests {
     fn velaturas_own_kitty_file_reads_back_with_the_same_terminal_colours() {
         for theme in bundled::themes() {
             let resolved = Resolved::new(&theme, None).unwrap();
-            let (loaded, _) = read(&kitty_out::render(&resolved), "x").unwrap().unwrap();
+            let loaded = read(&kitty_out::render(&resolved), "x")
+                .unwrap()
+                .unwrap()
+                .loaded;
             let v = &loaded.theme.variants["default"];
             assert_eq!(v.ansi, resolved.colors.ansi);
             assert_eq!(
@@ -452,19 +540,76 @@ mod tests {
         }
     }
 
+    #[test]
+    fn the_accent_is_one_of_the_files_colours_and_can_be_another() {
+        let ocean = read(OCEAN, "ocean").unwrap().unwrap();
+        let names: Vec<&str> = ocean.accents.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "base08", "base09", "base0A", "base0B", "base0C", "base0D", "base0E", "base0F"
+            ]
+        );
+        assert_eq!(ocean.accents[ocean.accent].0, "base0D");
+        let before = &ocean.loaded.theme.variants["default"];
+        assert_eq!(before.ui.accent, ocean.accents[ocean.accent].1);
+
+        let purple = ocean.accents[6].1;
+        let theme = with_accent(&ocean.loaded.theme, purple).unwrap();
+        let v = &theme.variants["default"];
+        assert_eq!(hex(v.ui.accent), "#b48ead");
+        // What followed the accent follows the new one; what the scheme
+        // gave, and everything else, is as it was.
+        assert_eq!(v.ui.link, purple);
+        assert_eq!(v.ui.selection_bg, before.ui.selection_bg);
+        assert_eq!(
+            (v.ansi, &v.syntax, &v.palette),
+            (before.ansi, &before.syntax, &before.palette)
+        );
+        assert_eq!(theme.id, ocean.loaded.theme.id);
+
+        // Kitty: the active window's border where the theme sets one,
+        // blue otherwise; a colour two keys share is offered once.
+        let dracula = read(DRACULA, "dracula").unwrap().unwrap();
+        assert_eq!(dracula.accents[dracula.accent].0, "color4");
+        assert!(
+            dracula
+                .accents
+                .iter()
+                .all(|(n, _)| n != "active_border_color")
+        );
+        let bordered = format!("{DRACULA}active_border_color #FF79C6\n");
+        let dracula = read(&bordered, "dracula").unwrap().unwrap();
+        assert_eq!(
+            dracula.accents[dracula.accent],
+            (
+                "active_border_color".to_owned(),
+                Color::rgb(0xff, 0x79, 0xc6)
+            )
+        );
+        assert!(
+            dracula.accents.iter().all(|(n, _)| n != "color5"),
+            "the same pink"
+        );
+        assert_eq!(
+            dracula.loaded.theme.variants["default"].ui.accent,
+            dracula.accents[dracula.accent].1
+        );
+    }
+
     /// Text from the file reaches the theme only as cleaned, capped names,
     /// and whatever it says the theme still passes the validator.
     #[test]
     fn hostile_text_in_a_scheme_stays_text() {
         let hostile = "x\\\"\\n[variants.evil]\u{202e}\u{1b}]52;c;AAAA\u{7}".repeat(20);
         let src = OCEAN.replace("\"Ocean\"", &format!("\"{hostile}\""));
-        let (loaded, _) = read(&src, "../../etc/passwd").unwrap().unwrap();
+        let loaded = read(&src, "../../etc/passwd").unwrap().unwrap().loaded;
         let t = &loaded.theme;
         assert_eq!(t.variants.len(), 1);
         assert!(t.name.chars().count() <= 64 && !t.name.contains('\u{202e}'));
         assert!(crate::model::is_slug(&t.id), "{}", t.id);
         let src = OCEAN.replace("scheme: \"Ocean\"\n", "");
-        let (loaded, _) = read(&src, "../../etc/passwd").unwrap().unwrap();
+        let loaded = read(&src, "../../etc/passwd").unwrap().unwrap().loaded;
         assert_eq!(loaded.theme.id, "etc-passwd");
     }
 }

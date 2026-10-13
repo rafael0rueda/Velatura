@@ -166,9 +166,17 @@ fn damaged_files_in_other_formats_never_panic() {
             let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ n as u64);
             let bytes = mutate(source.as_bytes(), &mut rng);
             let text = String::from_utf8_lossy(&bytes);
-            let Some(Ok((loaded, _))) = velatura_theme::import::read(&text, "a file") else {
+            let Some(Ok(found)) = velatura_theme::import::read(&text, "a file") else {
                 continue;
             };
+            let loaded = &found.loaded;
+            assert!(found.accent < found.accents.len(), "seed {seed}");
+            for (_, accent) in &found.accents {
+                assert!(
+                    velatura_theme::import::with_accent(&loaded.theme, *accent).is_some(),
+                    "seed {seed}"
+                );
+            }
             read += 1;
             let theme = &loaded.theme;
             assert!(velatura_theme::model::is_slug(&theme.id), "seed {seed}");

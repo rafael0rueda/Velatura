@@ -448,6 +448,9 @@ msgstr ""
 msgid "Import {name}?"
 msgstr ""
 
+msgid "Accent Color"
+msgstr ""
+
 msgid "_Import"
 msgstr ""
 
@@ -841,9 +844,6 @@ msgid "Icons, Cursor, Wallpaper and Fonts"
 msgstr ""
 
 msgid "Changes"
-msgstr ""
-
-msgid "Accent Color"
 msgstr ""
 
 msgid "Legacy Application Theme"

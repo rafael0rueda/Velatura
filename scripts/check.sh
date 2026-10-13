@@ -145,6 +145,16 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
         'SHOTS library yours=["new-theme"]' 'new-theme light New Theme (yours)'; do
         grep -qF "$want" <<<"$made" || { echo "editor check failed, missing: $want"; exit 1; }
     done
+    # A base16 scheme imported through the app's question, with another
+    # accent than the usual one chosen there, and stored with it.
+    shots=$(mktemp -d)
+    took=$(scripts/gui-shots.sh "$shots" --import crates/velatura-theme/tests/fixtures/base16-ocean.yaml 2>/dev/null | grep -E '^(SHOTS import|SANDBOX accent)' || true)
+    rm -rf "$shots"
+    echo "$took"
+    for want in 'SHOTS import accents=8 usual=Some(5)' 'SHOTS import chosen=base0E #b48ead' \
+        'SANDBOX accent of ocean: accent #b48ead'; do
+        grep -qF "$want" <<<"$took" || { echo "import check failed, missing: $want"; exit 1; }
+    done
 else
     echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
 fi

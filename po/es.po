@@ -446,6 +446,9 @@ msgstr "Ya hay en la biblioteca un tema con el mismo identificador."
 msgid "Import {name}?"
 msgstr "¿Importar {name}?"
 
+msgid "Accent Color"
+msgstr "Color de acento"
+
 msgid "_Import"
 msgstr "_Importar"
 
@@ -840,9 +843,6 @@ msgstr "Iconos, cursor, fondo de pantalla y tipografías"
 
 msgid "Changes"
 msgstr "Cambios"
-
-msgid "Accent Color"
-msgstr "Color de acento"
 
 msgid "Legacy Application Theme"
 msgstr "Tema de aplicaciones antiguas"

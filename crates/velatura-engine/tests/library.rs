@@ -285,6 +285,21 @@ fn themes_in_other_formats_are_imported_as_themes_written_out() {
         assert!(rejected.is_empty());
         assert!(entries.iter().any(|e| e.theme == found.loaded.theme));
     }
+    // Another of the file's colours as the accent, chosen before storing.
+    let mut sea = library::inspect(&host, &fixtures.join("base16-ocean.yaml")).unwrap();
+    assert_eq!(sea.accents[sea.accent].0, "base0D");
+    let (name, purple) = sea.accents[6].clone();
+    assert!(sea.choose_accent(purple));
+    assert_eq!((name.as_str(), sea.accent), ("base0E", 6));
+    sea.loaded.theme.id = "sea".to_owned();
+    let saved = library::save(&host, &sea.loaded.theme, Some(&sea.source), false).unwrap();
+    let stored = fs::read_to_string(saved).unwrap();
+    assert!(stored.contains("accent = \"#b48ead\""), "{stored}");
+    assert!(
+        stored.contains("link = \"#b48ead\""),
+        "what follows the accent follows it"
+    );
+
     // The same file again is the same id, refused like any other clash.
     let again = library::inspect(&host, &fixtures.join("kitty-dracula.conf")).unwrap();
     assert!(matches!(

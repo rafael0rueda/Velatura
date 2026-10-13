@@ -66,6 +66,8 @@ Options:
   --day <HH:MM>         with schedule set: when the daytime theme starts
   --night <HH:MM>       with schedule set: when the nighttime theme starts
   --as <id>             with theme import: store it under another id
+  --accent <color>      with theme import of a base16, base24 or Kitty file:
+                        which of its colors is the accent, by name or #rrggbb
   --replace             with theme import or export: replace what is there
   --again               with switch auto: act even if this part of the day was done
   --json                machine-readable output

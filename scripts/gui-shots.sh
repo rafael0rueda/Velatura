@@ -5,6 +5,7 @@
 #
 #   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--flow]
 #                        [--large-text] [--high-contrast] [--scheduled] [--editor] [--lang es]
+#                        [--import <file>]
 #
 # --applied applies a theme in the sandbox first, so the views show a
 # themed state and a backup. --flow then drives a real apply through the
@@ -14,15 +15,18 @@
 # switch, so the views show a schedule and what it left out.
 # --editor makes a new theme in the editor, fixes what is hard to read in
 # it, and saves it.
+# --import <file> imports a base16, base24 or Kitty file through the app's
+# question, choosing another accent than the usual one.
 # --lang es runs the app in Spanish.
 # Needs mutter and dbus-run-session.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$(realpath -m "${1:?output folder}"); shift
-size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""
+size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""; import=""; want_import=""
 for a in "$@"; do
     [ -n "$want_lang" ] && { lang=$a; want_lang=""; continue; }
-    case "$a" in --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
+    [ -n "$want_import" ] && { import=$(realpath "$a"); want_import=""; continue; }
+    case "$a" in --import) want_import=1 ;; --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
 done
 cargo build -q -p velatura-gui -p velatura-cli
 root=$(mktemp -d)
@@ -45,7 +49,7 @@ if [ -n "$scheduled" ]; then
 fi
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" ${lang:+LANG=${lang}_ES.UTF-8 LANGUAGE=$lang} $([ -z "$lang" ] && echo LC_ALL=C.UTF-8) \
     GSETTINGS_BACKEND=dconf VELATURA_SHOTS="$out" VELATURA_SHOTS_SIZE="$size" \
-    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} ${editor:+VELATURA_SHOTS_EDITOR=1} APPLIED="$applied" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
+    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} ${editor:+VELATURA_SHOTS_EDITOR=1} ${import:+VELATURA_SHOTS_IMPORT="$import"} APPLIED="$applied" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
     dbus-run-session -- bash -c ' exec 2>/dev/null
         [ -n "$APPLIED" ] && "$BIN/velatura" apply ember --yes >/dev/null
         if [ -n "$SCHEDULED" ]; then
@@ -66,6 +70,9 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" ${lang:+LANG=$
         echo "SANDBOX $("$BIN/velatura" status | head -1)"
         echo "SANDBOX $("$BIN/velatura" schedule | head -1)"
         echo "SANDBOX themes: $("$BIN/velatura" list | tr -s " " | tr "\n" "|")"
+        "$BIN/velatura" list | grep "(yours)" | while read -r id _; do
+            echo "SANDBOX accent of $id:$("$BIN/velatura" show "$id" | grep -m1 "  accent " | tr -s " ")"
+        done
         echo "SANDBOX kitty.conf: $(tr "\n" "|" < "$HOME/.config/kitty/kitty.conf")"
         exit $status'
 ls "$out"

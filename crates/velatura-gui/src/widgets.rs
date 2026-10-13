@@ -4,7 +4,9 @@
 //! [`Color`] values: as numbers handed to the drawing code, or as text made
 //! by the closed set of formatters. No string from a theme file is used.
 
+use std::cell::Cell;
 use std::fmt::Write;
+use std::rc::Rc;
 
 use adw::prelude::*;
 use gtk::cairo;
@@ -75,6 +77,47 @@ pub fn swatches(theme: &Resolved<'_>) -> gtk::DrawingArea {
         spoken.join(", ")
     ))]);
     area.set_accessible_role(gtk::AccessibleRole::Img);
+    area
+}
+
+/// One colour as a filled circle, for a button that chooses it. While
+/// `marked` is true it carries a check mark, so the choice does not rest
+/// on telling the colours apart.
+pub fn dot(color: Color, outline: Color, marked: Rc<Cell<bool>>) -> gtk::DrawingArea {
+    let area = gtk::DrawingArea::builder()
+        .content_width(28)
+        .content_height(28)
+        .halign(gtk::Align::Center)
+        .valign(gtk::Align::Center)
+        .build();
+    area.set_draw_func(move |_, cr, w, h| {
+        let (w, h) = (f64::from(w), f64::from(h));
+        let r = w.min(h) / 2.0 - 0.5;
+        cr.arc(w / 2.0, h / 2.0, r, 0.0, std::f64::consts::TAU);
+        set(cr, color);
+        let _ = cr.fill_preserve();
+        set(cr, outline);
+        cr.set_line_width(1.0);
+        let _ = cr.stroke();
+        if marked.get() {
+            let (black, white) = (Color::rgb(0, 0, 0), Color::rgb(255, 255, 255));
+            set(
+                cr,
+                if color.contrast(black) >= color.contrast(white) {
+                    black
+                } else {
+                    white
+                },
+            );
+            cr.set_line_width(2.5);
+            cr.set_line_cap(cairo::LineCap::Round);
+            cr.set_line_join(cairo::LineJoin::Round);
+            cr.move_to(w * 0.30, h * 0.52);
+            cr.line_to(w * 0.44, h * 0.66);
+            cr.line_to(w * 0.71, h * 0.36);
+            let _ = cr.stroke();
+        }
+    });
     area
 }
 
