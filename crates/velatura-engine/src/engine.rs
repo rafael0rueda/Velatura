@@ -74,7 +74,7 @@ pub fn plan_apply(
     for instance in targets::INSTANCES {
         // Naming a target outright overrides having turned it off.
         let selected = if opts.only.is_empty() {
-            !prefs.excluded.contains(instance)
+            prefs.takes_part(instance)
         } else {
             matches(instance, &opts.only)
         } && !matches(instance, &opts.except);
@@ -101,19 +101,44 @@ pub fn plan_apply(
     })
 }
 
-/// Take the block out of the file as it is now, keeping everything else.
+/// Take what Velatura added out of the file as it is now, keeping
+/// everything else. `added` is what was put in, for a span that has no
+/// markers to find it by.
 fn unblock(
     host: &Host<'_>,
     path: &str,
     target: &str,
-    added_eol: bool,
-    created_file: bool,
+    (added_eol, created_file): (bool, bool),
+    added: Option<&str>,
     out: &mut TargetPlan,
 ) -> Result<(), Error> {
+    use targets::{FLATPAK_GROUP, FLATPAK_KEY, FLATPAK_SPAN};
     let file = PathBuf::from(path);
     let Some(current) = io(read_opt(host, &file))? else {
         return Ok(());
     };
+    if target == FLATPAK_SPAN {
+        let receipt = added.unwrap_or_default();
+        let Some(rest) =
+            crate::keyfile::remove(&current, FLATPAK_GROUP, FLATPAK_KEY, receipt, added_eol)
+        else {
+            out.notes.push(Note::KeptFile { path: file });
+            return Ok(());
+        };
+        if rest != current {
+            out.changes.push(Change::Block {
+                path: file,
+                target: target.to_owned(),
+                pre: Some(velatura_theme::sha256_hex(&current)),
+                content: (!(created_file && rest.is_empty())).then_some(rest),
+                body_before: Some(receipt.to_owned()),
+                body_after: None,
+                added_eol,
+                created_file,
+            });
+        }
+        return Ok(());
+    }
     let (body, rest) = match block::find(&current, target) {
         block::Found::Absent => return Ok(()),
         block::Found::Malformed => {
@@ -204,11 +229,25 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
                 path,
                 target,
                 body_before,
+                body_after,
                 added_eol,
                 created_file,
                 ..
             } => match body_before {
-                None => unblock(host, path, target, *added_eol, *created_file, &mut out)?,
+                None => unblock(
+                    host,
+                    path,
+                    target,
+                    (*added_eol, *created_file),
+                    body_after.as_deref(),
+                    &mut out,
+                )?,
+                // A list taken out again goes back in only by applying.
+                Some(_) if target == targets::FLATPAK_SPAN => {
+                    out.notes.push(Note::KeptFile {
+                        path: PathBuf::from(path),
+                    });
+                }
                 Some(body) => {
                     let file = PathBuf::from(path);
                     let current = io(read_opt(host, &file))?;
@@ -278,8 +317,8 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
             host,
             path,
             &record.target,
-            record.added_eol,
-            record.created_file,
+            (record.added_eol, record.created_file),
+            record.body.as_deref(),
             &mut out,
         )?;
     }
@@ -426,7 +465,7 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
     let mut steps = Vec::new();
     let mut new_state;
     match plan.cause {
-        Cause::Apply | Cause::Scheduled | Cause::RestoreOriginal => {
+        Cause::Apply | Cause::Scheduled | Cause::Select | Cause::RestoreOriginal => {
             let records: Vec<Record> = changes.iter().map(Record::of).collect();
             // A scheduled switch on top of a scheduled switch becomes one
             // backup with it, so the schedule never takes more than one
@@ -481,7 +520,9 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
                 };
             } else {
                 new_state = state.after(&changes);
-                new_state.applied = plan.theme.clone();
+                if plan.cause != Cause::Select {
+                    new_state.applied = plan.theme.clone();
+                }
                 new_state.consents.extend(agreed);
             }
         }
@@ -537,10 +578,11 @@ fn next_id(host: &Host<'_>) -> Result<u64, Error> {
 /// to it stays until the next apply or undo.
 pub fn set_included(host: &Host<'_>, instance: &str, included: bool) -> Result<(), Error> {
     let mut prefs = Prefs::load(host)?;
-    let changed = if included {
-        prefs.excluded.remove(instance)
-    } else {
-        prefs.excluded.insert(instance.to_owned())
+    let changed = match (targets::OPT_IN.contains(&instance), included) {
+        (true, true) => prefs.included.insert(instance.to_owned()),
+        (true, false) => prefs.included.remove(instance),
+        (false, true) => prefs.excluded.remove(instance),
+        (false, false) => prefs.excluded.insert(instance.to_owned()),
     };
     if changed {
         io(prefs.save(host))?;
@@ -559,9 +601,15 @@ pub fn window_size(host: &Host<'_>) -> Option<(i32, i32)> {
     Prefs::load(host).ok().and_then(|p| p.window)
 }
 
-/// Instances turned off for future applies.
+/// Instances left out of future applies: the ones turned off, and the
+/// ones that are off until turned on.
 pub fn excluded(host: &Host<'_>) -> Result<Vec<String>, Error> {
-    Ok(Prefs::load(host)?.excluded.into_iter().collect())
+    let prefs = Prefs::load(host)?;
+    Ok(targets::INSTANCES
+        .iter()
+        .filter(|i| !prefs.takes_part(i))
+        .map(|i| (*i).to_owned())
+        .collect())
 }
 
 /// Undo backups, newest first, down to and including `id`: the result is
@@ -734,6 +782,18 @@ pub fn status(host: &Host<'_>) -> Result<Status, Error> {
     for (path, record) in &state.blocks {
         let health = match io(read_opt(host, Path::new(path)))? {
             None => Health::Missing,
+            Some(bytes) if record.target == targets::FLATPAK_SPAN => {
+                if crate::keyfile::holds(
+                    &bytes,
+                    targets::FLATPAK_GROUP,
+                    targets::FLATPAK_KEY,
+                    record.body.as_deref().unwrap_or_default(),
+                ) {
+                    Health::Ok
+                } else {
+                    Health::Changed
+                }
+            }
             Some(bytes) => match block::find(&bytes, &record.target) {
                 block::Found::Present { .. } => Health::Ok,
                 block::Found::Absent => Health::Missing,

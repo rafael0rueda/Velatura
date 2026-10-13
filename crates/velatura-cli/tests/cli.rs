@@ -391,3 +391,104 @@ fn schedule_and_the_switch_with_no_one_present() {
     assert_eq!(code, 0);
     assert!(out.contains("was not on"), "{out}");
 }
+
+/// Icons and fonts chosen from the command, and the Flatpak overrides.
+#[test]
+fn look_and_flatpak_from_the_command() {
+    if !(have("dbus-run-session") && have("gsettings")) {
+        assert!(
+            std::env::var_os("VELATURA_CI").is_none(),
+            "dbus-run-session and gsettings are required in CI"
+        );
+        eprintln!("SKIPPED: dbus-run-session or gsettings is not installed");
+        return;
+    }
+    let sb = Sandbox::named("look");
+    // A theme of the user's own, so the test does not depend on what the
+    // machine has installed.
+    let theme = sb.home().join(".local/share/icons/Mine");
+    fs::create_dir_all(&theme).unwrap();
+    fs::write(
+        theme.join("index.theme"),
+        "[Icon Theme]\nName=My Icons\nDirectories=16x16/apps\n",
+    )
+    .unwrap();
+
+    let (code, out, _) = sb.velatura(&["look"]);
+    assert_eq!(code, 0);
+    assert!(
+        out.contains("Icons:") && out.contains("Monospace Font:"),
+        "{out}"
+    );
+    let (code, out, _) = sb.velatura(&["look", "list", "icons"]);
+    assert_eq!(code, 0);
+    assert!(
+        out.lines()
+            .any(|l| l.starts_with("Mine") && l.contains("My Icons")),
+        "{out}"
+    );
+
+    let (code, _, err) = sb.velatura(&["look", "set", "icons", "../Mine"]);
+    assert_eq!(code, 2, "{err}");
+    assert!(err.contains("No installed theme has that name"), "{err}");
+    assert_eq!(sb.velatura(&["look", "set", "colors", "x"]).0, 2);
+    let (code, out, _) = sb.velatura(&["look", "set", "icons", "Mine", "--preview"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("Set Icons to Mine"), "{out}");
+    assert_ne!(sb.gsetting("icon-theme"), "'Mine'");
+
+    let (code, out, err) = sb.velatura(&["look", "set", "icons", "My Icons"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(
+        out.contains("Changed.") && out.contains("To undo: velatura undo"),
+        "{out}"
+    );
+    assert_eq!(sb.gsetting("icon-theme"), "'Mine'");
+    let (code, _, err) = sb.velatura(&["look", "set", "monospace-font", "Fira Code"]);
+    assert_eq!(code, 2);
+    assert!(err.contains("its name and a size"), "{err}");
+    assert_eq!(
+        sb.velatura(&["look", "set", "monospace-font", "Fira Code 12"])
+            .0,
+        0
+    );
+    assert_eq!(sb.gsetting("monospace-font-name"), "'Fira Code 12'");
+    let (_, out, _) = sb.velatura(&["history"]);
+    assert_eq!(out.matches("select").count(), 2, "{out}");
+
+    assert_eq!(sb.velatura(&["undo"]).0, 0);
+    assert_ne!(sb.gsetting("monospace-font-name"), "'Fira Code 12'");
+    assert_eq!(sb.velatura(&["look", "reset", "icons"]).0, 0);
+    assert_ne!(sb.gsetting("icon-theme"), "'Mine'");
+
+    // Flatpak: named outright, with agreement, and undone to the byte.
+    let overrides = sb.home().join(".local/share/flatpak/overrides/global");
+    fs::create_dir_all(overrides.parent().unwrap()).unwrap();
+    let original = "[Context]\nfilesystems=home;\n";
+    fs::write(&overrides, original).unwrap();
+    let (code, out, _) = sb.velatura(&["apply", "ember", "--only", "flatpak", "--preview"]);
+    assert_eq!(code, 0);
+    assert!(
+        out.contains("Let Flatpak apps read the two GTK settings folders"),
+        "{out}"
+    );
+    assert_eq!(sb.velatura(&["apply", "ember", "--only", "flatpak"]).0, 3);
+    assert_eq!(fs::read_to_string(&overrides).unwrap(), original);
+    assert_eq!(
+        sb.velatura(&["apply", "ember", "--only", "flatpak", "--yes"])
+            .0,
+        0
+    );
+    assert_eq!(
+        fs::read_to_string(&overrides).unwrap(),
+        "[Context]\nfilesystems=home;xdg-config/gtk-3.0:ro;xdg-config/gtk-4.0:ro;\n"
+    );
+    // Left out of an ordinary apply until turned on.
+    let (_, out, _) = sb.velatura(&["status"]);
+    assert!(
+        out.contains("Flatpak Apps: themed, and left out of the next apply"),
+        "{out}"
+    );
+    assert_eq!(sb.velatura(&["undo"]).0, 0);
+    assert_eq!(fs::read_to_string(&overrides).unwrap(), original);
+}

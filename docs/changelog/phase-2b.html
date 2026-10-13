@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2b – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 2b – icons, cursor, wallpaper, fonts and Flatpak apps</h1>
+<p class="lead">Branch <code>phase-2b-selections</code>. Completed 2026-10-12. The second slice of Phase 2 (<a href="../decisions.html#d47">D47</a>). Its exit condition in the roadmap: transaction tests pass for each. They do.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The installed icon themes, wallpapers and current settings were read to see what the lists have to cope with; no choice was made and Flatpak's overrides file was only read. It already grants both folders, so on this machine the Flatpak part has nothing to add.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Icons, cursor, wallpaper and three fonts</strong>, chosen among what is installed: in a new group on the Apps &amp; Desktop page, and with <code>velatura look</code>, <code>look list</code>, <code>look set</code> and <code>look reset</code>. A choice takes effect at once, is a backup in History like any other change, and Undo reverses it. It belongs to the user and the machine, not to a theme, so it stays when the theme changes, by hand or on schedule.</li>
+<li><strong>What can be chosen.</strong> Icon and cursor themes are the folders found in the user's and the system's icon folders, by exact name. Wallpapers are the pictures in the backgrounds folders, or a picture of the user's own given by its full path; the one picture is set for both the light and the dark style. A font is a name and a size: the app uses the desktop's own font chooser.</li>
+<li><strong>Suggestions from a theme.</strong> A theme file may name an icon and a cursor theme. The theme's page shows them, says whether they are installed, and offers Use. Nothing is applied without that press (<a href="../decisions.html#d7">D7</a>).</li>
+<li><strong>Flatpak apps.</strong> A new part, Flatpak Apps, adds read-only access to the two GTK settings folders to Flatpak's per-user overrides, for every app, so the colour files reach sandboxed apps. It is off until turned on, because it widens every sandbox a little, and the first edit of an existing overrides file needs agreement like every other file of the user's.</li>
+<li><strong>Editing a list inside a key file.</strong> The overrides file has no place for a marker, so Velatura records exactly which list members it added and whether it had to make the key or the group. Undo takes out those and nothing else, from the file as it is then. Members that were already there, in any mode or as a denial, are the user's: they are not claimed and never removed.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Seven transaction tests for the two parts: apply and undo give back six kinds of overrides file byte for byte, also through Remove Everything; edits made around the added members survive undo; members removed by hand are reported and not put back; and the exhaustive crash test covers the Flatpak edit and a choice.</li>
+<li>Five tests of the key-file editor over thirteen file shapes: no file, empty group, missing final newline, Windows line endings, lists with and without a closing separator.</li>
+<li>Only installed names can be chosen: a name with a path in it, a fallback theme, a cursor-only theme given as icons and a file that is not a picture are all refused. A name from a theme's index file is shown with control characters removed.</li>
+<li>The command end to end in a private session with a real settings store.</li>
+<li>110 tests in all. The translation template has 216 strings.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>A choice is its own change, made at once</strong> (<a href="../decisions.html#d50">D50</a>), not something applied with the next theme. The plan said only that the choice is the user's and is stored with the user's settings; the desktop's own settings are that store.</li>
+<li><strong>The Flatpak edit reuses the record of a marked line</strong> instead of the separate "structured edit" change of the architecture: the same fields describe it, and one more holds what was added.</li>
+</ul>
+
+<h2>Not done in this slice</h2>
+<ul>
+<li><strong>Flatpak access per app.</strong> Only the override for all apps is offered.</li>
+<li><strong>A different choice by day and by night.</strong> The choices are one set.</li>
+<li><strong>A file chooser for the wallpaper in the app.</strong> The app lists the installed pictures; a picture of the user's own is set from the command.</li>
+<li><strong>GNOME's paired light and dark wallpapers</strong> are listed as two pictures, not as one pair.</li>
+<li><strong>Turning Flatpak Apps on does nothing until the next apply</strong>, like the other switches on that page.</li>
+<li>Not checked in a real Flatpak app: that the colours arrive once access is granted. It is how the owner's machine is set up today, by hand.</li>
+</ul>
+
+</main>
+</body>
+</html>

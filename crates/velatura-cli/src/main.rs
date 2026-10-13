@@ -12,6 +12,7 @@ use serde_json::{Value, json};
 use velatura_engine::engine::{self, ApplyOpts, Error, Health, PartState, Report};
 use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs, StdSystemd, self_command};
 use velatura_engine::library;
+use velatura_engine::look;
 use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, Times};
 use velatura_engine::store::DayNight;
@@ -150,6 +151,10 @@ fn main() -> ExitCode {
         ["schedule"] | ["schedule", "status"] => cx.schedule_show(),
         ["schedule", "set"] => cx.schedule_set(),
         ["schedule", "off"] => cx.schedule_off(),
+        ["look"] => cx.look_show(),
+        ["look", "list", what] => cx.look_list(what),
+        ["look", "set", what, value] => cx.look_set(what, Some(value)),
+        ["look", "reset", what] => cx.look_set(what, None),
         ["undo"] | ["revert"] => cx.undo(None),
         ["history"] => cx.history(),
         ["restore"] if args.original => cx.restore_original(),
@@ -470,6 +475,12 @@ impl Cx<'_> {
                 p(h.dirs.config.join("gtk-3.0/gtk.css")),
             ),
             (
+                "flatpak:global",
+                "Flatpak Apps (off until turned on)",
+                "unofficial",
+                p(h.dirs.data.join("flatpak/overrides/global")),
+            ),
+            (
                 "gnome:shell",
                 "Top Bar and Overview",
                 "unofficial",
@@ -483,7 +494,7 @@ impl Cx<'_> {
             ),
         ];
         for (id, name, support, place) in rows {
-            println!("{id:<17} {name:<28} {support:<11} {place}");
+            println!("{id:<17} {name:<34} {support:<11} {place}");
         }
         println!("\nUnofficial: not supported by GNOME; may stop working after an update.");
         Ok(OK)
@@ -562,6 +573,83 @@ impl Cx<'_> {
             println!("\nTo see the commands: velatura --help");
         }
         Ok(OK)
+    }
+
+    fn look_kind(&self, what: &str) -> Result<look::Kind, Exit> {
+        look::Kind::parse(what).ok_or_else(|| {
+            usage("choose one of: icons, cursor, wallpaper, font, document-font, monospace-font")
+        })
+    }
+
+    fn look_show(&self) -> Outcome {
+        let current: Vec<(look::Kind, Option<String>)> = look::KINDS
+            .into_iter()
+            .map(|k| (k, look::current(&self.host, k)))
+            .collect();
+        if self.args.json {
+            let map: serde_json::Map<String, Value> = current
+                .iter()
+                .map(|(k, v)| (k.id().to_owned(), json!(v)))
+                .collect();
+            self.emit(json!({"look": map}));
+            return Ok(OK);
+        }
+        for (kind, value) in &current {
+            let shown = match value {
+                Some(v) => text::look_value(*kind, v),
+                None => "not available on this desktop".to_owned(),
+            };
+            println!("{:<16} {shown}", format!("{}:", text::look_name(*kind)));
+        }
+        println!(
+            "\nTo see what is installed: velatura look list icons\nTo choose: velatura look set icons <name>"
+        );
+        Ok(OK)
+    }
+
+    fn look_list(&self, what: &str) -> Outcome {
+        let kind = self.look_kind(what)?;
+        let found = look::available(&self.host, &env, kind);
+        if self.args.json {
+            self.emit(json!({
+                "choices": found.iter().map(|c| json!({"value": c.value, "name": c.name})).collect::<Vec<_>>(),
+            }));
+            return Ok(OK);
+        }
+        if found.is_empty() {
+            println!("Nothing to list. A font is chosen by its name and size.");
+        }
+        let now = look::current(&self.host, kind);
+        for c in &found {
+            let mark = if now.as_deref() == Some(c.value.as_str()) {
+                "  (in use)"
+            } else {
+                ""
+            };
+            if c.name == c.value || kind == look::Kind::Wallpaper {
+                println!("{}{mark}", c.name);
+            } else {
+                println!("{:<28} {}{mark}", c.value, c.name);
+            }
+        }
+        Ok(OK)
+    }
+
+    fn look_set(&self, what: &str, value: Option<&str>) -> Outcome {
+        let kind = self.look_kind(what)?;
+        let plan = look::plan_select(&self.host, &env, kind, value).map_err(|why| {
+            match text::rejected_choice(kind, &why) {
+                Some(message) => Exit {
+                    code: USAGE,
+                    message: format!("{message}. To see the choices: velatura look list {what}"),
+                },
+                None => match why {
+                    look::Rejected::Engine(e) => Exit::from(e),
+                    _ => usage("that cannot be chosen"),
+                },
+            }
+        })?;
+        self.run(&plan, true)
     }
 
     fn schedule_json(&self, s: &schedule::Status) -> Value {
@@ -871,6 +959,7 @@ impl Cx<'_> {
                         println!("Applied {label}.");
                     }
                     (Cause::Undo, _) => println!("Undone."),
+                    (Cause::Select, _) => println!("Changed."),
                     _ => println!("Everything Velatura added was removed."),
                 }
                 for c in &report.changes {

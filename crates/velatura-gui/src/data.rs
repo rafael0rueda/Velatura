@@ -10,6 +10,7 @@ use velatura_engine::engine;
 use velatura_engine::gio_settings::GioSettings;
 use velatura_engine::host::{Dirs, Host, StdFs, self_command};
 use velatura_engine::library::{self, Entry};
+use velatura_engine::look::{self, Choice, Kind};
 use velatura_engine::schedule;
 use velatura_engine::store::{DayNight, Manifest};
 
@@ -64,6 +65,9 @@ pub struct Snapshot {
     pub window: Option<(i32, i32)>,
     pub day_night: DayNight,
     pub schedule: schedule::Status,
+    /// Icons, cursor, wallpaper and fonts: what is in use, and what is
+    /// installed to choose from. A kind the desktop lacks is not listed.
+    pub look: Vec<(Kind, String, Vec<Choice>)>,
     /// The `velatura` command beside this app, for a timer to start.
     pub command: Option<PathBuf>,
     /// True if that command is installed where a timer can count on it.
@@ -97,6 +101,16 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         .command
         .as_ref()
         .is_some_and(|c| schedule::lasting(host, c));
+    snap.look = look::KINDS
+        .into_iter()
+        .filter_map(|kind| {
+            Some((
+                kind,
+                look::current(host, kind)?,
+                look::available(host, &env, kind),
+            ))
+        })
+        .collect();
     snap.rows = engine::parts(host, &env, &themes);
     snap.themes = themes;
     snap
