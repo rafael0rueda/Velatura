@@ -81,9 +81,12 @@ if command -v ptyxis >/dev/null 2>&1 && command -v gresource >/dev/null 2>&1; th
     shape() { grep -v '^#' "$1" | sed -n 's/^\(\[.*\]\)$/\1/p; /^\[Palette\]/,/^$/d; s/^\([A-Za-z0-9]*\)=#[0-9a-fA-F]\{6\}$/\1/p' | sort; }
     [ -s "$theirs" ] && [ "$(shape "$theirs" | wc -l)" -ge 40 ] || { echo "no palette of Ptyxis's own to compare with"; exit 1; }
     for f in "$golden"/*.ptyxis.palette; do
-        if ! diff <(shape "$theirs") <(shape "$f") >/dev/null; then
-            echo "$f does not have the shape of a Ptyxis palette:"
-            diff <(shape "$theirs") <(shape "$f") | head -10; exit 1
+        # Compared as text: the smaller CI images have no diff.
+        if [ "$(shape "$theirs")" != "$(shape "$f")" ]; then
+            echo "$f does not have the shape of a Ptyxis palette."
+            echo "Ptyxis's own: $(shape "$theirs" | tr '\n' ' ')"
+            echo "this one:     $(shape "$f" | tr '\n' ' ')"
+            exit 1
         fi
         grep -q '^Name=' "$f" || { echo "$f has no name"; exit 1; }
         echo "Ptyxis's own palettes have the shape of $f"
