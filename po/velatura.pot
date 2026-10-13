@@ -825,6 +825,12 @@ msgstr ""
 msgid "Starship"
 msgstr ""
 
+msgid "Ptyxis"
+msgstr ""
+
+msgid "Text Editor"
+msgstr ""
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr ""
 
@@ -850,6 +856,12 @@ msgid "Legacy Application Theme"
 msgstr ""
 
 msgid "Shell Theme"
+msgstr ""
+
+msgid "Ptyxis Palette"
+msgstr ""
+
+msgid "Text Editor Style"
 msgstr ""
 
 msgid "Icons"
@@ -1019,6 +1031,12 @@ msgid "Neovim shows the theme once its settings select the colorscheme named vel
 msgstr ""
 
 msgid "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory"
+msgstr ""
+
+msgid "Only the default profile of Ptyxis is given the palette. For another, choose Velatura under Preferences in Ptyxis"
+msgstr ""
+
+msgid "If open Ptyxis windows keep the old colors, close and reopen them"
 msgstr ""
 
 msgid "Apps that are already open keep their colors until reopened"

@@ -12,8 +12,8 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use velatura_theme::{
-    Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, nvim, sha256_hex, shell, starship,
-    tmux,
+    Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, nvim, ptyxis, sha256_hex, shell,
+    sourceview, starship, tmux,
 };
 
 use crate::block;
@@ -34,10 +34,23 @@ pub const FLATPAK: &str = "flatpak:global";
 pub const TMUX: &str = "tmux:default";
 pub const NVIM: &str = "nvim:default";
 pub const STARSHIP: &str = "starship:default";
+pub const PTYXIS: &str = "ptyxis:default";
+pub const TEXT_EDITOR: &str = "texteditor:default";
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 10] = [
-    KITTY, GHOSTTY, GTK4, GTK3, TMUX, NVIM, STARSHIP, FLATPAK, SHELL, APPEARANCE,
+pub const INSTANCES: [&str; 12] = [
+    KITTY,
+    GHOSTTY,
+    GTK4,
+    GTK3,
+    TMUX,
+    NVIM,
+    STARSHIP,
+    PTYXIS,
+    TEXT_EDITOR,
+    FLATPAK,
+    SHELL,
+    APPEARANCE,
 ];
 
 /// Instances that are left out until the user turns them on, because they
@@ -477,6 +490,176 @@ pub fn plan_tmux(
     plan
 }
 
+/// True until `instance` has been agreed to once, or has a file of
+/// Velatura's under `dir`. An app that gets no line in a file of the
+/// user's still gets its first change only when that is agreed to, so a
+/// run with no one present never starts theming an app by itself.
+fn first_time(state: &State, instance: &str, dir: &Path) -> bool {
+    let ours = state
+        .owned
+        .keys()
+        .any(|path| Path::new(path).starts_with(dir));
+    !ours && !state.consents.contains(instance)
+}
+
+/// One text setting brought to `wanted`, or the note that it is locked.
+fn set_text(
+    host: &Host<'_>,
+    (schema, key): (&str, &str),
+    wanted: &str,
+    plan: &mut TargetPlan,
+) -> Result<(), Skip> {
+    match host.settings.read(schema, key) {
+        Ok(Some(now)) if now.effective == wanted => {}
+        Ok(Some(now)) if now.writable => plan.changes.push(Change::Setting {
+            schema: schema.to_owned(),
+            key: key.to_owned(),
+            value: Some(wanted.to_owned()),
+            pre: now.user,
+        }),
+        Ok(Some(_)) => plan.notes.push(Note::SettingLocked {
+            key: key.to_owned(),
+        }),
+        Ok(None) => return Err(Skip::SettingsUnavailable(format!("{schema} {key}"))),
+        Err(SettingsError::Unavailable(why)) => return Err(Skip::SettingsUnavailable(why)),
+        Err(e) => return Err(Skip::SettingsUnavailable(format!("{e:?}"))),
+    }
+    Ok(())
+}
+
+pub const PTYXIS_SCHEMA: &str = "org.gnome.Ptyxis";
+
+/// The settings of one Ptyxis profile, which live at a path made of its id.
+pub fn ptyxis_profile(uuid: &str) -> Option<String> {
+    let plain = !uuid.is_empty()
+        && uuid.len() <= 64
+        && uuid.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-');
+    plain.then(|| format!("org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/{uuid}/"))
+}
+
+/// Ptyxis: a palette of Velatura's own among the user's palettes, and the
+/// default profile set to use it. Other profiles are left as they are.
+pub fn plan_ptyxis(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+    replace_changed: bool,
+) -> TargetPlan {
+    let dir = host.dirs.data.join("org.gnome.Ptyxis");
+    let default = match host.settings.read(PTYXIS_SCHEMA, "default-profile-uuid") {
+        Ok(Some(found)) => found.effective,
+        // Without its settings this is not the Ptyxis that reads this
+        // folder, if it is here at all.
+        Ok(None) => return TargetPlan::skip(PTYXIS, Skip::NotInstalled),
+        Err(SettingsError::Unavailable(why)) => {
+            return TargetPlan::skip(PTYXIS, Skip::SettingsUnavailable(why));
+        }
+        Err(e) => return TargetPlan::skip(PTYXIS, Skip::SettingsUnavailable(format!("{e:?}"))),
+    };
+    if !exists(host, &dir) && !on_path(host, env, "ptyxis") {
+        return TargetPlan::skip(PTYXIS, Skip::NotInstalled);
+    }
+    let palettes = dir.join("palettes");
+    let file = palettes.join(format!("{}.palette", ptyxis::ID));
+    let mut plan = TargetPlan::new(PTYXIS);
+    let mut fill = || {
+        place(host, &[&dir, &palettes], &mut plan)?;
+        own(
+            host,
+            state,
+            replace_changed,
+            file.clone(),
+            ptyxis::render(theme).as_bytes(),
+            &mut plan,
+        )?;
+        let rewritten = !plan.changes.is_empty();
+        // Before its first start Ptyxis has no profile to set.
+        match ptyxis_profile(&default) {
+            Some(profile) => set_text(host, (&profile, "palette"), ptyxis::ID, &mut plan)?,
+            None => plan.notes.push(Note::PtyxisChoose),
+        }
+        Ok(rewritten)
+    };
+    match fill() {
+        Ok(rewritten) => {
+            if !plan.changes.is_empty() {
+                plan.needs_consent = first_time(state, PTYXIS, &palettes);
+                let profiles = host
+                    .settings
+                    .read(PTYXIS_SCHEMA, "profile-uuids")
+                    .ok()
+                    .flatten()
+                    .map_or(0, |all| listed(&all.effective).len());
+                if profiles > 1 {
+                    plan.notes.push(Note::PtyxisChoose);
+                }
+                if rewritten {
+                    plan.notes.push(Note::PtyxisReopen);
+                }
+                plan.notes.dedup();
+            } else {
+                plan.notes.clear();
+            }
+            plan
+        }
+        Err(why) => TargetPlan::skip(PTYXIS, why),
+    }
+}
+
+pub const TEXT_EDITOR_SCHEMA: &str = "org.gnome.TextEditor";
+
+/// GNOME Text Editor: a style scheme of Velatura's own where GtkSourceView
+/// looks for the user's, and the editor set to use it. Other apps that
+/// show code with GtkSourceView find the scheme there too, to choose.
+pub fn plan_text_editor(
+    host: &Host<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+    replace_changed: bool,
+) -> TargetPlan {
+    match host.settings.read(TEXT_EDITOR_SCHEMA, "style-scheme") {
+        Ok(Some(_)) => {}
+        Ok(None) => return TargetPlan::skip(TEXT_EDITOR, Skip::NotInstalled),
+        Err(SettingsError::Unavailable(why)) => {
+            return TargetPlan::skip(TEXT_EDITOR, Skip::SettingsUnavailable(why));
+        }
+        Err(e) => {
+            return TargetPlan::skip(TEXT_EDITOR, Skip::SettingsUnavailable(format!("{e:?}")));
+        }
+    }
+    let dir = host.dirs.data.join("gtksourceview-5");
+    let styles = dir.join("styles");
+    let mut plan = TargetPlan::new(TEXT_EDITOR);
+    let mut fill = || {
+        place(host, &[&dir, &styles], &mut plan)?;
+        own(
+            host,
+            state,
+            replace_changed,
+            styles.join(format!("{}.xml", sourceview::ID)),
+            sourceview::render(theme).as_bytes(),
+            &mut plan,
+        )?;
+        set_text(
+            host,
+            (TEXT_EDITOR_SCHEMA, "style-scheme"),
+            sourceview::ID,
+            &mut plan,
+        )
+    };
+    match fill() {
+        Ok(()) => {
+            if !plan.changes.is_empty() {
+                plan.needs_consent = first_time(state, TEXT_EDITOR, &styles);
+                plan.notes.push(Note::GtkRestart);
+            }
+            plan
+        }
+        Err(why) => TargetPlan::skip(TEXT_EDITOR, why),
+    }
+}
+
 /// Neovim: a colourscheme of Velatura's own in the settings folder, and
 /// the same colours as a table for a colourscheme the user keeps. Nothing
 /// of the user's is edited: choosing the colourscheme is theirs to do.
@@ -521,11 +704,7 @@ pub fn plan_nvim(
                 // No line is added to a file of the user's, but the folder
                 // is theirs: the first files go in only when agreed to, and
                 // so never in a run with no one present.
-                let ours = state
-                    .owned
-                    .keys()
-                    .any(|path| Path::new(path).starts_with(&dir));
-                plan.needs_consent = exists(host, &dir) && !ours && !state.consents.contains(NVIM);
+                plan.needs_consent = exists(host, &dir) && first_time(state, NVIM, &dir);
                 plan.notes.push(Note::NeovimSelect);
             }
             plan
@@ -1174,6 +1353,8 @@ pub fn plan(
         TMUX => plan_tmux(host, env, theme, state, replace_changed),
         NVIM => plan_nvim(host, env, theme, state, replace_changed),
         STARSHIP => plan_starship(host, env, theme, state),
+        PTYXIS => plan_ptyxis(host, env, theme, state, replace_changed),
+        TEXT_EDITOR => plan_text_editor(host, theme, state, replace_changed),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(
             host,

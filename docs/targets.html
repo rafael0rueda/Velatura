@@ -40,7 +40,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>Starship</td><td>A named palette in <code>starship.toml</code> (key-level edit)</td><td><span class="tag ok">Official</span></td><td>Next prompt</td><td>3a</td></tr>
 <tr><td>tmux</td><td>A file the app creates, loaded by one <code>source-file</code> line</td><td><span class="tag ok">Official</span></td><td>After the user reloads the config</td><td>3a</td></tr>
 <tr><td>Icons (recolour, vector themes)</td><td>A generated per-user icon theme derived from an installed one</td><td><span class="tag wa">Workaround</span></td><td>Immediately for most apps</td><td>3</td></tr>
-<tr><td>Ptyxis, GNOME Text Editor</td><td>User palettes and style schemes (to verify)</td><td>Candidate</td><td>—</td><td>3</td></tr>
+<tr><td>Ptyxis</td><td>A palette file among the user's palettes, and the default profile's <code>palette</code> setting</td><td><span class="tag ok">Official</span></td><td>At once for the setting; a rewritten palette perhaps after reopening</td><td>3c</td></tr>
+<tr><td>GNOME Text Editor</td><td>A GtkSourceView style scheme among the user's, and the <code>style-scheme</code> setting</td><td><span class="tag ok">Official</span></td><td>When the app is reopened</td><td>3c</td></tr>
 <tr><td>Firefox</td><td><code>userChrome.css</code> in each chosen profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4</td></tr>
 <tr><td>Icons (recolour, bitmap themes); cursor (recolour)</td><td>Pixel processing of bitmaps</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>—</td><td>4</td></tr>
 <tr><td>Exact accent and full coverage in the Shell</td><td>Compiling the Shell's own style sources with changed colours</td><td><span class="tag wa">Workaround</span></td><td>—</td><td>4</td></tr>
@@ -164,6 +165,22 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>Detected and reported: lines after the block that set one of those options or load another file.</li>
 <li>Colours written as text inside <code>status-left</code>, <code>status-right</code> or window formats are the user's and stay. Themes drawn by tmux plugins are not detected.</li>
 <li>Running sessions keep their colours until the user loads the settings again; the app gives the command.</li>
+</ul>
+<h3>Ptyxis (Phase 3c)</h3>
+<p>Ptyxis reads palettes from <code>~/.local/share/org.gnome.Ptyxis/palettes/</code>. The app creates <code>velatura.palette</code> there, with a light and a dark set that both hold the theme's colours (text, background, cursor, sixteen terminal colours), and sets the <code>palette</code> setting of the default profile to <code>velatura</code>. A profile's settings live at a path made of its id.</p>
+<ul>
+<li>Only the default profile is set. Another profile may have its palette on purpose; the palette is there to choose for it.</li>
+<li>The first change is made only when agreed to, never by a scheduled switch alone.</li>
+<li>Ptyxis offers no way to ask what colours it shows, and its own import checks nothing. The generated file is compared with a palette from inside the installed Ptyxis.</li>
+<li>A Ptyxis installed as a Flatpak app is not reached.</li>
+</ul>
+<h3>GNOME Text Editor (Phase 3c)</h3>
+<p>The app creates a GtkSourceView style scheme, <code>~/.local/share/gtksourceview-5/styles/velatura.xml</code>, and sets Text Editor's <code>style-scheme</code> to <code>velatura</code>. The scheme covers the view, the styles languages build on, text with markup and a few languages by name, and says whether it is light or dark.</p>
+<ul>
+<li>The first change is made only when agreed to.</li>
+<li>Every app that shows code with GtkSourceView 5 finds the scheme in its list; only Text Editor is set to it.</li>
+<li>Text Editor's own light or dark look follows the desktop's style and is not changed.</li>
+<li>An open Text Editor shows a rewritten scheme once reopened.</li>
 </ul>
 <h3>Firefox (Phase 4, experimental)</h3>
 <ul>

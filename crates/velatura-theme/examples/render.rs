@@ -3,7 +3,9 @@
 //!
 //!   cargo run -p velatura-theme --example render -- kitty aetherius
 
-use velatura_theme::{Resolved, bundled, ghostty, gtk, kitty, nvim, shell, starship, tmux};
+use velatura_theme::{
+    Resolved, bundled, ghostty, gtk, kitty, nvim, ptyxis, shell, sourceview, starship, tmux,
+};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -14,7 +16,7 @@ fn main() {
             .and_then(|id| themes.iter().find(|t| &t.id == id)),
     ) else {
         eprintln!(
-            "usage: render kitty|ghostty|gtk|shell|tmux|nvim|nvim-palette|starship <bundled theme id>"
+            "usage: render kitty|ghostty|gtk|shell|tmux|nvim|nvim-palette|starship|ptyxis|sourceview <bundled theme id>"
         );
         std::process::exit(2);
     };
@@ -30,6 +32,8 @@ fn main() {
         "nvim" => print!("{}", nvim::render(&resolved)),
         "nvim-palette" => print!("{}", nvim::render_palette(&resolved)),
         "starship" => print!("{}", starship::render(&resolved)),
+        "ptyxis" => print!("{}", ptyxis::render(&resolved)),
+        "sourceview" => print!("{}", sourceview::render(&resolved)),
         _ => std::process::exit(2),
     }
 }

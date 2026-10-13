@@ -14,7 +14,9 @@ pub mod import;
 pub mod kitty;
 pub mod model;
 pub mod nvim;
+pub mod ptyxis;
 pub mod shell;
+pub mod sourceview;
 pub mod starship;
 pub mod tmux;
 

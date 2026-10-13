@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 3c – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 3c – Ptyxis and GNOME Text Editor</h1>
+<p class="lead">Branch <code>phase-3c-gnome-apps</code>. Completed 2026-10-13. The third of four slices of Phase 3 (<a href="../decisions.html#d54">D54</a>). Both were candidates "to verify" (<a href="../decisions.html#d34">D34</a>); both turned out to have a supported way in, and both pass the same transaction tests as the other targets, which is the slice's exit condition.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. Both apps are installed there and were read, not written: their settings were listed, and files that come inside the two programs were looked at. Everything else ran in throw-away home folders with a private settings store.</div>
+
+<h2>What verifying them showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>Can Ptyxis take a palette that is not one of its own?</td><td>Yes: it reads palette files from <code>~/.local/share/org.gnome.Ptyxis/palettes/</code>, and each profile has a <code>palette</code> setting that names one by its file name. Supported, and offered in its preferences.</td></tr>
+<tr><td>Where are a profile's settings?</td><td>At a path made of the profile's id, <code>/org/gnome/Ptyxis/Profiles/&lt;id&gt;/</code>, not at a fixed place. Velatura's settings layer could not read such a setting; it can now.</td></tr>
+<tr><td>What does a palette hold?</td><td>A light and a dark set, each with text, background, cursor and the sixteen terminal colours. Every set of the 244 palettes inside Ptyxis 50.1 has exactly those keys; a few add title bar colours. Most palettes have one set only.</td></tr>
+<tr><td>Can Ptyxis check a palette for us?</td><td>No. Its <code>--import-palette</code> copies any file in, a line of nonsense included, and says nothing. The gate therefore compares the generated file with a palette taken from inside the installed Ptyxis.</td></tr>
+<tr><td>How does Text Editor choose its colours for code?</td><td>A GtkSourceView style scheme, named by its setting <code>style-scheme</code>. GtkSourceView reads the user's own schemes from <code>~/.local/share/gtksourceview-5/styles/</code>. Supported; the same folder serves every app that shows code with GtkSourceView 5.</td></tr>
+<tr><td>Can GtkSourceView check a scheme for us?</td><td>Yes, from Python and without a window. The gate has it load each generated scheme and give back every style with the file's colours; a file with one wrong word is refused.</td></tr>
+</table></div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Ptyxis.</strong> A palette of Velatura's own, <code>velatura.palette</code>, among the user's palettes, and the default profile set to use it. Both of the palette's sets hold the theme's colours, so the terminal shows the theme whichever style Ptyxis is in. The profile's earlier palette is recorded and comes back with Undo.</li>
+<li><strong>GNOME Text Editor.</strong> A style scheme of Velatura's own, <code>velatura.xml</code>, with sixty styles: the view (text, selection, cursor, current line, line numbers, search), the styles languages build on, text with markup, and a few languages by name. The editor's <code>style-scheme</code> is set to it; the earlier one comes back with Undo. The scheme says whether it is light or dark.</li>
+<li><strong>Both ask the first time.</strong> Neither adds a line to a file of the user's, but each changes how an app looks. The first change to each is made only when agreed to, so a scheduled switch never starts theming one of them by itself. After that they follow every switch.</li>
+<li><strong>Settings at a path.</strong> The settings layer reads and writes a schema placed at a given path (<code>id:/path/</code>, the form <code>gsettings</code> takes), refusing a path that is not well formed. A profile id that could not be part of such a path is never used to build one.</li>
+<li><strong>In the app,</strong> Ptyxis under Terminals and Text Editor under Apps, each with its switch. In the command, <code>ptyxis</code> and <code>texteditor</code> for <code>--only</code> and <code>--except</code>.</li>
+<li><strong>What is reported.</strong> That only the default profile was given the palette, when Ptyxis has several or none yet; that open Ptyxis windows may need reopening; that Text Editor shows the scheme once reopened; a setting an administrator has locked.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Five transaction tests in <code>tests/gnome_apps.rs</code>: apply, apply again (no setting written), another theme, and two undos back to the exact start; a crash at every step, from a clean home and an applied one; a palette or style the user chose before comes back with Undo, and one chosen since is kept; only the default profile is set; apps that are not installed, a locked setting, and a file of that name that is not Velatura's.</li>
+<li>One test through the command against a real, private settings store: a profile's setting at its path is set and put back, which only the real store can show.</li>
+<li>Golden files for both generated texts of each bundled theme, and a test that no style is set twice.</li>
+<li>In the gate: GtkSourceView loads each scheme and returns all sixty styles with their colours; the palette is compared with one from inside the installed Ptyxis. Both apps are added to the CI image.</li>
+<li>170 tests in all. The translation template has 377 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Both candidates are in</strong>, as official mechanisms. The plan had them as "to verify".</li>
+<li><strong>The choices made on the way are in <a href="../decisions.html#d57">D57</a>, proposed</strong>: the default profile only; agreement before the first change; one palette whose two sets are the same; schemes and palettes under one fixed name.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>Neither app was looked at with the theme in it.</strong> Ptyxis cannot be asked what it shows. Whether a running Ptyxis picks up a rewritten palette at once, and whether Text Editor does so for a rewritten scheme, was not observed; the result says to reopen them if they keep the old colours. This needs a person at a real session.</li>
+<li><strong>Applying the two on the owner's desktop</strong> was not done: it needs the owner's go-ahead. The owner's default profile uses the palette <code>dracula</code> and Text Editor the scheme <code>kate-dark</code> today; both would be recorded and come back with Undo.</li>
+<li><strong>Ptyxis and Text Editor installed as Flatpak apps</strong> keep their files and settings elsewhere and are not reached.</li>
+<li><strong>Other Ptyxis profiles</strong> are left as they are. The palette is there to choose for them.</li>
+<li><strong>Text Editor's own light or dark look</strong> (<code>style-variant</code>) is not changed. It follows the desktop's style, which the theme sets.</li>
+<li><strong>Other apps with GtkSourceView 5</strong> (Builder among them) find the scheme in their lists, and are not set to it.</li>
+<li><strong>Title bar colours in the Ptyxis palette</strong> are not set; Ptyxis works them out from the background.</li>
+</ul>
+
+</main>
+</body>
+</html>

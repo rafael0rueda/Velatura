@@ -129,6 +129,21 @@ fn damaged_theme_files_never_panic_and_never_produce_bad_output() {
                         assert_eq!(line.matches('"').count() % 2, 0, "seed {seed}: {line:?}");
                     }
                 }
+                for line in velatura_theme::ptyxis::render(&r).lines().skip(2) {
+                    let ok = line.is_empty()
+                        || matches!(line, "[Palette]" | "Name=Velatura" | "[Light]" | "[Dark]")
+                        || line
+                            .split_once('=')
+                            .is_some_and(|(_, value)| Color::parse(value).is_ok());
+                    assert!(ok, "seed {seed}: {line:?}");
+                }
+                for line in velatura_theme::sourceview::render(&r).lines().skip(1) {
+                    assert!(
+                        line.bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b" <>/!=\"#:.-".contains(&b)),
+                        "seed {seed}: {line:?}"
+                    );
+                }
                 for line in gtk::render(&r).lines().skip(2) {
                     assert!(
                         line.starts_with("@define-color ") && line.ends_with(';'),

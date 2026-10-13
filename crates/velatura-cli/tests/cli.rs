@@ -345,14 +345,18 @@ fn schedule_and_the_switch_with_no_one_present() {
     assert_eq!(code, 5, "{out}{err}");
     assert!(out.contains("Applied ember/default.") || out.contains("Applied aetherius/default."));
     assert!(
-        out.contains("The last scheduled switch left out: Kitty."),
+        // Kitty first; after it, other apps this machine has that ask
+        // before their first change (Ptyxis, Text Editor).
+        out.contains("The last scheduled switch left out: Kitty"),
         "{out}"
     );
     assert_eq!(fs::read_to_string(&conf).unwrap(), "font_size 12\n");
     assert_eq!(sb.gsetting("color-scheme"), "'prefer-dark'");
     let (_, out, _) = run(&["status"]);
     assert!(
-        out.contains("The last scheduled switch left out: Kitty."),
+        // Kitty first; after it, other apps this machine has that ask
+        // before their first change (Ptyxis, Text Editor).
+        out.contains("The last scheduled switch left out: Kitty"),
         "{out}"
     );
     let (_, out, _) = run(&["history"]);
@@ -732,4 +736,87 @@ fn the_extension_from_the_command() {
         err.contains("needs a light theme for the day and a dark theme for the night"),
         "{err}"
     );
+}
+
+/// Ptyxis and Text Editor against the real settings store, in a private
+/// session: a profile's settings live at a path of their own, which only
+/// the real store can show to work.
+#[test]
+fn ptyxis_and_text_editor_settings_are_set_and_put_back() {
+    if !(have("dbus-run-session") && have("gsettings")) {
+        eprintln!("SKIPPED: dbus-run-session or gsettings is not installed");
+        return;
+    }
+    let sb = Sandbox::named("gnome-apps");
+    let get = |schema: &str, key: &str| {
+        let out = sb.run(Path::new("gsettings"), &["get", schema, key]);
+        String::from_utf8_lossy(&out.stdout).trim().to_owned()
+    };
+    if get("org.gnome.Ptyxis", "default-profile-uuid").is_empty()
+        || get("org.gnome.TextEditor", "style-scheme").is_empty()
+    {
+        assert!(
+            std::env::var_os("VELATURA_CI").is_none(),
+            "Ptyxis and Text Editor are required in CI"
+        );
+        eprintln!("SKIPPED: Ptyxis or Text Editor is not installed");
+        return;
+    }
+    let profile = "org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/0a1b2c3d/";
+    let set = |schema: &str, key: &str, value: &str| {
+        assert!(
+            sb.run(Path::new("gsettings"), &["set", schema, key, value])
+                .status
+                .success()
+        );
+    };
+    set("org.gnome.Ptyxis", "default-profile-uuid", "0a1b2c3d");
+    set("org.gnome.Ptyxis", "profile-uuids", "['0a1b2c3d']");
+    set(profile, "palette", "dracula");
+    let only = ["--only", "ptyxis", "--only", "texteditor"];
+
+    // Without a word of agreement nothing is touched.
+    let (code, _, err) = sb.velatura(&[&["apply", "ember"], &only[..]].concat());
+    assert_eq!(code, 3, "{err}");
+    assert_eq!(get(profile, "palette"), "'dracula'");
+
+    let (code, out, err) = sb.velatura(&[&["apply", "ember", "--yes"], &only[..]].concat());
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(out.contains("Set Ptyxis Palette to velatura"), "{out}");
+    assert!(out.contains("Set Text Editor Style to velatura"), "{out}");
+    assert_eq!(get(profile, "palette"), "'velatura'");
+    assert_eq!(get("org.gnome.TextEditor", "style-scheme"), "'velatura'");
+    let palette = sb
+        .home()
+        .join(".local/share/org.gnome.Ptyxis/palettes/velatura.palette");
+    let scheme = sb
+        .home()
+        .join(".local/share/gtksourceview-5/styles/velatura.xml");
+    assert!(
+        fs::read_to_string(&palette)
+            .unwrap()
+            .contains("Background=#191316")
+    );
+    assert!(scheme.exists());
+
+    // Another theme: the files change, the settings are right already.
+    let (code, out, err) = sb.velatura(&[&["apply", "aetherius"], &only[..]].concat());
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(
+        fs::read_to_string(&palette)
+            .unwrap()
+            .contains("Background=#141826")
+    );
+
+    assert_eq!(sb.velatura(&["undo", "--yes"]).0, 0);
+    let (code, out, err) = sb.velatura(&["undo", "--yes"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert_eq!(
+        get(profile, "palette"),
+        "'dracula'",
+        "the user's own choice is back"
+    );
+    let default = get("org.gnome.TextEditor", "style-scheme");
+    assert_ne!(default, "'velatura'");
+    assert!(!palette.exists() && !scheme.exists());
 }
