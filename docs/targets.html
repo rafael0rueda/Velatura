@@ -39,7 +39,6 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>Neovim</td><td>A colourscheme file the app creates; the user selects it</td><td><span class="tag ok">Official</span></td><td>On <code>:colorscheme</code> or next start</td><td>3a</td></tr>
 <tr><td>Starship</td><td>A named palette in <code>starship.toml</code> (key-level edit)</td><td><span class="tag ok">Official</span></td><td>Next prompt</td><td>3a</td></tr>
 <tr><td>tmux</td><td>A file the app creates, loaded by one <code>source-file</code> line</td><td><span class="tag ok">Official</span></td><td>After the user reloads the config</td><td>3a</td></tr>
-<tr><td>Obsidian</td><td>A CSS snippet in each chosen vault</td><td><span class="tag ok">Official</span></td><td>Once the user enables the snippet</td><td>3</td></tr>
 <tr><td>Icons (recolour, vector themes)</td><td>A generated per-user icon theme derived from an installed one</td><td><span class="tag wa">Workaround</span></td><td>Immediately for most apps</td><td>3</td></tr>
 <tr><td>Ptyxis, GNOME Text Editor</td><td>User palettes and style schemes (to verify)</td><td>Candidate</td><td>—</td><td>3</td></tr>
 <tr><td>Firefox</td><td><code>userChrome.css</code> in each chosen profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4</td></tr>
@@ -166,8 +165,6 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>Colours written as text inside <code>status-left</code>, <code>status-right</code> or window formats are the user's and stay. Themes drawn by tmux plugins are not detected.</li>
 <li>Running sessions keep their colours until the user loads the settings again; the app gives the command.</li>
 </ul>
-<h3>Obsidian (Phase 3)</h3>
-<p>CSS snippets are a supported Obsidian feature. For each vault the user selects, the app writes <code>.obsidian/snippets/velatura.css</code>. The user enables the snippet in Obsidian's Appearance settings. Obsidian rewrites its own settings file while running, so the app does not edit it unless Obsidian is closed and the user opted in. Vaults are user data and often synchronised; nothing is written to a vault that was not explicitly chosen.</p>
 <h3>Firefox (Phase 4, experimental)</h3>
 <ul>
 <li>For each chosen profile: a stylesheet the app creates, one import line in <code>chrome/userChrome.css</code> placed according to CSS rules, and one line in <code>user.js</code> turning on the preference that makes Firefox load user stylesheets.</li>
@@ -180,6 +177,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <ul>
 <li><strong>GDM login screen and lock screen.</strong></li>
 <li><strong>Qt apps:</strong> deferred by decision.</li>
+<li><strong>Obsidian:</strong> left out by decision (<a href="decisions.html#d54">D54</a>). It was planned as a CSS snippet written into each vault the user chose.</li>
 <li><strong>Title bars of apps that draw their own</strong> (Kitty, Electron apps): GNOME does not draw title bars for Wayland apps.</li>
 <li><strong>Apps with hard-coded colours, and Electron or Chromium apps without their own theme mechanism.</strong></li>
 <li><strong>Restyling of libadwaita apps beyond colour:</strong> not possible by design.</li>
