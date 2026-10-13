@@ -192,6 +192,12 @@ msgstr ""
 msgid "_Interface"
 msgstr ""
 
+#, rust-format
+msgid "{n} color set by hand"
+msgid_plural "{n} colors set by hand"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Automatic"
 msgstr ""
 
@@ -206,6 +212,12 @@ msgstr ""
 
 msgid "_Code"
 msgstr ""
+
+#, rust-format
+msgid "{n} color set"
+msgid_plural "{n} colors set"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Not set"
 msgstr ""

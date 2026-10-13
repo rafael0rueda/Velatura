@@ -14,7 +14,7 @@ use velatura_theme::editor::{Draft, Problem, free_id, problems, slug};
 use velatura_theme::model::{ANSI_NAMES, SYNTAX_ROLES, UI_OPTIONAL};
 use velatura_theme::{Appearance, Color, Resolved};
 
-use crate::words::tr;
+use crate::words::{plural, tr};
 use crate::{U, data, refresh, toast, widgets};
 
 struct Session {
@@ -280,7 +280,7 @@ fn build_body(s: &S) -> gtk::Widget {
     let interface = expander(
         0,
         tr("_Interface"),
-        crate::words::plural("{n} color set by hand", "{n} colors set by hand", custom),
+        plural("{n} color set by hand", "{n} colors set by hand", custom),
     );
     for role in UI_OPTIONAL {
         let c = v.ui.get(role).unwrap_or(v.ui.bg);
@@ -338,7 +338,7 @@ fn build_body(s: &S) -> gtk::Widget {
     let code = expander(
         2,
         tr("_Code"),
-        crate::words::plural("{n} color set", "{n} colors set", v.syntax.len()),
+        plural("{n} color set", "{n} colors set", v.syntax.len()),
     );
     for role in SYNTAX_ROLES {
         let set = v.syntax.get(role).copied();
