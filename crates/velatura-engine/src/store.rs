@@ -326,12 +326,7 @@ impl DayNight {
 
     /// A missing or unreadable file means nothing has been chosen.
     pub fn load(host: &Host<'_>) -> Self {
-        let text = read_opt(host, &Self::path(host))
-            .ok()
-            .flatten()
-            .and_then(|b| String::from_utf8(b).ok())
-            .unwrap_or_default();
-        let table = text.parse::<toml::Table>().unwrap_or_default();
+        let table = load_config(host);
         let get = |key: &str| {
             table
                 .get(key)
@@ -347,29 +342,51 @@ impl DayNight {
 
     /// Rewrite the two lines and keep every other line of the file.
     pub fn save(&self, host: &Host<'_>) -> io::Result<()> {
-        let path = Self::path(host);
-        if let Some(dir) = path.parent() {
-            ensure_dir(host, dir)?;
-        }
-        let old = read_opt(host, &path)?
-            .and_then(|b| String::from_utf8(b).ok())
-            .unwrap_or_default();
-        let ours = |line: &str| {
-            let key = line.split('=').next().unwrap_or("").trim();
-            key == "day" || key == "night"
-        };
-        let mut lines: Vec<String> = Vec::new();
-        for (key, value) in [("day", &self.day), ("night", &self.night)] {
-            if let Some(spec) = value.as_ref().filter(|s| is_theme_spec(s)) {
-                lines.push(format!("{key} = \"{spec}\""));
-            }
-        }
-        // Top-level keys must come before any table, so ours go first.
-        lines.extend(old.lines().filter(|l| !ours(l)).map(str::to_owned));
-        let mut text = lines.join("\n");
-        text.push('\n');
-        host.fs.write_atomic(&path, text.as_bytes(), 0o644)
+        let spec = |v: &Option<String>| v.clone().filter(|s| is_theme_spec(s));
+        save_config(
+            host,
+            &[("day", spec(&self.day)), ("night", spec(&self.night))],
+        )
     }
+}
+
+/// The top-level table of the config file. A missing or unreadable file
+/// reads as empty.
+pub fn load_config(host: &Host<'_>) -> toml::Table {
+    read_opt(host, &DayNight::path(host))
+        .ok()
+        .flatten()
+        .and_then(|b| String::from_utf8(b).ok())
+        .and_then(|text| text.parse().ok())
+        .unwrap_or_default()
+}
+
+/// Rewrite the lines of the named top-level keys in the config file and
+/// keep every other line. A value of `None` takes the key out. Values are
+/// written as quoted text and must not need escaping.
+pub fn save_config(host: &Host<'_>, keys: &[(&str, Option<String>)]) -> io::Result<()> {
+    let path = DayNight::path(host);
+    if let Some(dir) = path.parent() {
+        ensure_dir(host, dir)?;
+    }
+    let old = read_opt(host, &path)?
+        .and_then(|b| String::from_utf8(b).ok())
+        .unwrap_or_default();
+    let ours = |line: &str| {
+        let key = line.split('=').next().unwrap_or("").trim();
+        keys.iter().any(|(k, _)| *k == key)
+    };
+    let mut lines: Vec<String> = Vec::new();
+    for (key, value) in keys {
+        if let Some(value) = value {
+            lines.push(format!("{key} = \"{value}\""));
+        }
+    }
+    // Top-level keys must come before any table, so ours go first.
+    lines.extend(old.lines().filter(|l| !ours(l)).map(str::to_owned));
+    let mut text = lines.join("\n");
+    text.push('\n');
+    host.fs.write_atomic(&path, text.as_bytes(), 0o644)
 }
 
 // ---------------------------------------------------------------- blobs
@@ -728,12 +745,25 @@ impl Ledger {
 
 // ------------------------------------------------------------------ prune
 
-/// Drop backups beyond [`KEEP`] and the blobs nothing refers to any more.
-/// The ledger and what it refers to are never dropped.
+/// True for a backup of a change the schedule made.
+pub fn is_scheduled(m: &Manifest) -> bool {
+    m.cause == crate::plan::Cause::Scheduled.as_str()
+}
+
+/// Drop backups older than the newest [`KEEP`] changes the user made, and
+/// the blobs nothing refers to any more. Backups of scheduled switches do
+/// not count towards the number and go with the change they follow. The
+/// ledger and what it refers to are never dropped.
 pub fn prune(host: &Host<'_>) -> io::Result<()> {
     let (all, _) = manifests(host)?;
     let ledger = Ledger::load(host).unwrap_or_default();
-    let drop = all.len().saturating_sub(KEEP);
+    let drop = all
+        .iter()
+        .enumerate()
+        .rev()
+        .filter(|(_, m)| !is_scheduled(m))
+        .nth(KEEP - 1)
+        .map_or(0, |(i, _)| i);
     for m in &all[..drop] {
         host.fs.remove_file(&Manifest::path(host, m.id))?;
     }
@@ -746,4 +776,94 @@ pub fn prune(host: &Host<'_>) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------- compose
+
+/// The records of two changes made one after the other, as the records of
+/// one change: undoing the result is undoing `second` and then `first`.
+///
+/// This is how the schedule's switches, twice a day, stay one backup
+/// between two changes of the user's instead of pushing those out.
+pub fn compose(first: &[Record], second: &[Record]) -> Vec<Record> {
+    let key = |r: &Record| match r {
+        Record::CreateDir { path } | Record::RemoveDir { path } => format!("d {path}"),
+        Record::Owned { path, .. } | Record::Block { path, .. } => format!("f {path}"),
+        Record::Setting { schema, key, .. } => format!("s {}", setting_id(schema, key)),
+    };
+    let mut out: Vec<Option<Record>> = first.iter().cloned().map(Some).collect();
+    for later in second {
+        let slot = out
+            .iter_mut()
+            .find(|r| r.as_ref().is_some_and(|r| key(r) == key(later)));
+        let Some(slot) = slot else {
+            out.push(Some(later.clone()));
+            continue;
+        };
+        *slot = match (slot.take(), later) {
+            // Made and then removed, or removed and then made again.
+            (Some(Record::CreateDir { .. }), Record::RemoveDir { .. })
+            | (Some(Record::RemoveDir { .. }), Record::CreateDir { .. }) => None,
+            (
+                Some(Record::Owned { path, pre, post }),
+                Record::Owned {
+                    pre: pre2,
+                    post: post2,
+                    ..
+                },
+            ) if post == *pre2 => (pre != *post2).then(|| Record::Owned {
+                path,
+                pre,
+                post: post2.clone(),
+            }),
+            (
+                Some(Record::Block {
+                    path,
+                    target,
+                    pre,
+                    body_before,
+                    added_eol,
+                    created_file,
+                    ..
+                }),
+                Record::Block {
+                    target: target2,
+                    post: post2,
+                    body_after: body_after2,
+                    ..
+                },
+            ) if target == *target2 => (body_before != *body_after2).then(|| Record::Block {
+                path,
+                target,
+                pre,
+                post: post2.clone(),
+                body_before,
+                body_after: body_after2.clone(),
+                added_eol,
+                created_file,
+            }),
+            (
+                Some(Record::Setting {
+                    schema,
+                    key,
+                    pre,
+                    post,
+                }),
+                Record::Setting {
+                    pre: pre2,
+                    post: post2,
+                    ..
+                },
+            ) if post == *pre2 => (pre != *post2).then(|| Record::Setting {
+                schema,
+                key,
+                pre,
+                post: post2.clone(),
+            }),
+            // Changed by someone else in between: the later record stands
+            // alone, and undoing it gives back what that someone left.
+            _ => Some(later.clone()),
+        };
+    }
+    out.into_iter().flatten().collect()
 }

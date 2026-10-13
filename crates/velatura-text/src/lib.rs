@@ -9,6 +9,7 @@ use std::path::Path;
 
 use velatura_engine::library::Why;
 use velatura_engine::plan::{Change, Note, Skip};
+use velatura_engine::schedule::{LastRun, Period, Problem, Refused, Status, format_time};
 use velatura_engine::targets::OtherTool;
 use velatura_engine::txn::{Failure, Rollback};
 use velatura_theme::model::clean_text;
@@ -26,6 +27,10 @@ Usage:
   velatura apply <theme>[/variant] apply a theme
   velatura switch day|night|toggle apply the daytime or the nighttime theme
   velatura switch set day <theme>  choose the daytime (or night) theme
+  velatura switch auto             apply the one that belongs to the time of day
+  velatura schedule                whether the themes change by the clock
+  velatura schedule set            turn that on; with --day and --night, set the times
+  velatura schedule off            turn it off and remove its timer
   velatura undo                    reverse the most recent change
   velatura history                 backups, newest first
   velatura restore <id>            go back to the state before backup <id>
@@ -40,6 +45,9 @@ Options:
   --except <target>     leave this target out (may be repeated)
   --replace-changed     overwrite Velatura files that were changed by hand
   --strict              with validate: treat warnings as errors
+  --day <HH:MM>         with schedule set: when the daytime theme starts
+  --night <HH:MM>       with schedule set: when the nighttime theme starts
+  --again               with switch auto: act even if this part of the day was done
   --json                machine-readable output
   -h, --help            this text
   -V, --version         version
@@ -314,6 +322,79 @@ pub fn other_tool(tool: &OtherTool, home: &Path) -> String {
             "Settings files may be managed by {1} ({2}). It can overwrite changes made here",
             name,
             path(p, home)
+        ),
+    }
+}
+
+/// Whether the themes change by the clock, and when.
+pub fn schedule(s: &Status) -> String {
+    if !s.on {
+        return t("Scheduled switching is off");
+    }
+    let line = tf!(
+        "Scheduled switching is on: the daytime theme from {1}, the nighttime theme from {2}",
+        format_time(s.times.day),
+        format_time(s.times.night)
+    );
+    if s.damaged {
+        format!(
+            "{line}. {}",
+            t(
+                "Its timer was changed or removed outside Velatura. To repair it: velatura schedule set"
+            )
+        )
+    } else {
+        line
+    }
+}
+
+/// What the last scheduled switch left for the user, if anything.
+pub fn last_run(last: &LastRun) -> Option<String> {
+    match last.problem {
+        Some(Problem::NoTheme) => Some(match last.period {
+            Period::Day => t("The last scheduled switch did nothing: no daytime theme is chosen"),
+            Period::Night => {
+                t("The last scheduled switch did nothing: no nighttime theme is chosen")
+            }
+        }),
+        Some(Problem::Failed) => Some(t(
+            "The last scheduled switch failed. Applying the theme by hand shows why",
+        )),
+        None if last.left_out.is_empty() => None,
+        None => Some(tf!(
+            "The last scheduled switch left out: {1}. Applying the theme by hand shows why",
+            last.left_out
+                .iter()
+                .map(|i| instance(i))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )),
+    }
+}
+
+/// Why the schedule was not turned on or off.
+pub fn refused(why: &Refused, home: &Path) -> String {
+    match why {
+        Refused::NoThemes => t("Choose a daytime and a nighttime theme first"),
+        Refused::SameTime => t("The two themes cannot start at the same time"),
+        Refused::NotInstalled(p) => tf!(
+            "A schedule needs the velatura command installed where it stays, such as ~/.local/bin. This copy is at {1}",
+            path(p, home)
+        ),
+        Refused::OtherTimers(units) => tf!(
+            "Another timer that may change the theme is turned on: {1}. Two schedules would work against each other",
+            clean_text(&units.join(", "), 200)
+        ),
+        Refused::Foreign(p) => tf!(
+            "{1} already exists and was not created by Velatura",
+            path(p, home)
+        ),
+        Refused::OutsideHome(p) => tf!("{1} leads outside the home folder", path(p, home)),
+        Refused::Busy => t("Another Velatura is making changes. Try again in a moment"),
+        Refused::Io(why) => clean_text(why, 300),
+        Refused::Systemd(why) => tf!(
+            "The timer could not be turned on or off ({1})",
+            clean_text(why, 200)
         ),
     }
 }

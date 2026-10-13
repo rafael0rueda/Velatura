@@ -177,6 +177,8 @@ impl TargetPlan {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cause {
     Apply,
+    /// An apply made by the schedule, with no one there to answer.
+    Scheduled,
     Undo,
     RestoreOriginal,
 }
@@ -185,6 +187,7 @@ impl Cause {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Apply => "apply",
+            Self::Scheduled => "scheduled",
             Self::Undo => "undo",
             Self::RestoreOriginal => "restore-original",
         }
@@ -198,6 +201,9 @@ pub struct Plan {
     pub theme: Option<(String, String)>,
     /// The backup an undo reverses.
     pub undo_of: Option<u64>,
+    /// For an undo: the change being reversed was made by the schedule, so
+    /// the change the user made is the one before it.
+    pub scheduled: bool,
     pub targets: Vec<TargetPlan>,
 }
 

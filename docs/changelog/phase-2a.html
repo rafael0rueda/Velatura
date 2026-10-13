@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2a – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 2a – switching on a schedule</h1>
+<p class="lead">Branch <code>phase-2a-schedule</code>. Completed 2026-10-12. The first slice of Phase 2, which is built in slices like Phase 1 was (<a href="../decisions.html#d47">D47</a>). The roadmap's exit condition for Phase 2 has two halves; this slice delivers the second, "switches on schedule without the GUI running".</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The schedule was built and tested in throw-away home folders with a stand-in for <code>systemctl</code>. It has not been turned on here, and no timer was written to the real session.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>A schedule.</strong> <code>velatura schedule set --day 07:00 --night 20:00</code>, or the new Schedule group on the Themes page, writes one systemd user timer and its service into <code>~/.config/systemd/user</code> and turns the timer on with <code>systemctl --user</code>. <code>velatura schedule off</code> turns it off and removes both files. <code>velatura schedule</code> shows the state. The two files hold the path of the command and the two times, and nothing else.</li>
+<li><strong><code>velatura switch auto</code></strong>, which the timer runs. It works out which of the two themes belongs to the present time and applies it. It acts once per part of the day: a theme picked by hand in the afternoon stays until the evening. A start missed while the machine was off or asleep is made up for at the next one, because the timer is persistent and the command compares against the last part of the day it saw to.</li>
+<li><strong>The rules for a run with no one present</strong>, from the plan's safety requirements: nothing is asked; a file of the user's that was never agreed to is not touched; nothing is removed, not even a folder Velatura generated itself (<a href="../decisions.html#d29">D29</a>); and what was left out is recorded. The record is shown by <code>velatura status</code>, by <code>velatura schedule</code> and as a banner in the app, and is cleared by the next apply the user makes.</li>
+<li><strong>One backup for the schedule.</strong> A scheduled switch on top of a scheduled switch is merged into the same backup, so weeks of switching take one place in History between two changes of the user's, and never push those out. Two switches that cancel each other leave no backup at all.</li>
+<li><strong>Undo goes past the schedule.</strong> Undo reverses the last change the user made, together with whatever the schedule switched after it, in one step.</li>
+<li><strong>Removing everything removes the timer too</strong>, in the app and in <code>velatura restore --original</code>.</li>
+</ul>
+
+<h2>Refused, with a reason</h2>
+<div class="wrap"><table>
+<tr><th>Case</th><th>What happens</th></tr>
+<tr><td>No daytime or no nighttime theme chosen</td><td>The schedule is not turned on. The switch in the app is insensitive and says so.</td></tr>
+<tr><td>The command runs from a build folder</td><td>Not turned on: the next build or clean would take the command away from under the timer. The schedule needs the copy in <code>~/.local/bin</code> or a packaged one.</td></tr>
+<tr><td>Another timer with "theme" in its name is enabled</td><td>Not turned on, and the timer is named. <code>--yes</code>, or Turn On in the app's question, turns it on all the same.</td></tr>
+<tr><td>A file with the timer's name exists and Velatura did not write it</td><td>Not turned on; the file is left as it is.</td></tr>
+<tr><td>systemd does not take the timer</td><td>The two files are removed again and the schedule stays off.</td></tr>
+<tr><td>A timer file was edited by hand</td><td>Reported as damaged. Turning the schedule off leaves that file in place and says so.</td></tr>
+</table></div>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Twelve engine tests for the schedule, among them: the switch stopped at every step on top of an earlier scheduled switch, then recovered, with the state and the shared backup as before and Undo still reaching the start; edits made by the user between two scheduled switches surviving Undo; and scheduled backups not counting towards the twenty kept.</li>
+<li><code>systemd-analyze verify</code> accepts the generated unit files (run where it is installed).</li>
+<li>The command end to end in a private session: set up from an installed copy, run as the timer runs it, undone, and removed, with a stand-in <code>systemctl</code> that records its orders.</li>
+<li>The gate renders the app with a schedule on and checks that the window shows it and says what the last switch left out.</li>
+<li>97 tests in all. The translation template has 202 strings.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>The timer is set up outside the undo history</strong> (<a href="../decisions.html#d48">D48</a>). The architecture had every action as a change in a plan, with a backup. Undo is for changes of theme; if turning the schedule on were a step in that history, Undo Last Apply would sometimes turn the schedule off instead. Turning it off is its own reverse, and it is checked the same way: only files Velatura wrote, identified by their content, are ever replaced or removed.</li>
+<li><strong>One merged backup instead of three slots</strong> for scheduled switches (<a href="../decisions.html#d48">D48</a>). Dropping the oldest of several scheduled backups would leave a gap in the chain that Undo walks.</li>
+<li><strong><code>systemctl</code> creates the link that enables the timer</strong>; Velatura does not write it itself.</li>
+</ul>
+
+<h2>Not done in this slice</h2>
+<ul>
+<li><strong>Following the GNOME dark style.</strong> It needs a light and a dark theme as a pair, and both bundled themes are dark, so it could not be used or checked yet. It also needs a trigger without a resident process; the candidate is a systemd path unit on the settings database, which can only be confirmed on a real session. Moved to the slice with the companion extension (<a href="../decisions.html#d49">D49</a>).</li>
+<li><strong>A notification after a scheduled switch that needed attention</strong> (<a href="../decisions.html#d32">D32</a>, proposed, off by default). The same information is in the app's banner and in <code>status</code>.</li>
+<li><strong>A real systemd user session.</strong> The timer has not fired on a real machine: that is a change to a live session and waits for the owner's go-ahead. What systemd does with the files is covered only by <code>systemd-analyze verify</code>.</li>
+<li>The times are typed as 24-hour <code>HH:MM</code>, in the app too.</li>
+</ul>
+
+</main>
+</body>
+</html>
