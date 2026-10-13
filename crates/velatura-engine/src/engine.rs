@@ -53,6 +53,9 @@ pub struct ApplyOpts {
     /// Leave the light or dark style as it is. Set by the engine itself
     /// while the themes follow the style, whatever the caller gives.
     pub keep_style: bool,
+    /// Theme the Shell even on a GNOME version Velatura has not been
+    /// checked with. For someone who names the part outright.
+    pub untested_shell: bool,
     /// No one is there to answer: the plan is for the schedule. It removes
     /// nothing, not even folders Velatura generated itself.
     pub unattended: bool,

@@ -5,6 +5,8 @@
 //! text is US English and follows the GNOME writing guidelines: short,
 //! neutral, the same words as the app (theme, backup, settings file).
 
+pub mod catalog;
+
 use std::path::Path;
 
 use velatura_engine::companion;
@@ -86,17 +88,44 @@ pub fn path(p: &Path, home: &Path) -> String {
     clean_text(&shown, 400)
 }
 
-/// The function that looks a sentence up in the translation catalog. The
-/// command and the app each install theirs at start; without one the
-/// English source text is used.
-static TRANSLATE: std::sync::OnceLock<fn(&str) -> String> = std::sync::OnceLock::new();
+/// The language everything in this crate is said in. Chosen once, at
+/// start; until then, and for a program that never chooses, the source
+/// text is used.
+static LANGUAGE: std::sync::OnceLock<Option<&'static catalog::Catalog>> =
+    std::sync::OnceLock::new();
 
-pub fn set_translator(lookup: fn(&str) -> String) {
-    let _ = TRANSLATE.set(lookup);
+/// Speak the language the session asks for, if there is a catalog for it.
+/// `var` looks up an environment variable.
+pub fn set_language(var: &dyn Fn(&str) -> Option<String>) {
+    let _ = LANGUAGE.set(catalog::from_environment(var));
+}
+
+/// Look a string up in the catalog of the chosen language.
+pub fn tr(text: &str) -> String {
+    match LANGUAGE.get().copied().flatten() {
+        Some(catalog) => catalog.find(text).to_owned(),
+        None => text.to_owned(),
+    }
+}
+
+/// The form of a counted phrase for `n`, with the number in place of `{n}`.
+pub fn plural(one: &str, many: &str, n: usize) -> String {
+    let form = match LANGUAGE.get().copied().flatten() {
+        Some(catalog) => catalog.find_plural(one, many, n),
+        None if n == 1 => one,
+        None => many,
+    };
+    form.replace("{n}", &n.to_string())
 }
 
 fn t(text: &str) -> String {
-    TRANSLATE.get().map_or_else(|| text.to_owned(), |f| f(text))
+    tr(text)
+}
+
+/// What every reason for leaving something out begins with. The app
+/// takes it off where the row already says that the part is left out.
+pub fn left_out_prefix() -> String {
+    t("Left out: ")
 }
 
 /// Translate a sentence, then put the arguments in place of `{1}`, `{2}`
@@ -115,35 +144,35 @@ macro_rules! tf {
 }
 
 pub fn instance(id: &str) -> String {
-    t(match id {
-        "kitty:default" => "Kitty",
-        "ghostty:default" => "Ghostty",
-        "gtk4:default" => "Apps (GTK 4 and libadwaita)",
-        "gtk3:default" => "Older Apps (GTK 3)",
-        "gnome:shell" => "Top Bar and Overview",
-        "gnome:appearance" => "Style and Accent Color",
-        "flatpak:global" => "Flatpak Apps",
-        "gnome:look" => "Icons, Cursor, Wallpaper and Fonts",
-        "" => "Changes",
-        other => return other.to_owned(),
-    })
+    match id {
+        "kitty:default" => t("Kitty"),
+        "ghostty:default" => t("Ghostty"),
+        "gtk4:default" => t("Apps (GTK 4 and libadwaita)"),
+        "gtk3:default" => t("Older Apps (GTK 3)"),
+        "gnome:shell" => t("Top Bar and Overview"),
+        "gnome:appearance" => t("Style and Accent Color"),
+        "flatpak:global" => t("Flatpak Apps"),
+        "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),
+        "" => t("Changes"),
+        other => other.to_owned(),
+    }
 }
 
 fn setting_name(key: &str) -> String {
-    t(match key {
-        "color-scheme" => "Style",
-        "accent-color" => "Accent Color",
-        "gtk-theme" => "Legacy Application Theme",
-        "name" => "Shell Theme",
-        "icon-theme" => "Icons",
-        "cursor-theme" => "Cursor",
-        "picture-uri" => "Wallpaper",
-        "picture-uri-dark" => "Wallpaper for the Dark Style",
-        "font-name" => "Interface Font",
-        "document-font-name" => "Document Font",
-        "monospace-font-name" => "Monospace Font",
-        other => return other.to_owned(),
-    })
+    match key {
+        "color-scheme" => t("Style"),
+        "accent-color" => t("Accent Color"),
+        "gtk-theme" => t("Legacy Application Theme"),
+        "name" => t("Shell Theme"),
+        "icon-theme" => t("Icons"),
+        "cursor-theme" => t("Cursor"),
+        "picture-uri" => t("Wallpaper"),
+        "picture-uri-dark" => t("Wallpaper for the Dark Style"),
+        "font-name" => t("Interface Font"),
+        "document-font-name" => t("Document Font"),
+        "monospace-font-name" => t("Monospace Font"),
+        other => other.to_owned(),
+    }
 }
 
 fn setting_value(key: &str, value: Option<&str>) -> String {
@@ -324,6 +353,10 @@ pub fn skip(why: &Skip, home: &Path) -> String {
         }
         Skip::NeedsUserThemes => t(
             "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too",
+        ),
+        Skip::UntestedShell(version) => tf!(
+            "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell",
+            clean_text(version, 20)
         ),
         Skip::NeedsAdwGtk3 => t(
             "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
@@ -650,6 +683,140 @@ pub fn time(secs: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const TEMPLATE: &str = include_str!("../../../po/velatura.pot");
+
+    /// The words in braces of a text: `{1}`, `{n}`, `{name}`.
+    fn placeholders(text: &str) -> Vec<&str> {
+        let mut found: Vec<&str> = text
+            .split('{')
+            .skip(1)
+            .filter_map(|rest| rest.split_once('}').map(|(name, _)| name))
+            .collect();
+        found.sort_unstable();
+        found
+    }
+
+    /// Every sentence has a Spanish one, with the same things to fill in,
+    /// the same line endings, an access key where the source has one, and
+    /// the same beginning for every reason for leaving something out.
+    #[test]
+    fn the_spanish_catalog_is_complete_and_keeps_what_must_be_kept() {
+        let source = catalog::Catalog::parse(
+            &TEMPLATE
+                .replace("msgstr \"\"", "msgstr \"x\"")
+                .replace("] \"\"", "] \"x\""),
+        );
+        let es = catalog::for_language("es").unwrap();
+        assert_eq!(
+            es.len(),
+            source.len(),
+            "po/es.po and po/velatura.pot differ in size"
+        );
+        assert!(es.len() > 300);
+        let ids: Vec<String> = TEMPLATE
+            .split("\n\n")
+            .skip(1)
+            .filter_map(|block| {
+                let start = block.find("msgid \"")? + 7;
+                let end = block[start..].find("\"\n").map(|i| start + i)?;
+                Some(block[start..end].replace("\\\"", "\"").replace("\\n", "\n"))
+            })
+            .collect();
+        assert_eq!(ids.len(), source.len());
+        let prefix = es.find("Left out: ");
+        for id in &ids {
+            for (text, said) in [
+                (es.find(id), id.as_str()),
+                (es.find_plural(id, id, 1), id.as_str()),
+            ] {
+                assert_eq!(placeholders(text), placeholders(said), "{id}");
+                assert_eq!(text.ends_with('\n'), said.ends_with('\n'), "{id}");
+                assert_eq!(text.starts_with("  "), said.starts_with("  "), "{id}");
+                assert_eq!(text.contains('_'), said.contains('_'), "access key: {id}");
+                assert_eq!(text.ends_with('.'), said.ends_with('.'), "full stop: {id}");
+                assert_eq!(text.ends_with('…'), said.ends_with('…'), "{id}");
+            }
+            if id.starts_with("Left out: ") {
+                assert!(es.find(id).starts_with(prefix), "{id}");
+            }
+            // Nothing is left in English by oversight: names are the same
+            // in both languages, sentences are not.
+            let same_on_purpose = [
+                "Kitty",
+                "Ghostty",
+                "General",
+                "Cursor",
+                "Error",
+                "Variable",
+                "Magenta",
+                "_Terminal",
+            ];
+            if !same_on_purpose.contains(&id.as_str()) {
+                assert!(
+                    es.find(id) != id.as_str() || es.find_plural(id, id, 1) != id.as_str(),
+                    "not translated: {id}"
+                );
+            }
+        }
+        assert_eq!(
+            es.find_plural("Creates {n} file.", "Creates {n} files.", 1),
+            "Crea {n} archivo."
+        );
+        assert_eq!(
+            es.find_plural("Creates {n} file.", "Creates {n} files.", 3),
+            "Crea {n} archivos."
+        );
+        assert_eq!(es.find_plural("no such", "no such ones", 2), "no such ones");
+        assert_eq!(es.find("no such sentence"), "no such sentence");
+    }
+
+    #[test]
+    fn the_language_is_taken_from_the_session_the_way_gettext_does() {
+        let env = |pairs: &'static [(&'static str, &'static str)]| {
+            move |name: &str| {
+                pairs
+                    .iter()
+                    .find(|(n, _)| *n == name)
+                    .map(|(_, v)| (*v).to_owned())
+            }
+        };
+        let spanish = |pairs| catalog::from_environment(&env(pairs)).is_some();
+        assert!(spanish(&[("LANG", "es_ES.UTF-8")]));
+        assert!(spanish(&[("LANG", "es_MX.UTF-8@euro")]));
+        assert!(spanish(&[
+            ("LANG", "en_US.UTF-8"),
+            ("LC_MESSAGES", "es_AR.UTF-8")
+        ]));
+        assert!(spanish(&[
+            ("LANG", "en_US.UTF-8"),
+            ("LANGUAGE", "fr:es:en")
+        ]));
+        assert!(!spanish(&[("LANG", "en_US.UTF-8")]));
+        assert!(!spanish(&[]));
+        assert!(!spanish(&[("LANG", "es_ES.UTF-8"), ("LC_ALL", "C.UTF-8")]));
+        assert!(!spanish(&[("LANG", "C"), ("LANGUAGE", "es")]));
+        assert!(!spanish(&[("LANG", "es_ES.UTF-8"), ("LANGUAGE", "de:fr")]));
+        assert!(catalog::for_language("pt_BR").is_none());
+    }
+
+    #[test]
+    fn a_catalog_is_read_with_its_escapes_plurals_and_long_lines() {
+        let c = catalog::Catalog::parse(
+            "msgid \"\"\nmsgstr \"\"\n\"Language: xx\\n\"\n\n# a comment\nmsgid \"a \\\"b\\\"\\n\"\nmsgstr \"\"\n\"A \"\n\"«b»\\n\"\n\n#, fuzzy\nmsgid \"unsure\"\nmsgstr \"guess\"\n\nmsgid \"empty\"\nmsgstr \"\"\n\nmsgid \"one\"\nmsgid_plural \"many\"\nmsgstr[0] \"uno\"\nmsgstr[1] \"muchos\"\n",
+        );
+        assert_eq!(c.find("a \"b\"\n"), "A «b»\n");
+        assert_eq!(c.find("unsure"), "unsure", "a fuzzy entry is not used");
+        assert_eq!(c.find("empty"), "empty");
+        assert_eq!(
+            (
+                c.find_plural("one", "many", 1),
+                c.find_plural("one", "many", 0)
+            ),
+            ("uno", "muchos")
+        );
+        assert_eq!(c.len(), 2);
+    }
 
     #[test]
     fn formats_time() {

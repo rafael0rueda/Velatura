@@ -83,14 +83,22 @@ step "app"
 # The window, driven for real in a throw-away session: first apply through
 # the confirmation, then undo, with the sandbox's files checked after.
 desktop-file-validate data/io.github.rafael0rueda.Velatura.desktop
-before=$(mktemp)
-cp po/velatura.pot "$before"
-scripts/update-pot.sh >/dev/null
-if ! cmp -s "$before" po/velatura.pot; then
-    rm -f "$before"
-    echo "po/velatura.pot was out of date and has been regenerated: commit it"; exit 1
+# The template and the catalogs are in step with the sources. Reading Rust
+# needs gettext 0.24; an older one (GNOME 47 to 49 images) cannot say.
+if xgettext --help | grep -q Rust; then
+    before=$(mktemp -d)
+    cp po/velatura.pot po/*.po "$before"/
+    scripts/update-pot.sh >/dev/null
+    for f in po/velatura.pot po/*.po; do
+        if ! cmp -s "$before/$(basename "$f")" "$f"; then
+            rm -rf "$before"
+            echo "$f was out of date and has been regenerated: commit it"; exit 1
+        fi
+    done
+    rm -rf "$before"
+else
+    echo "NOT RUN: this gettext cannot read Rust, so the template is not compared"
 fi
-rm -f "$before"
 if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
     shots=$(mktemp -d)
     flow=$(scripts/gui-shots.sh "$shots" --flow 2>/dev/null | grep -E '^(FLOW|SANDBOX)' || true)

@@ -68,9 +68,38 @@ impl Default for GioSettings {
     }
 }
 
+/// A text property of a program on the session bus, if that program is
+/// running. It is never started for the question.
+fn bus_property(name: &str, key: &str) -> Option<String> {
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let path = format!("/{}", name.replace('.', "/"));
+    let reply = bus
+        .call_sync(
+            Some(name),
+            &path,
+            "org.freedesktop.DBus.Properties",
+            "Get",
+            Some(&(name, key).to_variant()),
+            None,
+            gio::DBusCallFlags::NO_AUTO_START,
+            500,
+            gio::Cancellable::NONE,
+        )
+        .ok()?;
+    let value = reply.child_value(0).as_variant()?;
+    value.str().map(str::to_owned)
+}
+
 impl Settings for GioSettings {
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError> {
         self.usable()?;
+        if let Some(name) = schema.strip_prefix("dbus:") {
+            return Ok(bus_property(name, key).map(|effective| SettingState {
+                user: None,
+                effective,
+                writable: false,
+            }));
+        }
         let Some(settings) = Self::open(schema, key) else {
             return Ok(None);
         };
@@ -88,6 +117,9 @@ impl Settings for GioSettings {
 
     fn write(&self, schema: &str, key: &str, value: Option<&str>) -> Result<(), SettingsError> {
         self.usable()?;
+        if schema.starts_with("dbus:") {
+            return Err(SettingsError::NotWritable);
+        }
         let Some(settings) = Self::open(schema, key) else {
             return Err(SettingsError::Failed("no such setting".to_owned()));
         };

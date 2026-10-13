@@ -573,6 +573,26 @@ pub fn plan_flatpak(host: &Host<'_>, env: Env<'_>, state: &State) -> TargetPlan 
     plan
 }
 
+/// The running Shell's version, asked of the Shell itself.
+pub const SHELL_VERSION: (&str, &str) = ("dbus:org.gnome.Shell", "ShellVersion");
+
+/// GNOME Shell versions whose own stylesheet has every selector Velatura
+/// overrides, checked by a test against a list taken from each.
+pub const TESTED_SHELLS: std::ops::RangeInclusive<u32> = 47..=51;
+
+/// The running Shell's version if it is one Velatura was not checked
+/// with. `None` for a tested one, and when no Shell answers.
+fn untested_shell(host: &Host<'_>) -> Option<String> {
+    let version = host
+        .settings
+        .read(SHELL_VERSION.0, SHELL_VERSION.1)
+        .ok()
+        .flatten()?
+        .effective;
+    let major: u32 = version.split('.').next()?.parse().ok()?;
+    (!TESTED_SHELLS.contains(&major)).then_some(version)
+}
+
 pub const USER_THEMES: &str = "user-theme@gnome-shell-extensions.gcampax.github.com";
 const USER_THEMES_SCHEMA: &str = "org.gnome.shell.extensions.user-theme";
 
@@ -601,9 +621,16 @@ pub fn plan_shell(
     theme: &Resolved<'_>,
     state: &State,
     clear_old: bool,
+    untested: bool,
 ) -> TargetPlan {
     if high_contrast(host) {
         return TargetPlan::skip(SHELL, Skip::HighContrast);
+    }
+    // Selectors change between versions. On one that was not checked the
+    // overrides may miss, or hit something else, so it is left alone
+    // unless asked for outright.
+    if !untested && let Some(version) = untested_shell(host) {
+        return TargetPlan::skip(SHELL, Skip::UntestedShell(version));
     }
     // Velatura's own extension, when it is on, is the better way in: its
     // stylesheet sits with those of other extensions, not under them.
@@ -892,7 +919,14 @@ pub fn plan(
         GTK4 => plan_gtk4(host, env, theme, state, replace_changed),
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
         FLATPAK => plan_flatpak(host, env, state),
-        SHELL => plan_shell(host, env, theme, state, !opts.unattended),
+        SHELL => plan_shell(
+            host,
+            env,
+            theme,
+            state,
+            !opts.unattended,
+            opts.untested_shell,
+        ),
         _ => plan_appearance(host, theme, opts.keep_style),
     }
 }

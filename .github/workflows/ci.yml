@@ -35,3 +35,27 @@ jobs:
         run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt)
       - name: Gate
         run: VELATURA_CI=1 scripts/check.sh
+
+  # The same gate on the older GNOME versions Velatura supports: 47, 48 and
+  # 49. Their own Rust is older than the GTK bindings need, so the current
+  # toolchain comes from rustup; everything the gate runs against (GTK,
+  # libadwaita, the compositor) is the release's own.
+  check-older:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["fedora:41", "fedora:42", "fedora:43"]
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install git
+        run: dnf install -y --setopt=install_weak_deps=False git
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt) rustup
+          rustup-init -y -q --profile minimal --component clippy,rustfmt
+      - name: Gate
+        run: |
+          . "$HOME/.cargo/env"
+          VELATURA_CI=1 scripts/check.sh

@@ -555,3 +555,46 @@ fn the_theme_follows_the_style_and_never_sets_it() {
     engine::execute(&host, &plan, &[]).unwrap();
     assert_eq!(style().as_deref(), Some("prefer-dark"));
 }
+
+/// On a GNOME Shell that was not checked, the top bar is left alone with
+/// the reason, unless it is asked for by name.
+#[test]
+fn an_unchecked_shell_version_is_left_alone_unless_asked_for() {
+    let themes = bundled::themes();
+    let resolved = Resolved::new(&themes[0], None).unwrap();
+    for (version, left_alone) in [
+        ("46.2", true),
+        ("47.0", false),
+        ("51.1", false),
+        ("52.alpha", true),
+        ("nonsense", false),
+    ] {
+        let home = Home::new();
+        let s = MemSettings::new(&[
+            (INTERFACE_SCHEMA, "color-scheme", "default"),
+            (INTERFACE_SCHEMA, "accent-color", "blue"),
+            ("org.gnome.desktop.a11y.interface", "high-contrast", "false"),
+            ("org.gnome.shell", "enabled-extensions", "@as []"),
+            ("org.gnome.shell", "disable-user-extensions", "false"),
+            ("dbus:org.gnome.Shell", "ShellVersion", version),
+        ]);
+        let host = home.host(&StdFs, &s);
+        companion::install(&host).unwrap();
+        enable(&s, &[UUID]);
+        let plan = engine::plan_apply(&host, &no_env, &resolved, &shell_only()).unwrap();
+        let shell = plan.targets.iter().find(|t| t.instance == SHELL).unwrap();
+        assert_eq!(
+            shell.skipped == Some(Skip::UntestedShell(version.to_owned())),
+            left_alone,
+            "{version}: {:?}",
+            shell.skipped
+        );
+        let asked = ApplyOpts {
+            untested_shell: true,
+            ..shell_only()
+        };
+        let plan = engine::plan_apply(&host, &no_env, &resolved, &asked).unwrap();
+        let shell = plan.targets.iter().find(|t| t.instance == SHELL).unwrap();
+        assert_eq!(shell.skipped, None, "{version}");
+    }
+}

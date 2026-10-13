@@ -364,13 +364,10 @@ msgstr ""
 msgid "Schedule"
 msgstr ""
 
-msgid ""
-"Changes between the two themes by the clock. Apps that are already open keep "
-"their colors until reopened"
+msgid "Changes between the two themes by the clock. Apps that are already open keep their colors until reopened"
 msgstr ""
 
-msgid ""
-"The timer was changed outside Velatura. Turn this off and on to repair it"
+msgid "The timer was changed outside Velatura. Turn this off and on to repair it"
 msgstr ""
 
 msgid "Needs the velatura command installed, for example in ~/.local/bin"
@@ -385,9 +382,7 @@ msgstr ""
 msgid "_Follow the Dark Style"
 msgstr ""
 
-msgid ""
-"The daytime theme with the light style, the nighttime theme with the dark "
-"style. Needs a light and a dark theme"
+msgid "The daytime theme with the light style, the nighttime theme with the dark style. Needs a light and a dark theme"
 msgstr ""
 
 msgid "Daytime Theme _Begins"
@@ -406,9 +401,7 @@ msgid "Turn the Schedule On?"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Another timer that may change the theme is turned on: {units}. Two schedules "
-"would work against each other."
+msgid "Another timer that may change the theme is turned on: {units}. Two schedules would work against each other."
 msgstr ""
 
 msgid "_Cancel"
@@ -514,9 +507,7 @@ msgstr ""
 msgid "Nothing to undo"
 msgstr ""
 
-msgid ""
-"An earlier interrupted change could not be fully rolled back, so nothing new "
-"was changed."
+msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
 msgstr ""
 
 msgid "Velatura's own records cannot be read. Nothing was changed."
@@ -591,9 +582,7 @@ msgstr ""
 msgid "Included in the next apply"
 msgstr ""
 
-msgid ""
-"Lets every Flatpak app read the two GTK settings folders, so the colors "
-"reach them"
+msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr ""
 
 msgid "Left out"
@@ -611,9 +600,7 @@ msgstr ""
 msgid "Shell Extension"
 msgstr ""
 
-msgid ""
-"Velatura's own extension themes the top bar and overview where other "
-"extensions bring their own colors"
+msgid "Velatura's own extension themes the top bar and overview where other extensions bring their own colors"
 msgstr ""
 
 msgid "Velatura Extension"
@@ -694,9 +681,7 @@ msgstr ""
 
 #, rust-format
 msgid "{n} change is undone. Files edited by hand since then are kept."
-msgid_plural ""
-"{n} changes are undone, newest first. Files edited by hand since then are "
-"kept."
+msgid_plural "{n} changes are undone, newest first. Files edited by hand since then are kept."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -735,8 +720,7 @@ msgstr ""
 msgid "If the Desktop Becomes Unreadable"
 msgstr ""
 
-msgid ""
-"Switch to a text console with Ctrl+Alt+F3, sign in, and run this command"
+msgid "Switch to a text console with Ctrl+Alt+F3, sign in, and run this command"
 msgstr ""
 
 msgid "Troubleshooting"
@@ -817,6 +801,63 @@ msgstr ""
 msgid "This can be undone at any time."
 msgstr ""
 
+msgid "Left out: "
+msgstr ""
+
+msgid "Kitty"
+msgstr ""
+
+msgid "Ghostty"
+msgstr ""
+
+msgid "Apps (GTK 4 and libadwaita)"
+msgstr ""
+
+msgid "Older Apps (GTK 3)"
+msgstr ""
+
+msgid "Top Bar and Overview"
+msgstr ""
+
+msgid "Style and Accent Color"
+msgstr ""
+
+msgid "Flatpak Apps"
+msgstr ""
+
+msgid "Icons, Cursor, Wallpaper and Fonts"
+msgstr ""
+
+msgid "Changes"
+msgstr ""
+
+msgid "Accent Color"
+msgstr ""
+
+msgid "Legacy Application Theme"
+msgstr ""
+
+msgid "Shell Theme"
+msgstr ""
+
+msgid "Icons"
+msgstr ""
+
+msgid "Wallpaper"
+msgstr ""
+
+msgid "Wallpaper for the Dark Style"
+msgstr ""
+
+msgid "Interface Font"
+msgstr ""
+
+msgid "Document Font"
+msgstr ""
+
+msgid "Monospace Font"
+msgstr ""
+
 msgid "the default"
 msgstr ""
 
@@ -857,9 +898,7 @@ msgid "Remove {1} (created by Velatura, holds nothing else)"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Let Flatpak apps read the two GTK settings folders, by adding to a list in "
-"{1}"
+msgid "Let Flatpak apps read the two GTK settings folders, by adding to a list in {1}"
 msgstr ""
 
 #, rust-format
@@ -898,9 +937,7 @@ msgid "Left out: {1} cannot be read"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Left out: the Velatura markers in {1} are damaged. Remove both marker lines, "
-"then apply again"
+msgid "Left out: the Velatura markers in {1} are damaged. Remove both marker lines, then apply again"
 msgstr ""
 
 #, rust-format
@@ -908,9 +945,7 @@ msgid "Left out: {1} already exists and was not created by Velatura"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Left out: {1} was changed outside Velatura. Use --replace-changed to "
-"overwrite it"
+msgid "Left out: {1} was changed outside Velatura. Use --replace-changed to overwrite it"
 msgstr ""
 
 #, rust-format
@@ -918,35 +953,28 @@ msgid "Left out: desktop settings are not available ({1})"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Left out: {1} has more than one name (a hard link), and replacing it would "
-"split them"
+msgid "Left out: {1} has more than one name (a hard link), and replacing it would split them"
 msgstr ""
 
 msgid "Left out: High Contrast is on, and recoloring would lower contrast"
 msgstr ""
 
-msgid ""
-"Left out: the top bar and overview are recolored through an extension, and "
-"none is turned on. Velatura's own can be installed with: velatura extension "
-"install. The User Themes extension works too"
-msgstr ""
-
-msgid ""
-"Left out: older apps can only be recolored with the adw-gtk3 theme, which is "
-"not installed. It can be installed without administrator rights into "
-"~/.local/share/themes, or from the adw-gtk3-theme package"
+msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too"
 msgstr ""
 
 #, rust-format
-msgid ""
-"{1} has lines after the Velatura block that win over the theme (line {2})"
+msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
+msgstr ""
+
+msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr ""
 
 #, rust-format
-msgid ""
-"{1} exists. Kitty applies it over every other color setting, so the theme "
-"does not show until that file is renamed"
+msgid "{1} has lines after the Velatura block that win over the theme (line {2})"
+msgstr ""
+
+#, rust-format
+msgid "{1} exists. Kitty applies it over every other color setting, so the theme does not show until that file is renamed"
 msgstr ""
 
 msgid "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each"
@@ -963,20 +991,14 @@ msgid "{1} is a link. The change is written to {2}"
 msgstr ""
 
 #, rust-format
-msgid ""
-"{1} could not be put back without a desktop session. After signing in, run: "
-"{2}"
+msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
 msgstr ""
 
-msgid ""
-"The User Themes extension is turned off, so the top bar keeps its colors. "
-"Turn it on in the Extensions app"
+msgid "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app"
 msgstr ""
 
 #, rust-format
-msgid ""
-"These extensions bring their own colors, which win over the theme where they "
-"apply: {1}"
+msgid "These extensions bring their own colors, which win over the theme where they apply: {1}"
 msgstr ""
 
 #, rust-format
@@ -984,8 +1006,7 @@ msgid "{1} asks older apps for dark and can work against this light theme"
 msgstr ""
 
 #, rust-format
-msgid ""
-"The theme's accent is {1}. GNOME offers nine accents; the nearest is {2}"
+msgid "The theme's accent is {1}. GNOME offers nine accents; the nearest is {2}"
 msgstr ""
 
 msgid "This GNOME version has no accent color setting"
@@ -999,13 +1020,11 @@ msgstr ""
 msgid "{1} was changed outside Velatura and is left as it is"
 msgstr ""
 
-msgid ""
-"Text on background is below a contrast of 4.5 to 1 and may be hard to read"
+msgid "Text on background is below a contrast of 4.5 to 1 and may be hard to read"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Another theming tool, {1}, is present ({2}). It may write the same colors"
+msgid "Another theming tool, {1}, is present ({2}). It may write the same colors"
 msgstr ""
 
 #, rust-format
@@ -1013,28 +1032,20 @@ msgid "A timer that may change the theme is turned on: {1}"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Settings files may be managed by {1} ({2}). It can overwrite changes made "
-"here"
+msgid "Settings files may be managed by {1} ({2}). It can overwrite changes made here"
 msgstr ""
 
 msgid "Scheduled switching is off"
 msgstr ""
 
-msgid ""
-"The themes follow the dark style: the daytime theme with the light style, "
-"the nighttime theme with the dark style"
+msgid "The themes follow the dark style: the daytime theme with the light style, the nighttime theme with the dark style"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Scheduled switching is on: the daytime theme from {1}, the nighttime theme "
-"from {2}"
+msgid "Scheduled switching is on: the daytime theme from {1}, the nighttime theme from {2}"
 msgstr ""
 
-msgid ""
-"Its timer was changed or removed outside Velatura. To repair it: velatura "
-"schedule set"
+msgid "Its timer was changed or removed outside Velatura. To repair it: velatura schedule set"
 msgstr ""
 
 msgid "The last scheduled switch did nothing: no daytime theme is chosen"
@@ -1047,46 +1058,34 @@ msgid "The last scheduled switch failed. Applying the theme by hand shows why"
 msgstr ""
 
 #, rust-format
-msgid ""
-"The last scheduled switch left out: {1}. Applying the theme by hand shows why"
+msgid "The last scheduled switch left out: {1}. Applying the theme by hand shows why"
 msgstr ""
 
 msgid "Velatura's extension is not installed"
 msgstr ""
 
-msgid ""
-"Velatura's extension is on. A newer copy comes with this version: install it "
-"again, then sign out and in"
+msgid "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in"
 msgstr ""
 
-msgid ""
-"Velatura's extension is on: the top bar and overview are themed through it"
+msgid "Velatura's extension is on: the top bar and overview are themed through it"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Velatura's extension is installed and turned off. After signing out and in "
-"once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
+msgid "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
 msgstr ""
 
 msgid "The two themes cannot start at the same time"
 msgstr ""
 
-msgid ""
-"Following the dark style needs a light theme for the day and a dark theme "
-"for the night"
+msgid "Following the dark style needs a light theme for the day and a dark theme for the night"
 msgstr ""
 
 #, rust-format
-msgid ""
-"A schedule needs the velatura command installed where it stays, such as "
-"~/.local/bin. This copy is at {1}"
+msgid "A schedule needs the velatura command installed where it stays, such as ~/.local/bin. This copy is at {1}"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Another timer that may change the theme is turned on: {1}. Two schedules "
-"would work against each other"
+msgid "Another timer that may change the theme is turned on: {1}. Two schedules would work against each other"
 msgstr ""
 
 #, rust-format
@@ -1113,8 +1112,7 @@ msgid "  Could not be put back: {1} ({2})\n"
 msgstr ""
 
 #, rust-format
-msgid ""
-"Nothing was changed: {1} changed after the preview. Run the command again."
+msgid "Nothing was changed: {1} changed after the preview. Run the command again."
 msgstr ""
 
 #, rust-format
@@ -1134,14 +1132,11 @@ msgstr ""
 msgid "Rolling back did not finish:\n"
 msgstr ""
 
-msgid ""
-"Backups are in ~/.local/share/velatura/backups. To try again: velatura "
-"recover"
+msgid "Backups are in ~/.local/share/velatura/backups. To try again: velatura recover"
 msgstr ""
 
 #, rust-format
-msgid ""
-"\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
+msgid "\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
 msgstr ""
 
 #, rust-format
@@ -1149,9 +1144,7 @@ msgid "A theme with the id \"{1}\" already exists"
 msgstr ""
 
 #, rust-format
-msgid ""
-"\"{1}\" cannot be a theme's id. An id is made of lower-case letters, digits "
-"and hyphens"
+msgid "\"{1}\" cannot be a theme's id. An id is made of lower-case letters, digits and hyphens"
 msgstr ""
 
 #, rust-format

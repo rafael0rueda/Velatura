@@ -160,7 +160,7 @@ enum Change {
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 
 <h2 id="cli">7. Command line</h2>
-<div class="note"><strong>Built so far (Phases 1a to 2d):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code> (with <code>auto</code>), <code>schedule</code>, <code>extension</code>, <code>look</code>, <code>theme</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
+<div class="note"><strong>Built so far (Phases 1a to 2e):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code> (with <code>auto</code>), <code>schedule</code>, <code>extension</code>, <code>look</code>, <code>theme</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
 <pre>velatura                               status and short help
 velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
 velatura targets                       apps and desktop parts: instances, support, prerequisites
@@ -218,7 +218,7 @@ velatura theme import|export|resolve</pre>
 
 <h2 id="compat">9. Version support</h2>
 <ul>
-<li>MVP verified on GNOME 50 and 51, upstream session. GNOME 47–49 and the Ubuntu session follow in Phase 2 as tested data; Ubuntu ships a modified Shell stylesheet and is unsupported until tested.</li>
+<li>Verified on GNOME 47 to 51, upstream session: the gate runs on each in CI (Phase 2e). The live Shell check runs on GNOME 50 only. Ubuntu's session is checked through the selectors of its own stylesheet for GNOME 47 to 50, not on a running Ubuntu.</li>
 <li>The GUI is compiled against the libadwaita 1.6 and GTK 4.16 interfaces only.</li>
 <li>Flatpak apps use the GTK of their runtime, not the host's, so generated GTK stylesheets must be valid for every runtime in use, not just the host version.</li>
 <li>On a GNOME version that has not been tested, the Shell target is off by default with an explanation.</li>

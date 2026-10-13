@@ -289,6 +289,7 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::HighContrast => "high-contrast",
         Skip::NeedsAdwGtk3 => "needs-adw-gtk3",
         Skip::NeedsUserThemes => "needs-user-themes",
+        Skip::UntestedShell(_) => "untested-shell",
     }
 }
 
@@ -1204,6 +1205,12 @@ impl Cx<'_> {
             replace_changed: self.args.replace_changed,
             unattended: false,
             keep_style: false,
+            // Naming the part outright is asking for it.
+            untested_shell: self
+                .args
+                .only
+                .iter()
+                .any(|name| name == "gnome" || name == targets::SHELL),
         };
         let plan =
             self.with_theme(spec, |r, _| engine::plan_apply(&self.host, &env, r, &opts))??;
