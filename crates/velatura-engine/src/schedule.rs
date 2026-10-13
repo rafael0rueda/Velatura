@@ -205,6 +205,11 @@ pub fn follow_units(exe: &Path, settings: &Path) -> Option<(String, String)> {
     let watched = settings
         .to_str()
         .filter(|text| settings.is_absolute() && !text.chars().any(char::is_control))?;
+    // The settings file changes in bursts, and systemd by default refuses
+    // to start a service more than five times in ten seconds, after which
+    // the watching unit fails and stays off. The command is cheap and does
+    // nothing unless the style changed, so the limit is lifted.
+    let service = service.replacen("[Unit]\n", "[Unit]\nStartLimitIntervalSec=0\n", 1);
     // Signed in, the service runs once, so the theme matches from the start.
     let service = format!("{service}\n[Install]\nWantedBy=default.target\n");
     let watch = format!(

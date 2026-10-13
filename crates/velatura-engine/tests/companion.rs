@@ -429,6 +429,12 @@ fn following_the_style_needs_a_light_and_a_dark_theme_and_replaces_the_clock() {
     );
     let service = fs::read_to_string(units.join(SERVICE)).unwrap();
     assert!(service.contains("switch auto") && service.contains("WantedBy=default.target"));
+    // Without this a burst of setting changes stops the watching for good:
+    // seen on a real session, 2026-10-13.
+    assert!(
+        service.contains("[Unit]\nStartLimitIntervalSec=0\n"),
+        "{service}"
+    );
     assert_eq!(
         *sd.calls.borrow(),
         [

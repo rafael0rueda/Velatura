@@ -37,6 +37,16 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h2>How following works</h2>
 <p>There is still no process that stays running. A systemd path unit watches the file the desktop keeps its settings in and starts <code>velatura switch auto</code> when it changes. That file changes with any setting, so the command is started often; it compares the style with the one it last saw to and does nothing unless they differ. A theme picked by hand therefore stays until the style changes again.</p>
 
+<h2>Tried on a real session</h2>
+<p>On 2026-10-13, with the owner's go-ahead, the trigger was tried on the owner's session with two throw-away units that only logged, not with Velatura's own. The style was changed four times and forty unrelated settings were written in a row. Afterwards the units were removed and the style put back; nothing else was touched.</p>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>Does a change of style start the service?</td><td>Yes, every time, within the same second.</td></tr>
+<tr><td>Forty writes in a row, with systemd's default limit</td><td>After four starts systemd refused the fifth ("start request repeated too quickly"), the watching unit failed, and a later change of style was missed. This was a defect in the first version of this slice.</td></tr>
+<tr><td>The same with the limit lifted (<code>StartLimitIntervalSec=0</code>)</td><td>Nineteen starts for the forty writes, the unit stayed active, and the change of style after the burst was noticed. The service is now written this way, and a test holds it.</td></tr>
+</table></div>
+<p>Not tried: Velatura's own units through a sign-out and sign-in, and the cost of the starts over a working day.</p>
+
 <h2>Tests and checks</h2>
 <ul>
 <li><strong>In a real GNOME Shell 50, in the gate</strong>: another extension colours the panel; with User Themes the theme loses to it; with Velatura's extension on, the panel shows Ember, then Aetherius after the file is replaced while the Shell runs, then the other extension's colours again after undo. Seven checks in all, with no error from the extension in the Shell's log.</li>
@@ -49,7 +59,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h2>Not done, and what only the owner can do</h2>
 <ul>
 <li><strong>Publishing on extensions.gnome.org.</strong> It needs the owner's account there, and a review by GNOME's reviewers. The zip is ready. Until it is published the extension is installed from the app, which means signing out and in once.</li>
-<li><strong>Following the dark style has not run in a real session.</strong> The unit files are written and the logic is tested, but whether systemd starts the command on every change of the settings file can only be seen with a real user session, which waits for the owner's go-ahead. <code>systemd-analyze verify</code> accepts the files.</li>
+<li><strong>Following the dark style has not been turned on for real.</strong> The trigger was confirmed on a real session with throw-away units (above); Velatura's own units have not been enabled there. Every change of any setting starts the command, which leaves two lines in the journal each time.</li>
 <li><strong>A real GNOME Shell 51</strong>: the Shell check runs on 50, the version installed here.</li>
 <li><strong>Extensions with heavier rules still win</strong> where those rules apply, by design.</li>
 <li>The lock screen keeps the stock look: extensions are not active there.</li>
