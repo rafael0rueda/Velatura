@@ -99,12 +99,42 @@ pub async fn run_if_asked(ui: &U) {
     crate::troubleshooting(ui).await;
     pause(700).await;
     save(ui, dir, "troubleshooting");
+    if std::env::var_os("VELATURA_SHOTS_EDITOR").is_some() {
+        editor(ui, dir).await;
+    }
     if std::env::var_os("VELATURA_SHOTS_FLOW").is_some() {
         flow(ui, dir).await;
     }
     if let Some(app) = ui.window.application() {
         app.quit();
     }
+}
+
+/// Make a theme in the editor the way a person would: start a new one,
+/// change colours until something is hard to read, fix it, and save.
+async fn editor(ui: &U, dir: &Path) {
+    if let Some(dialog) = ui.window.visible_dialog() {
+        dialog.force_close();
+        pause(400).await;
+    }
+    gtk::prelude::WidgetExt::activate_action(&ui.window, "win.new-theme", None).ok();
+    pause(700).await;
+    save(ui, dir, "editor");
+    crate::editor::poke_current();
+    pause(700).await;
+    save(ui, dir, "editor-changed");
+    gtk::prelude::WidgetExt::activate_action(&ui.window, "win.save-theme", None).ok();
+    pause(1500).await;
+    save(ui, dir, "editor-saved");
+    let mine: Vec<String> = ui
+        .snap
+        .borrow()
+        .themes
+        .iter()
+        .filter(|e| !e.bundled)
+        .map(|e| e.theme.id.clone())
+        .collect();
+    println!("SHOTS library yours={mine:?}");
 }
 
 /// Drive the main flow for real, in the sandbox: apply the last theme

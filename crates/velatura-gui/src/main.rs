@@ -5,6 +5,7 @@
 //! follow docs/hig.html.
 
 mod data;
+mod editor;
 mod shots;
 mod stock;
 mod widgets;
@@ -18,7 +19,7 @@ use adw::prelude::*;
 use gtk::{gio, glib};
 use velatura_engine::engine::{self, ApplyOpts, Error, Report};
 use velatura_engine::host::StdSystemd;
-use velatura_engine::library::Entry;
+use velatura_engine::library::{self, Entry};
 use velatura_engine::look::{self, Kind};
 use velatura_engine::plan::{Note, Plan, Skip};
 use velatura_engine::schedule::{self, Refused, Times};
@@ -72,6 +73,9 @@ fn main() -> glib::ExitCode {
         });
     });
     app.set_accels_for_action("win.undo", &["<Control>z"]);
+    app.set_accels_for_action("win.new-theme", &["<Control>n"]);
+    app.set_accels_for_action("win.import", &["<Control>o"]);
+    app.set_accels_for_action("win.save-theme", &["<Control>s"]);
     app.set_accels_for_action("window.close", &["<Control>w"]);
     app.set_accels_for_action("app.quit", &["<Control>q"]);
     let quit = gio::ActionEntry::builder("quit")
@@ -293,6 +297,13 @@ fn add_actions(ui: &U) {
             glib::spawn_future_local(async move { troubleshooting(&ui).await });
         }),
         entry("about", ui, |ui| about(&ui)),
+        entry("new-theme", ui, |ui| editor::new_theme(&ui)),
+        entry("import", ui, |ui| {
+            glib::spawn_future_local(async move { import_theme(&ui).await });
+        }),
+        entry("save-theme", ui, |_| {
+            glib::spawn_future_local(editor::save_current());
+        }),
     ]);
 }
 
@@ -304,9 +315,12 @@ fn shortcuts_window() -> gtk::ShortcutsWindow {
         )
     };
     let xml = format!(
-        "<interface><object class=\"GtkShortcutsWindow\" id=\"help_overlay\"><property name=\"modal\">1</property><child><object class=\"GtkShortcutsSection\"><property name=\"section-name\">shortcuts</property><child><object class=\"GtkShortcutsGroup\"><property name=\"title\">{}</property>{}{}{}{}{}{}</object></child></object></child></object></interface>",
+        "<interface><object class=\"GtkShortcutsWindow\" id=\"help_overlay\"><property name=\"modal\">1</property><child><object class=\"GtkShortcutsSection\"><property name=\"section-name\">shortcuts</property><child><object class=\"GtkShortcutsGroup\"><property name=\"title\">{}</property>{}{}{}{}{}{}{}{}{}</object></child></object></child></object></interface>",
         glib::markup_escape_text(&tr("General")),
         row(&tr("Undo Last Apply"), "&lt;Control&gt;z"),
+        row(&tr("New Theme"), "&lt;Control&gt;n"),
+        row(&tr("Import Theme"), "&lt;Control&gt;o"),
+        row(&tr("Save Theme"), "&lt;Control&gt;s"),
         row(&tr("Back"), "&lt;Alt&gt;Left"),
         row(&tr("Main Menu"), "F10"),
         row(&tr("Keyboard Shortcuts"), "&lt;Control&gt;question"),
@@ -434,6 +448,20 @@ fn themes_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         group.add(&row);
     }
     page.add(&group);
+    let library = adw::PreferencesGroup::new();
+    for (title, action) in [
+        (tr("_New Theme"), "win.new-theme"),
+        (tr("_Import…"), "win.import"),
+    ] {
+        library.add(
+            &adw::ButtonRow::builder()
+                .title(title)
+                .use_underline(true)
+                .action_name(action)
+                .build(),
+        );
+    }
+    page.add(&library);
     page.add(&day_night_group(ui, snap));
     page.add(&schedule_group(ui, snap));
     page.upcast()
@@ -695,6 +723,209 @@ async fn set_schedule(ui: &U, on: bool, times: Option<Times>) {
     refresh(ui).await;
 }
 
+/// What else can be done with a theme, below its facts: edit it (one that
+/// comes with Velatura, as a copy), pass its file on, or remove it.
+fn theme_actions(ui: &U, id: &str, variant: &str, bundled: bool) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::new();
+    let row = |title: String, run: fn(U, String, String)| {
+        let row = adw::ButtonRow::builder()
+            .title(title)
+            .use_underline(true)
+            .build();
+        let weak = Rc::downgrade(ui);
+        let spec = (id.to_owned(), variant.to_owned());
+        row.connect_activated(move |_| {
+            if let Some(ui) = weak.upgrade() {
+                run(ui, spec.0.clone(), spec.1.clone());
+            }
+        });
+        row
+    };
+    group.add(&row(
+        if bundled {
+            tr("_Duplicate to Edit")
+        } else {
+            tr("_Edit Theme")
+        },
+        |ui, id, variant| editor::edit(&ui, &id, &variant),
+    ));
+    group.add(&row(tr("E_xport…"), |ui, id, _| {
+        glib::spawn_future_local(async move { export_theme(&ui, id).await });
+    }));
+    if !bundled {
+        group.add(&row(tr("_Remove Theme"), |ui, id, _| {
+            glib::spawn_future_local(async move { remove_theme(&ui, id).await });
+        }));
+    }
+    group
+}
+
+fn toml_filter() -> gio::ListStore {
+    let filter = gtk::FileFilter::new();
+    filter.set_name(Some(&tr("Theme Files")));
+    filter.add_pattern("*.toml");
+    let filters = gio::ListStore::new::<gtk::FileFilter>();
+    filters.append(&filter);
+    filters
+}
+
+/// Write a theme's file where the user says, to pass on to someone else.
+async fn export_theme(ui: &U, id: String) {
+    let dialog = gtk::FileDialog::builder()
+        .title(tr("Export Theme"))
+        .initial_name(format!("{id}.toml"))
+        .filters(&toml_filter())
+        .build();
+    // Cancelling is not an error.
+    let Some(path) = dialog
+        .save_future(Some(&ui.window))
+        .await
+        .ok()
+        .and_then(|file| file.path())
+    else {
+        return;
+    };
+    let home = ui.snap.borrow().home.clone();
+    // The file chooser has already asked about replacing a file.
+    match data::run(move |host| library::export(host, &id, &path, true)).await {
+        Some(Ok(())) => toast(ui, &tr("Theme exported")),
+        Some(Err(why)) => toast(ui, &velatura_text::library_refused(&why, &home)),
+        None => toast(ui, &tr("The change could not be started")),
+    }
+}
+
+/// Undoable, so it is done at once and Undo is offered.
+async fn remove_theme(ui: &U, id: String) {
+    let home = ui.snap.borrow().home.clone();
+    let removed = data::run(move |host| library::remove(host, &id)).await;
+    match removed {
+        Some(Ok(text)) => {
+            refresh(ui).await;
+            ui.nav.pop_to_tag("main");
+            let undo = adw::Toast::builder()
+                .title(tr("Theme removed"))
+                .button_label(tr("_Undo"))
+                .build();
+            let weak = Rc::downgrade(ui);
+            undo.connect_button_clicked(move |_| {
+                let (Some(ui), text) = (weak.upgrade(), text.clone()) else {
+                    return;
+                };
+                glib::spawn_future_local(async move {
+                    let back = data::run(move |host| {
+                        let theme = velatura_theme::parse_theme(&text).ok()?.theme;
+                        library::save(host, &theme, Some(&text), false).ok()
+                    })
+                    .await;
+                    if back.flatten().is_none() {
+                        toast(&ui, &tr("The theme could not be put back"));
+                    }
+                    refresh(&ui).await;
+                });
+            });
+            ui.toasts.add_toast(undo);
+        }
+        Some(Err(why)) => toast(ui, &velatura_text::library_refused(&why, &home)),
+        None => toast(ui, &tr("The change could not be started")),
+    }
+}
+
+/// Add a theme file to the library: look at it, show what it is, and ask.
+async fn import_theme(ui: &U) {
+    let dialog = gtk::FileDialog::builder()
+        .title(tr("Import Theme"))
+        .filters(&toml_filter())
+        .build();
+    let Some(path) = dialog
+        .open_future(Some(&ui.window))
+        .await
+        .ok()
+        .and_then(|file| file.path())
+    else {
+        return;
+    };
+    let home = ui.snap.borrow().home.clone();
+    let looked = data::run(move |host| library::inspect(host, &path)).await;
+    let (loaded, source) = match looked {
+        Some(Ok(found)) => found,
+        Some(Err(why)) => {
+            toast(ui, &velatura_text::library_refused(&why, &home));
+            return;
+        }
+        None => return,
+    };
+    let mut theme = loaded.theme;
+    let clash = ui
+        .snap
+        .borrow()
+        .themes
+        .iter()
+        .find(|e| e.theme.id == theme.id)
+        .map(|e| e.bundled);
+
+    // Name and author are shown as plain text, never as markup.
+    let mut body = if theme.author.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "{}\n\n",
+            tr("By {author}.").replace("{author}", &theme.author)
+        )
+    };
+    body.push_str(&velatura_text::import_promise());
+    body.push('.');
+    if clash.is_some() {
+        body.push_str("\n\n");
+        body.push_str(&tr("A theme with the same id is already in the library."));
+    }
+    let alert = adw::AlertDialog::new(
+        Some(&tr("Import {name}?").replace("{name}", &theme.name)),
+        Some(&body),
+    );
+    if let Some(resolved) = Resolved::new(&theme, None) {
+        let swatches = widgets::swatches(&resolved);
+        swatches.set_halign(gtk::Align::Center);
+        alert.set_extra_child(Some(&swatches));
+    }
+    alert.add_response("cancel", &tr("_Cancel"));
+    match clash {
+        None => {
+            alert.add_response("import", &tr("_Import"));
+            alert.set_response_appearance("import", adw::ResponseAppearance::Suggested);
+            alert.set_default_response(Some("import"));
+        }
+        Some(bundled) => {
+            alert.add_response("both", &tr("_Keep Both"));
+            alert.set_default_response(Some("both"));
+            if !bundled {
+                alert.add_response("replace", &tr("_Replace"));
+            }
+        }
+    }
+    alert.set_close_response("cancel");
+    let answer = alert.choose_future(Some(&ui.window)).await;
+    if answer == "cancel" {
+        return;
+    }
+    let replace = answer == "replace";
+    let keep_both = answer == "both";
+    let saved = data::run(move |host| {
+        if keep_both {
+            theme.id = velatura_theme::editor::free_id(&theme.id, &|id| library::taken(host, id));
+        }
+        library::save(host, &theme, Some(&source), replace)
+    })
+    .await;
+    match saved {
+        Some(Ok(_)) => {
+            refresh(ui).await;
+            toast(ui, &tr("Theme imported"));
+        }
+        Some(Err(why)) => toast(ui, &velatura_text::library_refused(&why, &home)),
+        None => toast(ui, &tr("The change could not be started")),
+    }
+}
+
 /// The page for one theme: preview, a few facts, and the one button.
 fn open_theme(ui: &U, id: &str, variant: &str) {
     let snap = ui.snap.borrow();
@@ -808,6 +1039,7 @@ fn open_theme(ui: &U, id: &str, variant: &str) {
     column.append(&widgets::preview(&resolved));
     column.append(&apply);
     column.append(&facts);
+    column.append(&theme_actions(ui, id, variant, entry.bundled));
     let clamp = adw::Clamp::builder()
         .maximum_size(600)
         .child(&column)

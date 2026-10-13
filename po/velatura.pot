@@ -17,6 +17,239 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+msgid "Background"
+msgstr ""
+
+msgid "Text"
+msgstr ""
+
+msgid "Accent"
+msgstr ""
+
+msgid "Dim Background"
+msgstr ""
+
+msgid "Surface"
+msgstr ""
+
+msgid "Border"
+msgstr ""
+
+msgid "Secondary Text"
+msgstr ""
+
+msgid "Faint Text"
+msgstr ""
+
+msgid "Text on Accent"
+msgstr ""
+
+msgid "Selection"
+msgstr ""
+
+msgid "Selected Text"
+msgstr ""
+
+msgid "Cursor"
+msgstr ""
+
+msgid "Text Under Cursor"
+msgstr ""
+
+msgid "Link"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Warning"
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+msgid "Black"
+msgstr ""
+
+msgid "Red"
+msgstr ""
+
+msgid "Green"
+msgstr ""
+
+msgid "Yellow"
+msgstr ""
+
+msgid "Blue"
+msgstr ""
+
+msgid "Magenta"
+msgstr ""
+
+msgid "Cyan"
+msgstr ""
+
+msgid "White"
+msgstr ""
+
+msgid "Bright Black"
+msgstr ""
+
+msgid "Bright Red"
+msgstr ""
+
+msgid "Bright Green"
+msgstr ""
+
+msgid "Bright Yellow"
+msgstr ""
+
+msgid "Bright Blue"
+msgstr ""
+
+msgid "Bright Magenta"
+msgstr ""
+
+msgid "Bright Cyan"
+msgstr ""
+
+msgid "Bright White"
+msgstr ""
+
+msgid "Comment"
+msgstr ""
+
+msgid "Keyword"
+msgstr ""
+
+msgid "String"
+msgstr ""
+
+msgid "Number"
+msgstr ""
+
+msgid "Constant"
+msgstr ""
+
+msgid "Function"
+msgstr ""
+
+msgid "Type"
+msgstr ""
+
+msgid "Variable"
+msgstr ""
+
+msgid "Parameter"
+msgstr ""
+
+msgid "Operator"
+msgstr ""
+
+msgid "Punctuation"
+msgstr ""
+
+msgid "Property"
+msgstr ""
+
+msgid "Tag"
+msgstr ""
+
+msgid "Attribute"
+msgstr ""
+
+msgid "Built-In"
+msgstr ""
+
+msgid "Escape Sequence"
+msgstr ""
+
+msgid "Reset to Automatic"
+msgstr ""
+
+#, rust-format
+msgid "{role} is hard to read on {on}: {ratio} to 1, where {need} is needed"
+msgstr ""
+
+msgid "Hard to Read"
+msgstr ""
+
+msgid "Fix"
+msgstr ""
+
+msgid "Main Colors"
+msgstr ""
+
+msgid "Every other color follows these three until it is given one of its own"
+msgstr ""
+
+msgid "_Dark Theme"
+msgstr ""
+
+msgid "Apps and the desktop use their dark style with it"
+msgstr ""
+
+msgid "_Interface"
+msgstr ""
+
+#, rust-format
+msgid "{n} color set by hand"
+msgid_plural "{n} colors set by hand"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "_Terminal"
+msgstr ""
+
+msgid "Set by hand"
+msgstr ""
+
+msgid "_Reset Terminal Colors to Automatic"
+msgstr ""
+
+msgid "_Code"
+msgstr ""
+
+#, rust-format
+msgid "{n} color set"
+msgid_plural "{n} colors set"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Not set"
+msgstr ""
+
+msgid "_Discard"
+msgstr ""
+
+msgid "_Save Theme"
+msgstr ""
+
+msgid "_Name"
+msgstr ""
+
+msgid "Edit Theme"
+msgstr ""
+
+msgid "New Theme"
+msgstr ""
+
+msgid "A theme needs a name"
+msgstr ""
+
+msgid "Theme saved"
+msgstr ""
+
+msgid "The change could not be started"
+msgstr ""
+
+#, rust-format
+msgid "{name} (Copy)"
+msgstr ""
+
 msgid "_Themes"
 msgstr ""
 
@@ -45,6 +278,12 @@ msgid "General"
 msgstr ""
 
 msgid "Undo Last Apply"
+msgstr ""
+
+msgid "Import Theme"
+msgstr ""
+
+msgid "Save Theme"
 msgstr ""
 
 msgid "Back"
@@ -87,6 +326,12 @@ msgid "In use"
 msgstr ""
 
 msgid "In Use"
+msgstr ""
+
+msgid "_New Theme"
+msgstr ""
+
+msgid "_Import…"
 msgstr ""
 
 msgid "Day and Night"
@@ -164,7 +409,54 @@ msgstr ""
 msgid "_Turn On"
 msgstr ""
 
-msgid "The change could not be started"
+msgid "_Duplicate to Edit"
+msgstr ""
+
+msgid "_Edit Theme"
+msgstr ""
+
+msgid "E_xport…"
+msgstr ""
+
+msgid "_Remove Theme"
+msgstr ""
+
+msgid "Theme Files"
+msgstr ""
+
+msgid "Export Theme"
+msgstr ""
+
+msgid "Theme exported"
+msgstr ""
+
+msgid "Theme removed"
+msgstr ""
+
+msgid "The theme could not be put back"
+msgstr ""
+
+#, rust-format
+msgid "By {author}."
+msgstr ""
+
+msgid "A theme with the same id is already in the library."
+msgstr ""
+
+#, rust-format
+msgid "Import {name}?"
+msgstr ""
+
+msgid "_Import"
+msgstr ""
+
+msgid "_Keep Both"
+msgstr ""
+
+msgid "_Replace"
+msgstr ""
+
+msgid "Theme imported"
 msgstr ""
 
 msgid "Style"
@@ -783,4 +1075,37 @@ msgstr ""
 msgid ""
 "Backups are in ~/.local/share/velatura/backups. To try again: velatura "
 "recover"
+msgstr ""
+
+#, rust-format
+msgid ""
+"\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
+msgstr ""
+
+#, rust-format
+msgid "A theme with the id \"{1}\" already exists"
+msgstr ""
+
+#, rust-format
+msgid ""
+"\"{1}\" cannot be a theme's id. An id is made of lower-case letters, digits "
+"and hyphens"
+msgstr ""
+
+#, rust-format
+msgid "No theme of this user has the id \"{1}\""
+msgstr ""
+
+#, rust-format
+msgid "{1} already exists and is not that theme's file"
+msgstr ""
+
+msgid "Not a theme file"
+msgstr ""
+
+#, rust-format
+msgid "Not a valid theme file: {1}"
+msgstr ""
+
+msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr ""

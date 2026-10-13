@@ -7,7 +7,7 @@
 
 use std::path::Path;
 
-use velatura_engine::library::Why;
+use velatura_engine::library::{Refused as LibraryRefused, Why};
 use velatura_engine::look::{Kind, Rejected};
 use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{LastRun, Period, Problem, Refused, Status, format_time};
@@ -32,6 +32,10 @@ Usage:
   velatura schedule                whether the themes change by the clock
   velatura schedule set            turn that on; with --day and --night, set the times
   velatura schedule off            turn it off and remove its timer
+  velatura theme import <file>     add a theme file to the library
+  velatura theme export <theme> [<file>]   write a theme's file, or print it
+  velatura theme resolve <theme>   print a theme with every color written out
+  velatura theme remove <theme>    take one of your themes out of the library
   velatura look                    icons, cursor, wallpaper and fonts in use
   velatura look list <what>        what is installed: icons, cursor or wallpaper
   velatura look set <what> <name>  choose one; also font, document-font, monospace-font
@@ -52,6 +56,8 @@ Options:
   --strict              with validate: treat warnings as errors
   --day <HH:MM>         with schedule set: when the daytime theme starts
   --night <HH:MM>       with schedule set: when the nighttime theme starts
+  --as <id>             with theme import: store it under another id
+  --replace             with theme import or export: replace what is there
   --again               with switch auto: act even if this part of the day was done
   --json                machine-readable output
   -h, --help            this text
@@ -542,6 +548,47 @@ pub fn failure(f: &Failure) -> String {
             out
         }
     }
+}
+
+/// Why a theme was not saved, imported, exported or removed.
+pub fn library_refused(why: &LibraryRefused, home: &Path) -> String {
+    match why {
+        LibraryRefused::Reserved(id) => tf!(
+            "\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed",
+            clean_text(id, 64)
+        ),
+        LibraryRefused::Exists(id) => {
+            tf!(
+                "A theme with the id \"{1}\" already exists",
+                clean_text(id, 64)
+            )
+        }
+        LibraryRefused::BadId(id) => tf!(
+            "\"{1}\" cannot be a theme's id. An id is made of lower-case letters, digits and hyphens",
+            clean_text(id, 64)
+        ),
+        LibraryRefused::NotFound(id) => {
+            tf!(
+                "No theme of this user has the id \"{1}\"",
+                clean_text(id, 64)
+            )
+        }
+        LibraryRefused::FileInTheWay(p) => tf!(
+            "{1} already exists and is not that theme's file",
+            path(p, home)
+        ),
+        LibraryRefused::NotAThemeFile => t("Not a theme file"),
+        LibraryRefused::Invalid(invalid) => tf!(
+            "Not a valid theme file: {1}",
+            clean_text(&invalid.to_string().replace('\n', "; "), 400)
+        ),
+        LibraryRefused::Io(why) => clean_text(why, 300),
+    }
+}
+
+/// What every import says: a theme file is data, not a program.
+pub fn import_promise() -> String {
+    t("Theme files hold only colors and names. They cannot run anything")
 }
 
 pub fn rejected(why: &Why) -> String {
