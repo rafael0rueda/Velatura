@@ -10,6 +10,7 @@ mod color;
 pub mod editor;
 pub mod ghostty;
 pub mod gtk;
+pub mod import;
 pub mod kitty;
 pub mod model;
 pub mod nvim;

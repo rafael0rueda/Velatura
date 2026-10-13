@@ -19,7 +19,7 @@ use velatura_engine::store::DayNight;
 use velatura_engine::targets;
 use velatura_text as text;
 use velatura_theme::model::{ANSI_NAMES, clean_text};
-use velatura_theme::{Resolved, nearest_accent, parse_theme};
+use velatura_theme::{Color, Resolved, nearest_accent, parse_theme};
 
 const OK: u8 = 0;
 const FAILED: u8 = 1;
@@ -43,6 +43,7 @@ struct Args {
     again: bool,
     replace: bool,
     rename: Option<String>,
+    accent: Option<String>,
     day: Option<String>,
     night: Option<String>,
     only: Vec<String>,
@@ -63,6 +64,12 @@ fn parse_args() -> Result<Args, String> {
             "--again" => a.again = true,
             "--replace" => a.replace = true,
             "--as" => a.rename = Some(it.next().ok_or("--as needs an id")?),
+            "--accent" => {
+                a.accent = Some(
+                    it.next()
+                        .ok_or("--accent needs a color's name or #rrggbb")?,
+                );
+            }
             "--day" | "--night" => {
                 let value = it.next().ok_or(format!("{arg} needs a time, as HH:MM"))?;
                 if arg == "--day" {
@@ -612,7 +619,9 @@ impl Cx<'_> {
         Exit {
             code: match why {
                 library::Refused::Io(_) => FAILED,
-                library::Refused::Invalid(_) | library::Refused::NotAThemeFile => FAILED,
+                library::Refused::Invalid(_)
+                | library::Refused::Incomplete(_)
+                | library::Refused::NotAThemeFile => FAILED,
                 _ => USAGE,
             },
             message: text::library_refused(&why, self.home),
@@ -626,8 +635,18 @@ impl Cx<'_> {
             code: FAILED,
             message: clean_text(&e.to_string(), 200),
         })?;
-        let (loaded, source) =
+        let mut found =
             library::inspect(&self.host, &path).map_err(|why| self.library_exit(why))?;
+        if let Some(format) = found.from {
+            println!("{}.", text::imported_from(format));
+            self.import_accent(&mut found)?;
+        } else if self.args.accent.is_some() {
+            return Err(Exit {
+                code: USAGE,
+                message: "--accent is for a base16, base24 or Kitty file. A theme file names its own accent".to_owned(),
+            });
+        }
+        let library::Inspected { loaded, source, .. } = found;
         for w in &loaded.warnings {
             eprintln!("warning: {w}");
         }
@@ -666,6 +685,89 @@ impl Cx<'_> {
             theme.id
         );
         Ok(OK)
+    }
+
+    /// These formats name no accent, so one of the file's colours is
+    /// taken: the one named with `--accent`, the one answered on a
+    /// terminal, or the usual one.
+    fn import_accent(&self, found: &mut library::Inspected) -> Result<(), Exit> {
+        let pick = |word: &str| -> Option<Color> {
+            let word = word.trim();
+            found
+                .accents
+                .iter()
+                .enumerate()
+                .find(|(i, (name, _))| name.eq_ignore_ascii_case(word) || word.parse() == Ok(i + 1))
+                .map(|(_, (_, color))| *color)
+                .or_else(|| Color::parse(word).ok().filter(|c| c.is_opaque()))
+        };
+        let names = found
+            .accents
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let usual = found.accent;
+        let chosen = if let Some(word) = &self.args.accent {
+            Some(pick(word).ok_or_else(|| Exit {
+                code: USAGE,
+                message: format!(
+                    "--accent takes one of this file's colors ({names}) or a color as #rrggbb"
+                ),
+            })?)
+        } else if !self.args.yes
+            && !self.args.json
+            && !self.args.preview
+            && std::io::stdin().is_terminal()
+        {
+            println!("\nThe file names no accent color. One of its colors can be it:");
+            for (i, (name, color)) in found.accents.iter().enumerate() {
+                let mark = if i == usual { "  (usual)" } else { "" };
+                println!("  {:>2}  {name:<20} {}{mark}", i + 1, color.hex());
+            }
+            loop {
+                print!("Accent color: a number, a name or #rrggbb [{}] ", usual + 1);
+                let _ = std::io::stdout().flush();
+                let mut answer = String::new();
+                // Nothing to read, or nothing typed: the usual one.
+                if std::io::stdin().read_line(&mut answer).unwrap_or(0) == 0
+                    || answer.trim().is_empty()
+                {
+                    break None;
+                }
+                match pick(&answer) {
+                    Some(color) => break Some(color),
+                    None => println!("Not one of them, and not a color."),
+                }
+            }
+        } else {
+            None
+        };
+        let asked = self.args.accent.is_some() || chosen.is_some();
+        if let Some(color) = chosen
+            && !found.choose_accent(color)
+        {
+            return Err(Exit {
+                code: FAILED,
+                message: "The theme could not be given that accent color".to_owned(),
+            });
+        }
+        let accent = found
+            .loaded
+            .theme
+            .variants
+            .values()
+            .next()
+            .map(|v| v.ui.accent.hex())
+            .unwrap_or_default();
+        match found.accents.get(found.accent) {
+            Some((name, _)) if asked => println!("Accent color: {name} {accent}."),
+            Some((name, _)) => println!(
+                "Accent color: {name} {accent}, the usual one. For another: --accent <name or #rrggbb>, one of {names}."
+            ),
+            None => println!("Accent color: {accent}."),
+        }
+        Ok(())
     }
 
     fn theme_export(&self, id: &str, file: Option<&str>) -> Outcome {

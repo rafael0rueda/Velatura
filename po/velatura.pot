@@ -448,6 +448,9 @@ msgstr ""
 msgid "Import {name}?"
 msgstr ""
 
+msgid "Accent Color"
+msgstr ""
+
 msgid "_Import"
 msgstr ""
 
@@ -843,9 +846,6 @@ msgstr ""
 msgid "Changes"
 msgstr ""
 
-msgid "Accent Color"
-msgstr ""
-
 msgid "Legacy Application Theme"
 msgstr ""
 
@@ -1198,6 +1198,27 @@ msgstr ""
 
 #, rust-format
 msgid "Not a valid theme file: {1}"
+msgstr ""
+
+#, rust-format
+msgid "{1} that could not be made into a theme"
+msgstr ""
+
+#, rust-format
+msgid "{1} without all the colors a theme needs. Missing: {2}"
+msgstr ""
+
+msgid "A base16 scheme"
+msgstr ""
+
+msgid "A base24 scheme"
+msgstr ""
+
+msgid "A Kitty theme"
+msgstr ""
+
+#, rust-format
+msgid "{1}, read as a theme. Colors it does not give were worked out from the ones it does"
 msgstr ""
 
 msgid "Theme files hold only colors and names. They cannot run anything"

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 3b – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 3b – themes from base16, base24 and Kitty files</h1>
+<p class="lead">Branch <code>phase-3b-importers</code>, on top of <a href="phase-3a.html">Phase 3a</a>. Completed 2026-10-13. The second of four slices of Phase 3 (<a href="../decisions.html#d54">D54</a>). Its exit condition: an imported theme applies like any other. It does, and the command's test applies one in every run.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed, and no theme was added to the real library.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>Import reads three more kinds of file.</strong> A base16 scheme, in the older layout (<code>scheme:</code> and sixteen <code>base00</code> to <code>base0F</code> lines) or the newer one with a <code>palette:</code> section; a base24 scheme, which adds eight colours; and a Kitty theme, as Kitty's own theme collection writes them. Import in the app (Ctrl+O) and <code>velatura theme import &lt;file&gt;</code> take them as they take a theme file. The file dialog also shows <code>.yaml</code>, <code>.yml</code> and <code>.conf</code> files.</li>
+<li><strong>The result is an ordinary theme.</strong> It is stored as a theme file with every colour written out, can be edited, exported and applied like any other, and keeps nothing of the file it came from but its colours and its name, author and licence. The question before importing, and the command, say which kind of file it was and that colours it does not give were worked out.</li>
+<li><strong>From a base16 scheme:</strong> background, text, surface, selection, the two quieter text colours, and blue (<code>base0D</code>) as the accent; the sixteen terminal colours as base16's own terminal templates number them; fourteen colours for code, following the format's styling guidelines; and the scheme's own colours kept under their own names in the theme's palette. A base24 scheme also brings its six bright terminal colours and its darker background.</li>
+<li><strong>From a Kitty theme:</strong> background, text, the sixteen terminal colours, selection, cursor and link colour. Values that are not colours (<code>none</code>, <code>background</code>) are passed over.</li>
+<li><strong>The accent is asked for.</strong> None of these formats names an accent, and a theme needs one: it drives the system accent, links and what is in focus. Any of the file's own colours can be it: the eight accent colours of a base16 scheme (fourteen in base24), or a Kitty theme's terminal colours and the border of its active window.
+  <ul>
+  <li><strong>In the app,</strong> the question before importing shows those colours under Accent Color. The usual one is chosen to begin with and carries a check mark; choosing another updates the strip of the theme's colours above it.</li>
+  <li><strong>In the command,</strong> <code>--accent &lt;name or #rrggbb&gt;</code> names it: by its name in the file (<code>base0E</code>, <code>color5</code>), by its place in the list, or as any colour. On a terminal, without <code>--accent</code> and without <code>--yes</code>, the command lists the colours and asks; Enter takes the usual one.</li>
+  <li><strong>With no one to ask and none named,</strong> the usual one is taken: <code>base0D</code>, the scheme's blue, from base16 and base24; from Kitty the border of the active window where the theme sets one, and <code>color4</code> otherwise. The command says which it took and how to name another.</li>
+  <li>Colours that follow the accent, such as links, follow the one chosen. Colours the file gave stay as they are. Afterwards the accent can be changed in the editor like any colour.</li>
+  </ul>
+</li>
+<li><strong>A file that lacks colours says which.</strong> "A Kitty theme without all the colors a theme needs. Missing: color1, color2". Nothing is stored.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Seven tests of the reader, with real schemes as fixtures (Ocean in both base16 layouts, One Light as base24, Dracula for Kitty): the two layouts give the same theme; a Kitty theme written back out for Kitty has every colour it came with; what Velatura writes for Kitty reads back with the same terminal colours; what is missing is named; a script, a settings file and an empty file are not themes; hostile text in a scheme's name stays a cleaned, capped name and cannot add a variant; the colours offered as accent, the usual one among them, and what changes when another is chosen.</li>
+<li>One test of the library: the three kinds stored, listed and refused on a clash like any theme; a file of Velatura's own with a mistake is still reported as that.</li>
+<li>20,000 damaged copies of the fixtures go through the reader: nothing panics, whatever is read passes the validator and reads back as itself, and each colour offered as accent gives a valid theme.</li>
+<li>The command end to end: a Kitty theme and a base16 scheme imported, shown and applied; the accent named by name, by place and as a colour; a name the file does not have refused, with the names it has.</li>
+<li><strong>In the gate, through the app:</strong> a base16 scheme is imported through the question, another accent than the usual one is chosen there, and the command then shows the stored theme with it.</li>
+<li>161 tests in all. The translation template has 371 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>No YAML library</strong> (<a href="../decisions.html#d56">D56</a>). A base16 scheme is a flat list of <code>key: value</code> lines. A reader of a few lines takes what is needed from it; a YAML parser would be a further third-party crate in the command, which stands at 44 of the 45 allowed.</li>
+<li><strong>The accent is the user's choice</strong> (<a href="../decisions.html#d56">D56</a>): asked in the app and on a terminal, named with <code>--accent</code>, and a usual one where neither happens. Decided by the owner when the first version, which always took blue, was shown.</li>
+<li><strong>One import for all formats.</strong> The plan spoke of importers; there is no separate command or menu item. The file's content, not its name, says what it is.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>The file dialog was not opened by a person</strong>: a headless session cannot show it. The question after it, with the accent choice, is driven in the gate.</li>
+<li><strong>The accent choice by keyboard and screen reader</strong> was not tried by a person. Each colour is a button with its name and value as its label, and the chosen one has a check mark as well as its state.</li>
+<li><strong>The question on a terminal</strong> was not answered by a person; the tests name the accent with <code>--accent</code>.</li>
+<li><strong>Only the single-file forms.</strong> A base16 scheme is not fetched by name from the collections online, and Kitty's <code>include</code> lines are not followed: only the file given is read.</li>
+<li><strong>Colours written as names or in short form</strong> (<code>red</code>, <code>#fff</code>) in a Kitty theme are passed over, as if not given. Kitty's own collection writes six digits.</li>
+<li><strong>base16's choice of red for variables</strong> is kept as its guidelines have it. It can be changed in the editor under Code.</li>
+<li><strong>Whether an imported theme reads well everywhere</strong> depends on the scheme: some give quiet text colours below the contrast the editor asks for. The editor lists those and offers Fix; import does not change a scheme's colours by itself.</li>
+</ul>
+
+</main>
+</body>
+</html>

@@ -2,8 +2,9 @@
 
 use std::path::{Path, PathBuf};
 
+use velatura_theme::import::{self, Format, Incomplete};
 use velatura_theme::model::{Code, Diagnostic, Invalid, MAX_FILE_BYTES, is_slug, to_toml};
-use velatura_theme::{Loaded, Theme, bundled, parse_theme};
+use velatura_theme::{Color, Loaded, Theme, bundled, parse_theme};
 
 use crate::host::{Host, Kind};
 use crate::store::{ensure_dir, read_opt};
@@ -111,6 +112,8 @@ pub enum Refused {
     /// The file to read is too large to be a theme, or is not text.
     NotAThemeFile,
     Invalid(Invalid),
+    /// A theme in another format that lacks colours a theme needs.
+    Incomplete(Incomplete),
     Io(String),
 }
 
@@ -118,9 +121,41 @@ fn io<T>(result: std::io::Result<T>) -> Result<T, Refused> {
     result.map_err(|e| Refused::Io(e.to_string()))
 }
 
-/// Read a file someone wants to import and check it as a theme. The file
-/// is untrusted: size-capped before it is parsed, and never run.
-pub fn inspect(host: &Host<'_>, path: &Path) -> Result<(Loaded, String), Refused> {
+/// A file read for importing: the theme, the text to store it as, and the
+/// format it was in if that was not Velatura's own.
+pub struct Inspected {
+    pub loaded: Loaded,
+    pub source: String,
+    pub from: Option<Format>,
+    /// For a file in another format: its colours that can be the accent,
+    /// by their names in the file, and which one the theme has.
+    pub accents: Vec<(String, Color)>,
+    pub accent: usize,
+}
+
+impl Inspected {
+    /// Give the theme another accent before it is stored. False, with
+    /// nothing changed, if that does not leave a valid theme.
+    pub fn choose_accent(&mut self, accent: Color) -> bool {
+        let Some(theme) = import::with_accent(&self.loaded.theme, accent) else {
+            return false;
+        };
+        self.source = to_toml(&theme);
+        self.loaded.theme = theme;
+        self.accent = self
+            .accents
+            .iter()
+            .position(|(_, c)| *c == accent)
+            .unwrap_or(self.accents.len());
+        true
+    }
+}
+
+/// Read a file someone wants to import and check it as a theme: one of
+/// Velatura's own, or a base16, base24 or Kitty one, which becomes a theme
+/// with every colour written out. The file is untrusted: size-capped
+/// before it is parsed, and never run.
+pub fn inspect(host: &Host<'_>, path: &Path) -> Result<Inspected, Refused> {
     if !matches!(host.fs.kind(path), Ok(Some(Kind::File | Kind::Symlink))) {
         return Err(Refused::NotAThemeFile);
     }
@@ -129,8 +164,30 @@ pub fn inspect(host: &Host<'_>, path: &Path) -> Result<(Loaded, String), Refused
         return Err(Refused::NotAThemeFile);
     }
     let text = String::from_utf8(bytes).map_err(|_| Refused::NotAThemeFile)?;
-    let loaded = parse_theme(&text).map_err(Refused::Invalid)?;
-    Ok((loaded, text))
+    let invalid = match parse_theme(&text) {
+        Ok(loaded) => {
+            return Ok(Inspected {
+                loaded,
+                source: text,
+                from: None,
+                accents: Vec::new(),
+                accent: 0,
+            });
+        }
+        Err(invalid) => invalid,
+    };
+    let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+    match import::read(&text, &stem) {
+        Some(Ok(found)) => Ok(Inspected {
+            source: to_toml(&found.loaded.theme),
+            loaded: found.loaded,
+            from: Some(found.format),
+            accents: found.accents,
+            accent: found.accent,
+        }),
+        Some(Err(incomplete)) => Err(Refused::Incomplete(incomplete)),
+        None => Err(Refused::Invalid(invalid)),
+    }
 }
 
 /// True if a theme of this id is in the library, bundled or the user's.

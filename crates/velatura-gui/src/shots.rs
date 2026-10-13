@@ -102,12 +102,61 @@ pub async fn run_if_asked(ui: &U) {
     if std::env::var_os("VELATURA_SHOTS_EDITOR").is_some() {
         editor(ui, dir).await;
     }
+    if let Some(file) = std::env::var_os("VELATURA_SHOTS_IMPORT") {
+        import(ui, dir, file.into()).await;
+    }
     if std::env::var_os("VELATURA_SHOTS_FLOW").is_some() {
         flow(ui, dir).await;
     }
     if let Some(app) = ui.window.application() {
         app.quit();
     }
+}
+
+/// Every toggle button under `widget`, in the order they are laid out.
+fn toggles(widget: &gtk::Widget, out: &mut Vec<gtk::ToggleButton>) {
+    if let Some(button) = widget.downcast_ref::<gtk::ToggleButton>() {
+        out.push(button.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(c) = child {
+        toggles(&c, out);
+        child = c.next_sibling();
+    }
+}
+
+/// Import a file in another format the way a person would: look at the
+/// question, choose another accent than the usual one, and import.
+async fn import(ui: &U, dir: &Path, file: std::path::PathBuf) {
+    if let Some(dialog) = ui.window.visible_dialog() {
+        dialog.force_close();
+        pause(400).await;
+    }
+    let ui2 = ui.clone();
+    glib::spawn_future_local(async move { crate::import_file(&ui2, file).await });
+    pause(1200).await;
+    save(ui, dir, "import");
+    let Some(question) = ui.window.visible_dialog() else {
+        println!("SHOTS import no question");
+        return;
+    };
+    let mut choices = Vec::new();
+    toggles(question.upcast_ref(), &mut choices);
+    let usual = choices.iter().position(|b| b.is_active());
+    println!("SHOTS import accents={} usual={usual:?}", choices.len());
+    // The one before the last: for a base16 scheme, its purple.
+    if let Some(other) = choices.len().checked_sub(2).and_then(|i| choices.get(i)) {
+        other.set_active(true);
+        println!(
+            "SHOTS import chosen={}",
+            other.tooltip_text().unwrap_or_default()
+        );
+    }
+    pause(500).await;
+    save(ui, dir, "import-chosen");
+    question.activate_default();
+    pause(1500).await;
+    save(ui, dir, "imported");
 }
 
 /// Make a theme in the editor the way a person would: start a new one,

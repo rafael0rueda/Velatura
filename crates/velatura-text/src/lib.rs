@@ -16,6 +16,7 @@ use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{LastRun, Period, Problem, Refused, Status, format_time};
 use velatura_engine::targets::OtherTool;
 use velatura_engine::txn::{Failure, Rollback};
+use velatura_theme::import::Format;
 use velatura_theme::model::clean_text;
 
 pub const HELP: &str = "\
@@ -39,7 +40,8 @@ Usage:
   velatura extension               whether Velatura's own Shell extension is installed
   velatura extension install       install it for this user (turning it on is left to you)
   velatura extension remove        remove the copy Velatura installed
-  velatura theme import <file>     add a theme file to the library
+  velatura theme import <file>     add a theme file to the library; base16,
+                                   base24 and Kitty themes are read too
   velatura theme export <theme> [<file>]   write a theme's file, or print it
   velatura theme resolve <theme>   print a theme with every color written out
   velatura theme remove <theme>    take one of your themes out of the library
@@ -64,6 +66,8 @@ Options:
   --day <HH:MM>         with schedule set: when the daytime theme starts
   --night <HH:MM>       with schedule set: when the nighttime theme starts
   --as <id>             with theme import: store it under another id
+  --accent <color>      with theme import of a base16, base24 or Kitty file:
+                        which of its colors is the accent, by name or #rrggbb
   --replace             with theme import or export: replace what is there
   --again               with switch auto: act even if this part of the day was done
   --json                machine-readable output
@@ -675,8 +679,33 @@ pub fn library_refused(why: &LibraryRefused, home: &Path) -> String {
             "Not a valid theme file: {1}",
             clean_text(&invalid.to_string().replace('\n', "; "), 400)
         ),
+        LibraryRefused::Incomplete(lacking) if lacking.missing.is_empty() => tf!(
+            "{1} that could not be made into a theme",
+            format_name(lacking.format)
+        ),
+        LibraryRefused::Incomplete(lacking) => tf!(
+            "{1} without all the colors a theme needs. Missing: {2}",
+            format_name(lacking.format),
+            clean_text(&lacking.missing.join(", "), 300)
+        ),
         LibraryRefused::Io(why) => clean_text(why, 300),
     }
+}
+
+fn format_name(format: Format) -> String {
+    match format {
+        Format::Base16 => t("A base16 scheme"),
+        Format::Base24 => t("A base24 scheme"),
+        Format::Kitty => t("A Kitty theme"),
+    }
+}
+
+/// What an import says of a file that was not a theme file of Velatura's.
+pub fn imported_from(format: Format) -> String {
+    tf!(
+        "{1}, read as a theme. Colors it does not give were worked out from the ones it does",
+        format_name(format)
+    )
 }
 
 /// What every import says: a theme file is data, not a program.
