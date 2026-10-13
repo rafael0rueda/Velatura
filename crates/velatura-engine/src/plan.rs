@@ -53,7 +53,8 @@ pub enum Skip {
     NotInstalled,
     /// Excluded by `--only` or `--except`.
     NotSelected,
-    /// Adding a line to a file the user maintains was not agreed to.
+    /// Adding to settings the user maintains (a line in a file, or files in
+    /// a folder) was not agreed to.
     NoConsent,
     /// The real location, after following links, is outside the home folder.
     OutsideHome(PathBuf),
@@ -78,6 +79,14 @@ pub enum Skip {
     NeedsUserThemes,
     /// A GNOME Shell version Velatura has not been checked with.
     UntestedShell(String),
+    /// The path would have to be written into a settings file and has
+    /// characters that file's language gives a meaning to.
+    UnusualPath(PathBuf),
+    /// The file is not valid as it stands, so nothing is added to it.
+    Invalid(PathBuf),
+    /// Starship's settings already choose a palette, or define the one
+    /// Velatura would add. That choice is the user's.
+    OwnPalette(PathBuf),
 }
 
 /// Something the user should know that does not stop the operation.
@@ -97,6 +106,17 @@ pub enum Note {
     KittyReload,
     /// Ghostty reloads its settings on a key press.
     GhosttyReload,
+    /// A running tmux keeps its colours until its settings are loaded
+    /// again; `conf` is the file to load.
+    TmuxReload {
+        conf: PathBuf,
+    },
+    /// Neovim shows the colourscheme once it is selected, which is the
+    /// user's to do in their own settings.
+    NeovimSelect,
+    /// The prompt shows the palette's colours only where its settings name
+    /// them.
+    StarshipNames,
     /// GTK reads its stylesheet once, when an app starts.
     GtkRestart,
     /// The settings file is a link; the change lands in `real`.
@@ -153,7 +173,8 @@ pub struct TargetPlan {
     pub changes: Vec<Change>,
     pub notes: Vec<Note>,
     pub skipped: Option<Skip>,
-    /// True when this would add a line to a user's file for the first time.
+    /// True when this would add to settings the user maintains for the
+    /// first time: a line in a file of theirs, or files in a folder of theirs.
     pub needs_consent: bool,
 }
 

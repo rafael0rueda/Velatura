@@ -1431,6 +1431,10 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         (tr("Desktop"), vec![targets::APPEARANCE, targets::SHELL]),
         (tr("Terminals"), vec![targets::KITTY, targets::GHOSTTY]),
         (
+            tr("Command-Line Apps"),
+            vec![targets::TMUX, targets::NVIM, targets::STARSHIP],
+        ),
+        (
             tr("Apps"),
             vec![targets::GTK4, targets::GTK3, targets::FLATPAK],
         ),

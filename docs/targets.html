@@ -36,9 +36,9 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>GNOME Shell (companion extension)</td><td>An extension that loads one stylesheet at the same priority as other extensions</td><td><span class="tag wa">Workaround</span></td><td>Immediately once installed</td><td>2</td></tr>
 <tr><td>Flatpak apps</td><td>An edit of Flatpak's per-user override file, granting read-only access to the GTK config directories</td><td><span class="tag wa">Workaround</span></td><td>When each app is restarted</td><td>2</td></tr>
 <tr><td>Icons, cursor, wallpaper, fonts (select)</td><td>GSettings</td><td><span class="tag ok">Official</span></td><td>Immediately for most apps</td><td>2</td></tr>
-<tr><td>Neovim</td><td>A colourscheme file the app creates; the user selects it</td><td><span class="tag ok">Official</span></td><td>On <code>:colorscheme</code> or next start</td><td>3</td></tr>
-<tr><td>Starship</td><td>A named palette in <code>starship.toml</code> (key-level edit)</td><td><span class="tag ok">Official</span></td><td>Next prompt</td><td>3</td></tr>
-<tr><td>tmux</td><td>A file the app creates, loaded by one <code>source-file</code> line</td><td><span class="tag ok">Official</span></td><td>After the user reloads the config</td><td>3</td></tr>
+<tr><td>Neovim</td><td>A colourscheme file the app creates; the user selects it</td><td><span class="tag ok">Official</span></td><td>On <code>:colorscheme</code> or next start</td><td>3a</td></tr>
+<tr><td>Starship</td><td>A named palette in <code>starship.toml</code> (key-level edit)</td><td><span class="tag ok">Official</span></td><td>Next prompt</td><td>3a</td></tr>
+<tr><td>tmux</td><td>A file the app creates, loaded by one <code>source-file</code> line</td><td><span class="tag ok">Official</span></td><td>After the user reloads the config</td><td>3a</td></tr>
 <tr><td>Obsidian</td><td>A CSS snippet in each chosen vault</td><td><span class="tag ok">Official</span></td><td>Once the user enables the snippet</td><td>3</td></tr>
 <tr><td>Icons (recolour, vector themes)</td><td>A generated per-user icon theme derived from an installed one</td><td><span class="tag wa">Workaround</span></td><td>Immediately for most apps</td><td>3</td></tr>
 <tr><td>Ptyxis, GNOME Text Editor</td><td>User palettes and style schemes (to verify)</td><td>Candidate</td><td>—</td><td>3</td></tr>
@@ -143,12 +143,29 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </ul>
 
 <h2 id="apps">9. Other applications</h2>
-<h3>Neovim (Phase 3)</h3>
-<p><strong>Recommended method.</strong> The app creates a self-contained colourscheme, <code>~/.config/nvim/colors/velatura.lua</code>, defining the standard highlight groups, common plugin groups and terminal colours, with no plugin dependency. The user activates it with <code>colorscheme velatura</code> in their own config; the app shows the line and never edits <code>init.lua</code>. For people who keep their own colourscheme, the app can instead write only a palette table for them to feed into it. Importing a theme from a running Neovim was proposed and is dropped for now, because it would mean running an external program against user configuration.</p>
-<h3>Starship (Phase 3)</h3>
-<p>Starship supports named palettes but has no include mechanism, so this is a key-level edit of <code>starship.toml</code>: add the <code>[palettes.velatura]</code> table and set <code>palette</code>, leaving everything else byte-identical. The prompt only changes where the user's format strings use the palette's colour names.</p>
-<h3>tmux (Phase 3)</h3>
-<p>A file the app creates, loaded by one <code>source-file</code> line. The user reloads the config.</p>
+<h3>Neovim (Phase 3a)</h3>
+<p>The app creates a self-contained colourscheme, <code>~/.config/nvim/colors/velatura.lua</code>, defining the standard highlight groups, Tree-sitter and diagnostic groups, common plugin groups and terminal colours, with no plugin dependency. The user activates it with <code>colorscheme velatura</code> in their own config; the app shows the line and never edits <code>init.lua</code>. For people who keep their own colourscheme, the app also writes the same colours as a table, <code>lua/velatura/palette.lua</code>, for them to feed into it.</p>
+<ul>
+<li>The first time, in a settings folder that already exists, the app asks before putting its two files there; a scheduled switch never does it by itself.</li>
+<li>Colours for code that a theme does not give are taken from its terminal and interface colours.</li>
+<li>Only <code>~/.config/nvim</code> is used; <code>NVIM_APPNAME</code> is not looked at.</li>
+<li>Importing a theme from a running Neovim was proposed and is dropped for now, because it would mean running an external program against user configuration.</li>
+</ul>
+<h3>Starship (Phase 3a)</h3>
+<p>Starship supports named palettes but has no include mechanism, so the palette goes into <code>starship.toml</code> itself (or the file <code>STARSHIP_CONFIG</code> names): a marked block at the top of the file holding <code>palette = "velatura"</code> and the palette's colours as keys of the file's root (<code>palettes.velatura.accent = …</code>), leaving everything else byte-identical. Root keys must come before the first table, which is why this block is at the top and not at the end.</p>
+<ul>
+<li>The palette has the seventeen interface roles under their names in the theme file, and <code>directory</code>, <code>git</code> and <code>language</code>, which a theme can set under <code>slots.starship</code>.</li>
+<li>The prompt only changes where the user's format strings use the palette's colour names. Starship's own colour names (<code>red</code>, <code>bold cyan</code>) are not redefined: they stay the terminal's.</li>
+<li>A file that already selects a palette is left alone, with the reason: its prompt is written for that palette's names. So is a file that does not parse.</li>
+</ul>
+<h3>tmux (Phase 3a)</h3>
+<p>A file the app creates, <code>~/.config/tmux/velatura.conf</code>, loaded by one <code>source-file -q</code> line in a marked block at the end of the user's settings. tmux reads <code>~/.tmux.conf</code> and then <code>tmux.conf</code> in its settings folder; the block goes into the second when it exists, and into the first when that is the only one.</p>
+<ul>
+<li>It sets fourteen style options present since tmux 2.9: status line, window list, pane borders, messages, copy mode, clock.</li>
+<li>Detected and reported: lines after the block that set one of those options or load another file.</li>
+<li>Colours written as text inside <code>status-left</code>, <code>status-right</code> or window formats are the user's and stay. Themes drawn by tmux plugins are not detected.</li>
+<li>Running sessions keep their colours until the user loads the settings again; the app gives the command.</li>
+</ul>
 <h3>Obsidian (Phase 3)</h3>
 <p>CSS snippets are a supported Obsidian feature. For each vault the user selects, the app writes <code>.obsidian/snippets/velatura.css</code>. The user enables the snippet in Obsidian's Appearance settings. Obsidian rewrites its own settings file while running, so the app does not edit it unless Obsidian is closed and the user opted in. Vaults are user data and often synchronised; nothing is written to a vault that was not explicitly chosen.</p>
 <h3>Firefox (Phase 4, experimental)</h3>

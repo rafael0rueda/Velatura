@@ -3,7 +3,7 @@
 //! A connector only reads. It looks at the machine and returns the changes
 //! it would make; the engine carries them out.
 //!
-//! Four of the five targets have the same shape: a file Velatura creates
+//! Most targets that write files have the same shape: a file Velatura creates
 //! and owns, connected by one line inside a marked block at the end of a
 //! file the user maintains. [`FileTarget`] describes one and
 //! [`plan_files`] plans it.
@@ -12,7 +12,8 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use velatura_theme::{
-    Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, sha256_hex, shell,
+    Appearance, Resolved, ghostty, gtk, kitty, nearest_accent, nvim, sha256_hex, shell, starship,
+    tmux,
 };
 
 use crate::block;
@@ -30,9 +31,14 @@ pub const GTK3: &str = "gtk3:default";
 pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
 pub const FLATPAK: &str = "flatpak:global";
+pub const TMUX: &str = "tmux:default";
+pub const NVIM: &str = "nvim:default";
+pub const STARSHIP: &str = "starship:default";
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 7] = [KITTY, GHOSTTY, GTK4, GTK3, FLATPAK, SHELL, APPEARANCE];
+pub const INSTANCES: [&str; 10] = [
+    KITTY, GHOSTTY, GTK4, GTK3, TMUX, NVIM, STARSHIP, FLATPAK, SHELL, APPEARANCE,
+];
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours.
@@ -97,13 +103,15 @@ struct FileTarget<'a> {
     instance: &'a str,
     /// The name in the block's marker lines.
     block: &'a str,
+    /// The folder the owned file goes into.
     dir: PathBuf,
     /// If set, the target counts as installed when its folder exists or
     /// this program is on the path. If not set it is always available.
     program: Option<&'a str>,
     owned: &'a str,
     content: Vec<u8>,
-    conf: &'a str,
+    /// The user's file the block goes into.
+    conf: PathBuf,
     /// The single line placed inside the block.
     body: &'a str,
     /// True for a line that, placed after the block, wins over the theme.
@@ -124,69 +132,79 @@ fn override_lines(content: &[u8], block: &str, wins: &dyn Fn(&str) -> bool) -> V
         .collect()
 }
 
-fn plan_files(
+/// The folders Velatura's files go into, outermost first: each is there
+/// already, inside the home folder, or is planned. Only folders under one
+/// that exists are made; a missing parent of the first means this is not
+/// a place the app has ever used.
+fn place(host: &Host<'_>, levels: &[&Path], plan: &mut TargetPlan) -> Result<(), Skip> {
+    for dir in levels {
+        let dir = dir.to_path_buf();
+        let under_planned = plan.changes.iter().any(
+            |c| matches!(c, Change::CreateDir { path } if Some(path.as_path()) == dir.parent()),
+        );
+        match host.fs.kind(&dir).ok().flatten() {
+            None if under_planned => plan.changes.push(Change::CreateDir { path: dir }),
+            None => match dir.parent() {
+                Some(parent) if inside_home(host, parent) => {
+                    plan.changes.push(Change::CreateDir { path: dir });
+                }
+                _ => return Err(Skip::OutsideHome(dir)),
+            },
+            Some(Kind::Dir | Kind::Symlink) if inside_home(host, &dir) => {}
+            Some(Kind::Dir | Kind::Symlink) => return Err(Skip::OutsideHome(dir)),
+            Some(_) => return Err(Skip::NotAFile(dir)),
+        }
+    }
+    Ok(())
+}
+
+/// A file Velatura creates and owns, with `content` in it.
+fn own(
     host: &Host<'_>,
-    env: Env<'_>,
     state: &State,
     replace_changed: bool,
-    t: &FileTarget<'_>,
-) -> TargetPlan {
-    let skip = |why| TargetPlan::skip(t.instance, why);
-    let dir = &t.dir;
-    let dir_kind = host.fs.kind(dir).ok().flatten();
-    if let Some(program) = t.program
-        && dir_kind.is_none()
-        && !on_path(host, env, program)
-    {
-        return skip(Skip::NotInstalled);
-    }
-    let mut plan = TargetPlan::new(t.instance);
-
-    match dir_kind {
-        None => {
-            // Only the last level is created; a missing parent means this
-            // is not a place the app has ever used.
-            match dir.parent() {
-                Some(parent) if inside_home(host, parent) => {
-                    plan.changes.push(Change::CreateDir { path: dir.clone() });
-                }
-                _ => return skip(Skip::OutsideHome(dir.clone())),
-            }
-        }
-        Some(Kind::Dir | Kind::Symlink) if inside_home(host, dir) => {}
-        Some(Kind::Dir | Kind::Symlink) => return skip(Skip::OutsideHome(dir.clone())),
-        Some(_) => return skip(Skip::NotAFile(dir.clone())),
-    }
-
-    // The colour file: created and owned by Velatura.
-    let owned = dir.join(t.owned);
+    owned: PathBuf,
+    content: &[u8],
+    plan: &mut TargetPlan,
+) -> Result<(), Skip> {
     let current = match host.fs.kind(&owned) {
         Ok(None) => None,
         Ok(Some(Kind::File)) => match host.fs.read(&owned) {
             Ok(bytes) => Some(bytes),
-            Err(_) => return skip(Skip::Unreadable(owned)),
+            Err(_) => return Err(Skip::Unreadable(owned)),
         },
-        _ => return skip(Skip::ForeignFile(owned)),
+        _ => return Err(Skip::ForeignFile(owned)),
     };
     let pre = current.as_deref().map(sha256_hex);
     match (&pre, state.owned.get(&path_str(&owned))) {
         (None, _) => {}
-        (Some(_), None) => return skip(Skip::ForeignFile(owned)),
+        (Some(_), None) => return Err(Skip::ForeignFile(owned)),
         (Some(now), Some(written)) if now != written && !replace_changed => {
-            return skip(Skip::ChangedOutside(owned));
+            return Err(Skip::ChangedOutside(owned));
         }
         _ => {}
     }
-    if current.as_deref() != Some(t.content.as_slice()) {
+    if current.as_deref() != Some(content) {
         plan.changes.push(Change::Owned {
             path: owned,
-            content: Some(t.content.clone()),
+            content: Some(content.to_vec()),
             pre,
         });
     }
+    Ok(())
+}
 
-    // The user's file: one marked block holding the connecting line.
-    let conf = dir.join(t.conf);
+/// The user's file `conf`, with Velatura's marked block holding `body`.
+/// Gives the file as it stands and as it would be after.
+fn connect(
+    host: &Host<'_>,
+    state: &State,
+    (instance, block): (&str, &str),
+    conf: &Path,
+    body: &str,
+    plan: &mut TargetPlan,
+) -> Result<(Option<Vec<u8>>, Vec<u8>), Skip> {
+    let conf = conf.to_path_buf();
     let current = match host.fs.kind(&conf) {
         Ok(None) => None,
         Ok(Some(Kind::File)) => read_opt(host, &conf).ok().flatten(),
@@ -195,10 +213,10 @@ fn plan_files(
             let is_file =
                 real.as_ref().and_then(|r| host.fs.kind(r).ok().flatten()) == Some(Kind::File);
             let Some(real) = real.filter(|_| is_file) else {
-                return skip(Skip::NotAFile(conf));
+                return Err(Skip::NotAFile(conf));
             };
             if !inside_home(host, &conf) {
-                return skip(Skip::OutsideHome(conf));
+                return Err(Skip::OutsideHome(conf));
             }
             plan.notes.push(Note::LinkedFile {
                 path: conf.clone(),
@@ -206,30 +224,29 @@ fn plan_files(
             });
             read_opt(host, &conf).ok().flatten()
         }
-        _ => return skip(Skip::NotAFile(conf)),
+        _ => return Err(Skip::NotAFile(conf)),
     };
     if current.is_none() && exists(host, &conf) {
-        return skip(Skip::Unreadable(conf));
+        return Err(Skip::Unreadable(conf));
     }
     if current.is_some() && host.fs.links(&conf).unwrap_or(1) > 1 {
-        return skip(Skip::HardLinked(conf));
+        return Err(Skip::HardLinked(conf));
     }
     let before = current.clone().unwrap_or_default();
-    let Some(up) = block::upsert(&before, t.block, t.body) else {
-        return skip(Skip::MalformedBlock(conf));
+    let Some(up) = block::upsert(&before, block, body) else {
+        return Err(Skip::MalformedBlock(conf));
     };
     let record = state.blocks.get(&path_str(&conf));
-    let overrides = override_lines(&up.content, t.block, t.overrides);
     if up.content != before {
         // Agreement is for adding to a file the user already has.
         plan.needs_consent =
-            current.is_some() && up.before.is_none() && !state.consents.contains(t.instance);
+            current.is_some() && up.before.is_none() && !state.consents.contains(instance);
         plan.changes.push(Change::Block {
-            path: conf.clone(),
-            target: t.block.to_owned(),
+            path: conf,
+            target: block.to_owned(),
             pre: current.as_deref().map(sha256_hex),
             body_before: up.before.clone(),
-            body_after: Some(t.body.to_owned()),
+            body_after: Some(body.to_owned()),
             added_eol: match (&up.before, record) {
                 (Some(_), Some(r)) => r.added_eol,
                 _ => up.added_eol,
@@ -238,16 +255,53 @@ fn plan_files(
                 (Some(_), Some(r)) => r.created_file,
                 _ => current.is_none(),
             },
-            content: Some(up.content),
+            content: Some(up.content.clone()),
         });
     }
-    if !overrides.is_empty() {
-        plan.notes.push(Note::Override {
-            path: conf,
-            lines: overrides,
-        });
+    Ok((current, up.content))
+}
+
+fn plan_files(
+    host: &Host<'_>,
+    env: Env<'_>,
+    state: &State,
+    replace_changed: bool,
+    t: &FileTarget<'_>,
+) -> TargetPlan {
+    if let Some(program) = t.program
+        && !exists(host, &t.dir)
+        && !on_path(host, env, program)
+    {
+        return TargetPlan::skip(t.instance, Skip::NotInstalled);
     }
-    plan
+    let mut plan = TargetPlan::new(t.instance);
+    let mut fill = || {
+        place(host, &[&t.dir], &mut plan)?;
+        // The colour file: created and owned by Velatura.
+        let owned = t.dir.join(t.owned);
+        own(host, state, replace_changed, owned, &t.content, &mut plan)?;
+        // The user's file: one marked block holding the connecting line.
+        let (_, after) = connect(
+            host,
+            state,
+            (t.instance, t.block),
+            &t.conf,
+            t.body,
+            &mut plan,
+        )?;
+        let overrides = override_lines(&after, t.block, t.overrides);
+        if !overrides.is_empty() {
+            plan.notes.push(Note::Override {
+                path: t.conf.clone(),
+                lines: overrides,
+            });
+        }
+        Ok(())
+    };
+    match fill() {
+        Ok(()) => plan,
+        Err(why) => TargetPlan::skip(t.instance, why),
+    }
 }
 
 fn first_word(line: &str) -> &str {
@@ -274,7 +328,7 @@ pub fn plan_kitty(
             program: Some("kitty"),
             owned: "velatura.conf",
             content: kitty::render(theme).into_bytes(),
-            conf: "kitty.conf",
+            conf: dir.join("kitty.conf"),
             body: "include velatura.conf",
             overrides: &|line| {
                 let key = first_word(line);
@@ -324,7 +378,7 @@ pub fn plan_ghostty(
             program: Some("ghostty"),
             owned: "velatura.conf",
             content: ghostty::render(theme).into_bytes(),
-            conf: ghostty_conf(host),
+            conf: ghostty_dir(host).join(ghostty_conf(host)),
             body: "config-file = velatura.conf",
             overrides: &|line| line.split('=').next().unwrap_or("").trim() == "config-file",
         },
@@ -333,6 +387,205 @@ pub fn plan_ghostty(
         plan.notes.push(Note::GhosttyReload);
     }
     plan
+}
+
+pub fn tmux_dir(host: &Host<'_>) -> PathBuf {
+    host.dirs.config.join("tmux")
+}
+
+/// The file of tmux's settings that the block goes into. tmux loads
+/// `~/.tmux.conf` and then the one in its settings folder, so the second
+/// has the last word when it is there.
+pub fn tmux_conf(host: &Host<'_>) -> PathBuf {
+    let own = tmux_dir(host).join("tmux.conf");
+    let legacy = host.dirs.home.join(".tmux.conf");
+    if !exists(host, &own) && exists(host, &legacy) {
+        legacy
+    } else {
+        own
+    }
+}
+
+/// `path` as tmux reads it in a settings file: from the home folder where
+/// that needs no quoting, so the line means the same on another machine,
+/// and otherwise in single quotes, inside which tmux reads nothing but the
+/// quote itself. `None` for a path that cannot be written that way.
+fn tmux_path(host: &Host<'_>, path: &Path) -> Option<String> {
+    let plain = |s: &str| {
+        !s.is_empty()
+            && s.bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"/._-".contains(&b))
+    };
+    if let Ok(rest) = path.strip_prefix(&host.dirs.home)
+        && let Some(rest) = rest.to_str()
+        && plain(rest)
+    {
+        return Some(format!("~/{rest}"));
+    }
+    let whole = path.to_str()?;
+    (!whole.contains('\'') && !whole.chars().any(char::is_control)).then(|| format!("'{whole}'"))
+}
+
+/// tmux: a file of options, loaded by one `source-file` line at the end of
+/// the user's settings. `-q` keeps tmux quiet where the file is not there,
+/// as on another machine that shares the settings.
+pub fn plan_tmux(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+    replace_changed: bool,
+) -> TargetPlan {
+    let dir = tmux_dir(host);
+    let conf = tmux_conf(host);
+    if !exists(host, &conf) && !exists(host, &dir) && !on_path(host, env, "tmux") {
+        return TargetPlan::skip(TMUX, Skip::NotInstalled);
+    }
+    let owned = dir.join("velatura.conf");
+    let Some(shown) = tmux_path(host, &owned) else {
+        return TargetPlan::skip(TMUX, Skip::UnusualPath(owned));
+    };
+    let mut plan = plan_files(
+        host,
+        env,
+        state,
+        replace_changed,
+        &FileTarget {
+            instance: TMUX,
+            block: "tmux",
+            dir,
+            program: None,
+            owned: "velatura.conf",
+            content: tmux::render(theme).into_bytes(),
+            conf: conf.clone(),
+            body: &format!("source-file -q {shown}"),
+            overrides: &|line| {
+                let mut words = line.split_whitespace();
+                match words.next() {
+                    Some("source-file" | "source") => true,
+                    Some("set" | "set-option" | "setw" | "set-window-option") => {
+                        words.any(|w| tmux::OPTIONS.contains(&w))
+                    }
+                    _ => false,
+                }
+            },
+        },
+    );
+    if plan.skipped.is_none() && !plan.changes.is_empty() {
+        plan.notes.push(Note::TmuxReload { conf });
+    }
+    plan
+}
+
+/// Neovim: a colourscheme of Velatura's own in the settings folder, and
+/// the same colours as a table for a colourscheme the user keeps. Nothing
+/// of the user's is edited: choosing the colourscheme is theirs to do.
+pub fn plan_nvim(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+    replace_changed: bool,
+) -> TargetPlan {
+    let dir = host.dirs.config.join("nvim");
+    if !exists(host, &dir) && !on_path(host, env, "nvim") {
+        return TargetPlan::skip(NVIM, Skip::NotInstalled);
+    }
+    let colors = dir.join("colors");
+    let lua = dir.join("lua");
+    let module = lua.join(nvim::NAME);
+    let mut plan = TargetPlan::new(NVIM);
+    let mut fill = || {
+        place(host, &[&dir, &colors], &mut plan)?;
+        own(
+            host,
+            state,
+            replace_changed,
+            colors.join(format!("{}.lua", nvim::NAME)),
+            nvim::render(theme).as_bytes(),
+            &mut plan,
+        )?;
+        place(host, &[&lua, &module], &mut plan)?;
+        own(
+            host,
+            state,
+            replace_changed,
+            module.join("palette.lua"),
+            nvim::render_palette(theme).as_bytes(),
+            &mut plan,
+        )
+    };
+    match fill() {
+        Ok(()) => {
+            if !plan.changes.is_empty() {
+                // No line is added to a file of the user's, but the folder
+                // is theirs: the first files go in only when agreed to, and
+                // so never in a run with no one present.
+                let ours = state
+                    .owned
+                    .keys()
+                    .any(|path| Path::new(path).starts_with(&dir));
+                plan.needs_consent = exists(host, &dir) && !ours && !state.consents.contains(NVIM);
+                plan.notes.push(Note::NeovimSelect);
+            }
+            plan
+        }
+        Err(why) => TargetPlan::skip(NVIM, why),
+    }
+}
+
+/// Starship's settings file: `STARSHIP_CONFIG`, or `starship.toml` in the
+/// settings folder.
+pub fn starship_conf(host: &Host<'_>, env: Env<'_>) -> PathBuf {
+    env("STARSHIP_CONFIG")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .unwrap_or_else(|| host.dirs.config.join("starship.toml"))
+}
+
+fn is_toml(bytes: &[u8]) -> bool {
+    std::str::from_utf8(bytes).is_ok_and(|text| text.parse::<toml::Table>().is_ok())
+}
+
+/// Starship cannot load a second file, so the palette goes into the user's
+/// own, as keys of the file's root inside a marked block at its top, with
+/// the one line that selects it. A file that already selects a palette is
+/// left alone: its prompt is written for that palette's names.
+pub fn plan_starship(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+) -> TargetPlan {
+    let conf = starship_conf(host, env);
+    if !exists(host, &conf) && !on_path(host, env, "starship") {
+        return TargetPlan::skip(STARSHIP, Skip::NotInstalled);
+    }
+    if !conf.parent().is_some_and(|dir| inside_home(host, dir)) {
+        return TargetPlan::skip(STARSHIP, Skip::OutsideHome(conf));
+    }
+    let mut plan = TargetPlan::new(STARSHIP);
+    let body = starship::render(theme);
+    match connect(
+        host,
+        state,
+        (STARSHIP, "starship"),
+        &conf,
+        body.trim_end(),
+        &mut plan,
+    ) {
+        Err(why) => TargetPlan::skip(STARSHIP, why),
+        Ok((Some(before), _)) if !is_toml(&before) => {
+            TargetPlan::skip(STARSHIP, Skip::Invalid(conf))
+        }
+        Ok((_, after)) if !is_toml(&after) => TargetPlan::skip(STARSHIP, Skip::OwnPalette(conf)),
+        Ok(_) => {
+            if !plan.changes.is_empty() {
+                plan.notes.push(Note::StarshipNames);
+            }
+            plan
+        }
+    }
 }
 
 fn high_contrast(host: &Host<'_>) -> bool {
@@ -369,7 +622,7 @@ fn plan_gtk(
             program: None,
             owned: "velatura.css",
             content: gtk::render(theme).into_bytes(),
-            conf: "gtk.css",
+            conf: host.dirs.config.join(folder).join("gtk.css"),
             body: "@import url(\"velatura.css\");",
             overrides: &|line| defines_theme_color(line, &names),
         },
@@ -918,6 +1171,9 @@ pub fn plan(
         GHOSTTY => plan_ghostty(host, env, theme, state, replace_changed),
         GTK4 => plan_gtk4(host, env, theme, state, replace_changed),
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
+        TMUX => plan_tmux(host, env, theme, state, replace_changed),
+        NVIM => plan_nvim(host, env, theme, state, replace_changed),
+        STARSHIP => plan_starship(host, env, theme, state),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(
             host,

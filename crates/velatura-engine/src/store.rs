@@ -115,7 +115,7 @@ pub struct BlockRecord {
 pub struct State {
     /// `theme/variant` and fingerprint of the theme in use.
     pub applied: Option<(String, String)>,
-    /// Instances where adding a line to the user's file was agreed to.
+    /// Instances where adding to the user's settings was agreed to.
     pub consents: BTreeSet<String>,
     /// Owned files: path to the hash of what was written.
     pub owned: BTreeMap<String, String>,

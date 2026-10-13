@@ -17,3 +17,5 @@ gtk4-devel
 libadwaita-devel
 gettext
 desktop-file-utils
+tmux
+neovim

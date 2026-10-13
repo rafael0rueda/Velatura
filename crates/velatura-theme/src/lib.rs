@@ -12,7 +12,10 @@ pub mod ghostty;
 pub mod gtk;
 pub mod kitty;
 pub mod model;
+pub mod nvim;
 pub mod shell;
+pub mod starship;
+pub mod tmux;
 
 pub use accent::{Accent, nearest_accent};
 pub use color::{Color, ParseColorError};

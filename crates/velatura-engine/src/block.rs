@@ -17,6 +17,14 @@ fn comment(target: &str) -> (&'static str, &'static str) {
     }
 }
 
+const BOM: &[u8] = b"\xef\xbb\xbf";
+
+/// True for a block that goes at the top of its file, not the end. In a
+/// TOML file, keys of the file's root have to come before its first table.
+fn at_top(target: &str) -> bool {
+    target == "starship"
+}
+
 fn begin(target: &str) -> String {
     let (open, close) = comment(target);
     format!("{open}>>> velatura {target} {FORMAT} >>>{close}")
@@ -74,7 +82,10 @@ pub fn find(bytes: &[u8], target: &str) -> Found {
     let mut begins = Vec::new();
     let mut ends = Vec::new();
     let all = lines(bytes);
-    for (i, (_, _, text)) in all.iter().enumerate() {
+    // A byte order mark is not part of the first line's text.
+    let mark = if bytes.starts_with(BOM) { BOM.len() } else { 0 };
+    for (i, (start, _, text)) in all.iter().enumerate() {
+        let text = if *start == 0 { &text[mark..] } else { text };
         let trimmed = text.trim_ascii();
         if trimmed == begin.as_bytes() {
             begins.push(i);
@@ -90,7 +101,7 @@ pub fn find(bytes: &[u8], target: &str) -> Found {
                 .map(|(_, _, text)| std::str::from_utf8(text).unwrap_or(""))
                 .collect();
             Found::Present {
-                start: all[*b].0,
+                start: all[*b].0.max(mark),
                 end: all[*e].1,
                 body: body.join("\n"),
             }
@@ -110,7 +121,8 @@ pub struct Upsert {
     pub before: Option<String>,
 }
 
-/// Add the block at the end of the file, or replace the body of the existing
+/// Add the block at the end of the file (at the top for a target that needs
+/// it there, after a byte order mark if there is one), or replace the body of the existing
 /// one where it stands. `None` when the file's markers are malformed.
 pub fn upsert(bytes: &[u8], target: &str, body: &str) -> Option<Upsert> {
     let eol = eol(bytes);
@@ -138,6 +150,21 @@ pub fn upsert(bytes: &[u8], target: &str, body: &str) -> Option<Upsert> {
                 content,
                 added_eol: false,
                 before: Some(body),
+            })
+        }
+        Found::Absent if at_top(target) => {
+            let mark = if bytes.starts_with(b"\xef\xbb\xbf") {
+                3
+            } else {
+                0
+            };
+            let mut content = bytes[..mark].to_vec();
+            content.extend_from_slice(block.as_bytes());
+            content.extend_from_slice(&bytes[mark..]);
+            Some(Upsert {
+                content,
+                added_eol: false,
+                before: None,
             })
         }
         Found::Absent => {
@@ -180,6 +207,35 @@ mod tests {
     use super::*;
 
     const BODY: &str = "include velatura.conf";
+
+    #[test]
+    fn a_block_at_the_top_is_added_and_removed_byte_exact() {
+        let body = "palette = \"velatura\"\npalettes.velatura.bg = \"#000000\"";
+        let files: [&[u8]; 5] = [
+            b"",
+            b"format = \"$all\"\n[character]\nx = 1\n",
+            b"[character]\nx = 1",
+            b"\xef\xbb\xbfa = 1\r\n[b]\r\n",
+            b"\n",
+        ];
+        for original in files {
+            let up = upsert(original, "starship", body).unwrap();
+            assert!(up.before.is_none() && !up.added_eol);
+            let Found::Present { start, .. } = find(&up.content, "starship") else {
+                panic!("no block in {:?}", String::from_utf8_lossy(&up.content));
+            };
+            assert_eq!(start, if original.starts_with(b"\xef") { 3 } else { 0 });
+            assert!(up.content.ends_with(&original[start..]));
+            // Updating it leaves it where it is.
+            let again = upsert(&up.content, "starship", "palette = \"velatura\"").unwrap();
+            assert_eq!(again.before.as_deref(), Some(body));
+            assert!(
+                matches!(find(&again.content, "starship"), Found::Present { start: s, .. } if s == start)
+            );
+            assert_eq!(remove(&up.content, "starship", false).unwrap(), original);
+            assert_eq!(remove(&again.content, "starship", false).unwrap(), original);
+        }
+    }
 
     #[test]
     fn add_then_remove_is_byte_exact() {

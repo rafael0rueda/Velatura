@@ -290,6 +290,9 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::NeedsAdwGtk3 => "needs-adw-gtk3",
         Skip::NeedsUserThemes => "needs-user-themes",
         Skip::UntestedShell(_) => "untested-shell",
+        Skip::UnusualPath(_) => "unusual-path",
+        Skip::Invalid(_) => "invalid-file",
+        Skip::OwnPalette(_) => "own-palette",
     }
 }
 
@@ -297,6 +300,9 @@ fn note_code(n: &Note) -> &'static str {
     match n {
         Note::Override { .. } => "override",
         Note::GhosttyReload => "ghostty-reload",
+        Note::TmuxReload { .. } => "tmux-reload",
+        Note::NeovimSelect => "neovim-select",
+        Note::StarshipNames => "starship-names",
         Note::GtkRestart => "gtk-restart",
         Note::LinkedFile { .. } => "linked-file",
         Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
@@ -487,6 +493,19 @@ impl Cx<'_> {
                 "Older Apps (GTK 3)",
                 "unofficial",
                 p(h.dirs.config.join("gtk-3.0/gtk.css")),
+            ),
+            ("tmux", "tmux", "official", p(targets::tmux_conf(h))),
+            (
+                "nvim",
+                "Neovim",
+                "official",
+                p(h.dirs.config.join("nvim/colors/velatura.lua")),
+            ),
+            (
+                "starship",
+                "Starship",
+                "official",
+                p(targets::starship_conf(h, &env)),
             ),
             (
                 "flatpak:global",
@@ -1113,10 +1132,14 @@ impl Cx<'_> {
             } else if !args.json && std::io::stdin().is_terminal() {
                 self.print_plan(plan);
                 for instance in asking {
-                    print!(
-                        "\nAdd the line to the {} settings file? [y/N] ",
-                        text::instance(instance)
-                    );
+                    if instance == targets::NVIM {
+                        print!("\nAdd Velatura's two files to the Neovim settings folder? [y/N] ");
+                    } else {
+                        print!(
+                            "\nAdd the line to the {} settings file? [y/N] ",
+                            text::instance(instance)
+                        );
+                    }
                     let _ = std::io::stdout().flush();
                     let mut answer = String::new();
                     let _ = std::io::stdin().read_line(&mut answer);
@@ -1134,7 +1157,7 @@ impl Cx<'_> {
                 }
                 return Err(Exit {
                     code: NEEDS_AGREEMENT,
-                    message: "Nothing was changed. This adds a line to a settings file for the first time; run again with --yes to agree.".to_owned(),
+                    message: "Nothing was changed. This adds to the settings of an app for the first time; run again with --yes to agree.".to_owned(),
                 });
             }
         }

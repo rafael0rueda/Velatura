@@ -570,6 +570,9 @@ msgstr ""
 msgid "Terminals"
 msgstr ""
 
+msgid "Command-Line Apps"
+msgstr ""
+
 msgid "Apps"
 msgstr ""
 
@@ -810,6 +813,15 @@ msgstr ""
 msgid "Ghostty"
 msgstr ""
 
+msgid "tmux"
+msgstr ""
+
+msgid "Neovim"
+msgstr ""
+
+msgid "Starship"
+msgstr ""
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr ""
 
@@ -906,6 +918,10 @@ msgid "Take what Velatura added out of the list in {1}"
 msgstr ""
 
 #, rust-format
+msgid "Add a marked block with Velatura's palette at the top of {1}"
+msgstr ""
+
+#, rust-format
 msgid "Add a marked block with one line at the end of {1}"
 msgstr ""
 
@@ -921,7 +937,7 @@ msgstr ""
 msgid "Set {1} to {2}"
 msgstr ""
 
-msgid "Left out: adding a line to the settings file was not agreed to"
+msgid "Left out: adding to its settings was not agreed to"
 msgstr ""
 
 #, rust-format
@@ -966,6 +982,18 @@ msgstr ""
 msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
 msgstr ""
 
+#, rust-format
+msgid "Left out: {1} has characters in its name that cannot be written into a settings file"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} has an error in it, so nothing is added to it"
+msgstr ""
+
+#, rust-format
+msgid "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone"
+msgstr ""
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr ""
 
@@ -981,6 +1009,16 @@ msgid "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each"
 msgstr ""
 
 msgid "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them"
+msgstr ""
+
+#, rust-format
+msgid "tmux sessions that are running keep their colors until this is run in one of them: tmux source-file {1}"
+msgstr ""
+
+msgid "Neovim shows the theme once its settings select the colorscheme named velatura. To try it in an open Neovim: :colorscheme velatura"
+msgstr ""
+
+msgid "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory"
 msgstr ""
 
 msgid "Apps that are already open keep their colors until reopened"
