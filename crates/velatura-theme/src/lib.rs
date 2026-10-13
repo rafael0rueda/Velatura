@@ -7,6 +7,7 @@
 mod accent;
 pub mod bundled;
 mod color;
+pub mod editor;
 pub mod ghostty;
 pub mod gtk;
 pub mod kitty;

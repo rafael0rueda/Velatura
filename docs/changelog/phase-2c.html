@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2c – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 2c – theme editor, import and export</h1>
+<p class="lead">Branch <code>phase-2c-editor</code>. Completed 2026-10-12. The third slice of Phase 2 (<a href="../decisions.html#d47">D47</a>). Its exit condition in the roadmap: a theme can be created in the GUI. It can, and the gate creates one in every run. With Phase 2a this meets the exit condition of Phase 2 as a whole; slices 2d and 2e remain.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The editor was driven in a throw-away session; no theme was added to the real library.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>The editor.</strong> New Theme on the Themes page (Ctrl+N) starts from three colours: background, text and accent. Every other colour is worked out from those and shown, under Interface, Terminal and Code. Any of them can be given a colour of its own with the desktop's colour chooser, and sent back to automatic. The preview at the top follows every change. Save Theme (Ctrl+S) and Discard end it; while there are unsaved changes the page cannot be left by accident.</li>
+<li><strong>Hard to read, said in words, with Fix.</strong> Four pairs have to read: text and secondary text on the background, text on the accent, and selected text on the selection. A pair that does not is listed with its contrast and the contrast needed. Fix moves the colour lighter or darker, keeping its hue, until it reads.</li>
+<li><strong>Terminal colours for a new theme.</strong> Six hues at a lightness that reads on the background, and four neutrals taken from background and text. They follow the three main colours until one is changed by hand.</li>
+<li><strong>Edit, Duplicate to Edit, Export and Remove</strong> on a theme's page. A theme that comes with Velatura is edited as a copy. Removing one of the user's is done at once and offers Undo.</li>
+<li><strong>Import</strong> (Ctrl+O). The file is checked before anything is stored. The question shows the theme's colours, its name and author as plain text, and the sentence that theme files hold only colours and names and cannot run anything. If a theme with the same id is there already, the choices are Keep Both and, for a theme of the user's, Replace.</li>
+<li><strong>The command</strong>: <code>velatura theme import &lt;file&gt; [--as &lt;id&gt;] [--replace]</code>, <code>theme export &lt;theme&gt; [&lt;file&gt;]</code>, <code>theme resolve &lt;theme&gt;</code> (the theme with every colour written out) and <code>theme remove &lt;theme&gt;</code>, which keeps a copy and says how to put it back.</li>
+<li><strong>A theme written by the app</strong> has every colour written out, no references, and reads back as exactly the same theme. Text in it (name, author, description) cannot break out of its string.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Eight tests of the editor's logic: themes from three colours are complete, valid and readable in light and dark; worked-out colours follow until made custom; a saved theme reopens knowing which colours were automatic; hard-to-read pairs are found and fixed; both bundled themes survive being written out and read back; hostile text in a name cannot add keys to the file.</li>
+<li>Four tests of the library: save, replace, remove and put back; what comes with Velatura cannot be replaced or removed; an imported file is stored as it was written, comments included; a file that is not a theme (a script, binary data, too large) is refused before anything is stored.</li>
+<li>The command end to end: import, the same again refused, under another id, applied, exported, removed and imported back.</li>
+<li><strong>In the gate</strong>: the app makes a new theme in the editor, changes colours until a pair is hard to read, fixes it and saves; the command then lists the theme as the user's.</li>
+<li>123 tests in all. The translation template has 316 strings.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>The editor writes the whole file; it does not edit it in place</strong> (<a href="../decisions.html#d51">D51</a>). The plan had the editor keep comments and unknown keys when saving. That needs a second TOML library that edits text. Instead, the first time the app saves over a file that was written by hand, the file as it was is kept beside it as <code>&lt;name&gt;.toml.orig</code>. An imported file that is not edited is stored exactly as it came.</li>
+<li><strong>Automatic colours are recognised, not recorded.</strong> A saved theme has every colour written out, as the plan requires. When it is opened again, a colour that is exactly what would be worked out counts as automatic, so it follows the main colours again.</li>
+</ul>
+
+<h2>Not done in this slice</h2>
+<ul>
+<li><strong>One variant at a time.</strong> The editor edits the variant it was opened from and keeps the others as they are. Variants cannot be added or removed in the app.</li>
+<li><strong>Author, licence and description</strong> are kept but cannot be edited in the app.</li>
+<li><strong>The named palette</strong> of a hand-written theme is kept, but colours saved by the editor are written as values, not as references to it.</li>
+<li><strong>Diff and diagnostic colours and the per-app slots</strong> are kept and not shown; no target uses them yet.</li>
+<li><strong>Saving a theme that is in use does not apply it.</strong> Apply Theme on its page does.</li>
+<li><strong>Importers for other formats</strong> (base16, Kitty) are Phase 3.</li>
+<li>Not checked by a person: the colour chooser and the file dialogs, which a headless session cannot open. Keyboard-only use and the screen reader in the editor are on the manual checklist.</li>
+</ul>
+
+</main>
+</body>
+</html>

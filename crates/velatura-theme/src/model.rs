@@ -125,6 +125,40 @@ pub const UI_OPTIONAL: [&str; 14] = [
 ];
 
 impl Ui {
+    /// The role called `name`, if there is one.
+    pub fn get(&self, name: &str) -> Option<Color> {
+        self.roles()
+            .into_iter()
+            .find(|(role, _)| *role == name)
+            .map(|(_, c)| c)
+    }
+
+    /// Give the role called `name` a colour. False if there is no such role.
+    pub fn set(&mut self, name: &str, color: Color) -> bool {
+        let slot = match name {
+            "bg" => &mut self.bg,
+            "fg" => &mut self.fg,
+            "accent" => &mut self.accent,
+            "bg_dim" => &mut self.bg_dim,
+            "surface" => &mut self.surface,
+            "border" => &mut self.border,
+            "fg_muted" => &mut self.fg_muted,
+            "fg_subtle" => &mut self.fg_subtle,
+            "accent_fg" => &mut self.accent_fg,
+            "selection_bg" => &mut self.selection_bg,
+            "selection_fg" => &mut self.selection_fg,
+            "cursor" => &mut self.cursor,
+            "cursor_fg" => &mut self.cursor_fg,
+            "link" => &mut self.link,
+            "success" => &mut self.success,
+            "warning" => &mut self.warning,
+            "error" => &mut self.error,
+            _ => return false,
+        };
+        *slot = color;
+        true
+    }
+
     /// Every role with its name, in a fixed order.
     pub fn roles(&self) -> [(&'static str, Color); 17] {
         [
@@ -192,6 +226,103 @@ impl Theme {
                 .map_or("default", String::as_str)
         }
     }
+}
+
+impl Variant {
+    /// What the derivation rule gives for every role, from this variant's
+    /// background, text, accent and terminal colours.
+    pub fn automatic(&self) -> Ui {
+        derive_v1(
+            self.appearance,
+            self.ui.bg,
+            self.ui.fg,
+            self.ui.accent,
+            &self.ansi,
+        )
+    }
+
+    /// Fill the roles listed in `derived` again, after one of the colours
+    /// they are worked out from has changed.
+    pub fn rederive(&mut self) {
+        let auto = self.automatic();
+        for role in self.derived.clone() {
+            if let Some(color) = auto.get(role) {
+                self.ui.set(role, color);
+            }
+        }
+    }
+}
+
+/// Text as a TOML basic string.
+fn quoted(text: &str) -> String {
+    let mut out = String::from("\"");
+    for c in text.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if c.is_control() => {}
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// The theme as a theme file with every colour written out: no references,
+/// nothing left to derivation. Reading it back gives the same colours.
+pub fn to_toml(theme: &Theme) -> String {
+    use std::fmt::Write;
+    let mut out = format!("schema = {SCHEMA}\nderive = {}\n\n[meta]\n", theme.derive);
+    let _ = writeln!(out, "id = {}", quoted(&theme.id));
+    for (key, value) in [
+        ("name", &theme.name),
+        ("author", &theme.author),
+        ("license", &theme.license),
+        ("description", &theme.description),
+    ] {
+        if !value.is_empty() {
+            let _ = writeln!(out, "{key} = {}", quoted(value));
+        }
+    }
+    for (id, v) in &theme.variants {
+        let at = format!("variants.{id}");
+        let _ = writeln!(out, "\n[{at}]\nname = {}", quoted(&v.name));
+        let _ = writeln!(out, "appearance = \"{}\"", v.appearance.as_str());
+        let mut table = |name: &str, colors: &mut dyn Iterator<Item = (&str, Color)>| {
+            let mut colors = colors.peekable();
+            if colors.peek().is_some() {
+                let _ = writeln!(out, "\n[{at}.{name}]");
+                for (key, color) in colors {
+                    let _ = writeln!(out, "{key} = \"{}\"", color.hex());
+                }
+            }
+        };
+        table(
+            "palette",
+            &mut v.palette.iter().map(|(k, c)| (k.as_str(), *c)),
+        );
+        table("ui", &mut v.ui.roles().into_iter());
+        table("ansi", &mut ANSI_NAMES.iter().copied().zip(v.ansi));
+        table("syntax", &mut v.syntax.iter().map(|(k, c)| (*k, *c)));
+        table("diff", &mut v.diff.iter().map(|(k, c)| (*k, *c)));
+        table(
+            "diagnostic",
+            &mut v.diagnostic.iter().map(|(k, c)| (*k, *c)),
+        );
+        for (target, slots) in &v.slots {
+            table(
+                &format!("slots.{target}"),
+                &mut slots.iter().map(|(k, c)| (*k, *c)),
+            );
+        }
+        if !v.suggests.is_empty() {
+            let _ = writeln!(out, "\n[{at}.suggests]");
+            for (key, value) in &v.suggests {
+                let _ = writeln!(out, "{key} = {}", quoted(value));
+            }
+        }
+    }
+    out
 }
 
 /// Stable codes for everything the validator can say.

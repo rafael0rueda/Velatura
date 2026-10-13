@@ -4,7 +4,7 @@
 # database, and a headless compositor.
 #
 #   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--flow]
-#                        [--large-text] [--high-contrast] [--scheduled]
+#                        [--large-text] [--high-contrast] [--scheduled] [--editor]
 #
 # --applied applies a theme in the sandbox first, so the views show a
 # themed state and a backup. --flow then drives a real apply through the
@@ -12,13 +12,15 @@
 # --scheduled installs both programs in the sandbox's ~/.local/bin, turns
 # the schedule on against a stand-in systemctl and runs one scheduled
 # switch, so the views show a schedule and what it left out.
+# --editor makes a new theme in the editor, fixes what is hard to read in
+# it, and saves it.
 # Needs mutter and dbus-run-session.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$(realpath -m "${1:?output folder}"); shift
-size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""
+size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""
 for a in "$@"; do
-    case "$a" in --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; *x*) size=$a ;; esac
+    case "$a" in --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
 done
 cargo build -q -p velatura-gui -p velatura-cli
 root=$(mktemp -d)
@@ -41,7 +43,7 @@ if [ -n "$scheduled" ]; then
 fi
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8 \
     GSETTINGS_BACKEND=dconf VELATURA_SHOTS="$out" VELATURA_SHOTS_SIZE="$size" \
-    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} APPLIED="$applied" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
+    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} ${editor:+VELATURA_SHOTS_EDITOR=1} APPLIED="$applied" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
     dbus-run-session -- bash -c ' exec 2>/dev/null
         [ -n "$APPLIED" ] && "$BIN/velatura" apply ember --yes >/dev/null
         if [ -n "$SCHEDULED" ]; then
@@ -61,6 +63,7 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
         kill $compositor 2>/dev/null
         echo "SANDBOX $("$BIN/velatura" status | head -1)"
         echo "SANDBOX $("$BIN/velatura" schedule | head -1)"
+        echo "SANDBOX themes: $("$BIN/velatura" list | tr -s " " | tr "\n" "|")"
         echo "SANDBOX kitty.conf: $(tr "\n" "|" < "$HOME/.config/kitty/kitty.conf")"
         exit $status'
 ls "$out"

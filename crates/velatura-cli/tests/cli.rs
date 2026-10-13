@@ -492,3 +492,107 @@ fn look_and_flatpak_from_the_command() {
     assert_eq!(sb.velatura(&["undo"]).0, 0);
     assert_eq!(fs::read_to_string(&overrides).unwrap(), original);
 }
+
+/// A theme file imported, applied, exported and removed from the command.
+#[test]
+fn themes_in_and_out_of_the_library() {
+    if !(have("dbus-run-session") && have("gsettings")) {
+        assert!(
+            std::env::var_os("VELATURA_CI").is_none(),
+            "dbus-run-session and gsettings are required in CI"
+        );
+        eprintln!("SKIPPED: dbus-run-session or gsettings is not installed");
+        return;
+    }
+    let sb = Sandbox::named("themes");
+    let (code, resolved, _) = sb.velatura(&["theme", "resolve", "ember"]);
+    assert_eq!(code, 0);
+    assert!(resolved.contains("[variants.default.ui]") && !resolved.contains('@'));
+    let file = sb.root.join("shared.toml");
+    fs::write(&file, resolved.replace("id = \"ember\"", "id = \"embers\"")).unwrap();
+    let file = file.to_str().unwrap();
+
+    let (code, out, _) = sb.velatura(&["theme", "import", file, "--preview"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("They cannot run anything"), "{out}");
+    assert!(!sb.velatura(&["list"]).1.contains("embers"));
+    let (code, out, err) = sb.velatura(&["theme", "import", file]);
+    assert_eq!(code, 0, "{out}{err}");
+    let (_, out, _) = sb.velatura(&["list"]);
+    assert!(
+        out.lines()
+            .any(|l| l.starts_with("embers") && l.contains("(yours)")),
+        "{out}"
+    );
+
+    // Twice needs a word; a bundled id can only be had under another one.
+    let (code, _, err) = sb.velatura(&["theme", "import", file]);
+    assert_eq!(code, 2, "{err}");
+    assert!(
+        err.contains("already exists") && err.contains("--as <id>"),
+        "{err}"
+    );
+    assert_eq!(sb.velatura(&["theme", "import", file, "--replace"]).0, 0);
+    assert_eq!(
+        sb.velatura(&["theme", "import", file, "--as", "ember"]).0,
+        2
+    );
+    assert_eq!(
+        sb.velatura(&["theme", "import", file, "--as", "Not An Id"])
+            .0,
+        2
+    );
+    assert_eq!(
+        sb.velatura(&["theme", "import", file, "--as", "embers-two"])
+            .0,
+        0
+    );
+
+    // It applies like any other.
+    let (code, out, err) = sb.velatura(&["apply", "embers-two", "--only", "gnome:appearance"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert_eq!(sb.gsetting("accent-color"), "'orange'");
+
+    let out_file = sb.root.join("out.toml");
+    let out_path = out_file.to_str().unwrap();
+    assert_eq!(sb.velatura(&["theme", "export", "embers", out_path]).0, 0);
+    let (code, _, err) = sb.velatura(&["theme", "export", "ember", out_path]);
+    assert_eq!(code, 2);
+    assert!(err.contains("--replace"), "{err}");
+    assert!(
+        fs::read_to_string(&out_file)
+            .unwrap()
+            .contains("id = \"embers\"")
+    );
+    assert!(
+        sb.velatura(&["theme", "export", "ember"])
+            .1
+            .contains("Bundled with Velatura")
+    );
+
+    // Not a theme: refused, with the reason.
+    let bad = sb.root.join("bad.toml");
+    fs::write(&bad, "#!/bin/sh\necho hello\n").unwrap();
+    let (code, _, err) = sb.velatura(&["theme", "import", bad.to_str().unwrap()]);
+    assert_eq!(code, 1);
+    assert!(err.contains("Not a valid theme file"), "{err}");
+
+    assert_eq!(sb.velatura(&["theme", "remove", "ember"]).0, 2);
+    let (code, out, _) = sb.velatura(&["theme", "remove", "embers"]);
+    assert_eq!(code, 0);
+    assert!(
+        out.contains("To put it back: velatura theme import"),
+        "{out}"
+    );
+    assert!(
+        !sb.velatura(&["list"])
+            .1
+            .lines()
+            .any(|l| l.starts_with("embers "))
+    );
+    let kept = sb.home().join(".local/share/velatura/removed/embers.toml");
+    assert_eq!(
+        sb.velatura(&["theme", "import", kept.to_str().unwrap()]).0,
+        0
+    );
+}

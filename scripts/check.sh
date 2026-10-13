@@ -119,6 +119,16 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
         'SANDBOX Scheduled switching is on: the daytime theme from 07:00'; do
         grep -qF "$want" <<<"$sched" || { echo "schedule check failed, missing: $want"; exit 1; }
     done
+    # A theme made in the editor: started, changed until something is hard
+    # to read, fixed, saved, and then listed by the command as the user's.
+    shots=$(mktemp -d)
+    made=$(scripts/gui-shots.sh "$shots" --editor 2>/dev/null | grep -E '^(SHOTS (editor|library)|SANDBOX themes)' || true)
+    rm -rf "$shots"
+    echo "$made"
+    for want in 'SHOTS editor problem=' 'SHOTS editor saved=new-theme' \
+        'SHOTS library yours=["new-theme"]' 'new-theme light New Theme (yours)'; do
+        grep -qF "$want" <<<"$made" || { echo "editor check failed, missing: $want"; exit 1; }
+    done
 else
     echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
 fi

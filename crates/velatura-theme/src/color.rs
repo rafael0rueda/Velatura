@@ -113,6 +113,56 @@ impl Color {
         ]
     }
 
+    /// From OKLab. `None` if the colour cannot be shown in sRGB.
+    pub fn from_oklab([l, a, b]: [f64; 3]) -> Option<Self> {
+        let l_ = (l + 0.396_337_777_4 * a + 0.215_803_757_3 * b).powi(3);
+        let m_ = (l - 0.105_561_345_8 * a - 0.063_854_172_8 * b).powi(3);
+        let s_ = (l - 0.089_484_177_5 * a - 1.291_485_548_0 * b).powi(3);
+        let linear = [
+            4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
+            -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
+            -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701_0 * s_,
+        ];
+        let mut out = [0u8; 3];
+        for (slot, v) in out.iter_mut().zip(linear) {
+            if !(-0.0005..=1.0005).contains(&v) {
+                return None;
+            }
+            let v = v.clamp(0.0, 1.0);
+            let c = if v <= 0.003_130_8 {
+                v * 12.92
+            } else {
+                1.055 * v.powf(1.0 / 2.4) - 0.055
+            };
+            *slot = (c * 255.0).round().clamp(0.0, 255.0) as u8;
+        }
+        Some(Self::rgb(out[0], out[1], out[2]))
+    }
+
+    /// The colour of lightness `l` (0 to 1) and hue `h` (degrees) in OKLCH
+    /// with as much of chroma `c` as sRGB can show.
+    pub fn from_oklch(l: f64, c: f64, h: f64) -> Self {
+        let (sin, cos) = h.to_radians().sin_cos();
+        let l = l.clamp(0.0, 1.0);
+        let mut chroma = c.max(0.0);
+        loop {
+            if let Some(color) = Self::from_oklab([l, chroma * cos, chroma * sin]) {
+                return color;
+            }
+            if chroma < 0.002 {
+                let v = (l * 255.0).round() as u8;
+                return Self::rgb(v, v, v);
+            }
+            chroma *= 0.94;
+        }
+    }
+
+    /// The same hue and chroma at another lightness, as far as sRGB allows.
+    pub fn with_lightness(self, l: f64) -> Self {
+        let [_, a, b] = self.to_oklab();
+        Self::from_oklch(l, a.hypot(b), b.atan2(a).to_degrees())
+    }
+
     /// Relative luminance as defined by WCAG 2.
     pub fn luminance(self) -> f64 {
         let [r, g, b] = [self.r, self.g, self.b].map(srgb_to_linear);

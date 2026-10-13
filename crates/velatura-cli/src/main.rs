@@ -41,6 +41,8 @@ struct Args {
     json: bool,
     original: bool,
     again: bool,
+    replace: bool,
+    rename: Option<String>,
     day: Option<String>,
     night: Option<String>,
     only: Vec<String>,
@@ -59,6 +61,8 @@ fn parse_args() -> Result<Args, String> {
             "--json" => a.json = true,
             "--original" => a.original = true,
             "--again" => a.again = true,
+            "--replace" => a.replace = true,
+            "--as" => a.rename = Some(it.next().ok_or("--as needs an id")?),
             "--day" | "--night" => {
                 let value = it.next().ok_or(format!("{arg} needs a time, as HH:MM"))?;
                 if arg == "--day" {
@@ -151,6 +155,11 @@ fn main() -> ExitCode {
         ["schedule"] | ["schedule", "status"] => cx.schedule_show(),
         ["schedule", "set"] => cx.schedule_set(),
         ["schedule", "off"] => cx.schedule_off(),
+        ["theme", "import", file] => cx.theme_import(file),
+        ["theme", "export", theme] => cx.theme_export(theme, None),
+        ["theme", "export", theme, file] => cx.theme_export(theme, Some(file)),
+        ["theme", "resolve", theme] => cx.theme_resolve(theme),
+        ["theme", "remove", theme] => cx.theme_remove(theme),
         ["look"] => cx.look_show(),
         ["look", "list", what] => cx.look_list(what),
         ["look", "set", what, value] => cx.look_set(what, Some(value)),
@@ -572,6 +581,135 @@ impl Cx<'_> {
         if with_hint {
             println!("\nTo see the commands: velatura --help");
         }
+        Ok(OK)
+    }
+
+    fn library_exit(&self, why: library::Refused) -> Exit {
+        Exit {
+            code: match why {
+                library::Refused::Io(_) => FAILED,
+                library::Refused::Invalid(_) | library::Refused::NotAThemeFile => FAILED,
+                _ => USAGE,
+            },
+            message: text::library_refused(&why, self.home),
+        }
+    }
+
+    /// Add a theme file to the library. The file is data: it is checked,
+    /// never run, and nothing in it is applied by importing.
+    fn theme_import(&self, file: &str) -> Outcome {
+        let path = std::path::absolute(file).map_err(|e| Exit {
+            code: FAILED,
+            message: clean_text(&e.to_string(), 200),
+        })?;
+        let (loaded, source) =
+            library::inspect(&self.host, &path).map_err(|why| self.library_exit(why))?;
+        for w in &loaded.warnings {
+            eprintln!("warning: {w}");
+        }
+        let mut theme = loaded.theme;
+        if let Some(id) = &self.args.rename {
+            theme.id.clone_from(id);
+        }
+        if self.args.preview {
+            println!(
+                "{} ({}), {} variant(s). {}.",
+                theme.name,
+                theme.id,
+                theme.variants.len(),
+                text::import_promise()
+            );
+            return Ok(OK);
+        }
+        let saved =
+            library::save(&self.host, &theme, Some(&source), self.args.replace).map_err(|why| {
+                let hint = matches!(
+                    why,
+                    library::Refused::Exists(_) | library::Refused::Reserved(_)
+                );
+                let mut exit = self.library_exit(why);
+                if hint {
+                    exit.message
+                        .push_str(". To keep both, import it under another id with --as <id>");
+                }
+                exit
+            })?;
+        println!(
+            "Imported {} as {}. {}.\nTo apply it: velatura apply {}",
+            theme.name,
+            text::path(&saved, self.home),
+            text::import_promise(),
+            theme.id
+        );
+        Ok(OK)
+    }
+
+    fn theme_export(&self, id: &str, file: Option<&str>) -> Outcome {
+        match file {
+            None => {
+                let text = library::source(&self.host, id).map_err(|why| self.library_exit(why))?;
+                print!("{text}");
+            }
+            Some(file) => {
+                let path = std::path::absolute(file).map_err(|e| Exit {
+                    code: FAILED,
+                    message: clean_text(&e.to_string(), 200),
+                })?;
+                library::export(&self.host, id, &path, self.args.replace).map_err(|why| {
+                    let there = matches!(why, library::Refused::FileInTheWay(_));
+                    let mut exit = self.library_exit(why);
+                    if there {
+                        exit.message = format!(
+                            "{} already exists. To replace it, add --replace",
+                            text::path(&path, self.home)
+                        );
+                    }
+                    exit
+                })?;
+                println!("Written to {}.", text::path(&path, self.home));
+            }
+        }
+        Ok(OK)
+    }
+
+    fn theme_resolve(&self, spec: &str) -> Outcome {
+        let id = spec.split('/').next().unwrap_or(spec);
+        let (entries, _) = library::load(&self.host);
+        let Some(entry) = entries.iter().find(|e| e.theme.id == id) else {
+            return Err(self.library_exit(library::Refused::NotFound(id.to_owned())));
+        };
+        print!("{}", velatura_theme::model::to_toml(&entry.theme));
+        Ok(OK)
+    }
+
+    fn theme_remove(&self, id: &str) -> Outcome {
+        // The file's text goes to a place of its own first, so removing
+        // can be undone by importing it again.
+        let text = library::source(&self.host, id)
+            .ok()
+            .filter(|_| !velatura_theme::bundled::is_reserved(id));
+        let kept = self
+            .host
+            .data_dir()
+            .join("removed")
+            .join(format!("{id}.toml"));
+        if let (Some(text), Some(dir)) = (&text, kept.parent()) {
+            velatura_engine::store::ensure_dir(&self.host, dir)
+                .and_then(|()| self.host.fs.write_atomic(&kept, text.as_bytes(), 0o644))
+                .map_err(|e| Exit {
+                    code: FAILED,
+                    message: format!(
+                        "Nothing was removed: a copy could not be kept first ({})",
+                        clean_text(&e.to_string(), 200)
+                    ),
+                })?;
+        }
+        library::remove(&self.host, id).map_err(|why| self.library_exit(why))?;
+        println!(
+            "Removed {} from the library. A copy is kept.\nTo put it back: velatura theme import {}",
+            clean_text(id, 64),
+            text::path(&kept, self.home)
+        );
         Ok(OK)
     }
 
