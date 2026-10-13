@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2e – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 2e – Spanish, GNOME 47 to 49, and Ubuntu's session</h1>
+<p class="lead">Branch <code>phase-2e-reach</code>. Completed 2026-10-13. The last slice of Phase 2 (<a href="../decisions.html#d47">D47</a>). Its exit condition is that of Phase 2 itself: a theme can be created in the GUI and switches on schedule without the GUI running. That was met with slices 2a and 2c; this slice widens where it holds.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The older GNOME versions and Ubuntu were reached through containers.</div>
+
+<h2>Added</h2>
+<ul>
+<li><strong>The app in Spanish.</strong> All 354 sentences of the app and of the messages it shares with the command are translated. The app speaks Spanish when the session asks for it (<code>LANG</code>, <code>LC_MESSAGES</code>, <code>LANGUAGE</code>, read the way gettext reads them) and English otherwise.</li>
+<li><strong>Translations travel inside the program.</strong> The catalogs in <code>po/</code> are compiled in and read by a small reader of Velatura's own, so they are found the same way from a build folder, an install and a package, with nothing to install beside the program. This closes the open point from Phase 1e that catalogs were only loaded once the app was installed with its data.</li>
+<li><strong>A translation cannot fall behind unnoticed.</strong> A test fails if any sentence has no Spanish, if a translation loses something to fill in (<code>{1}</code>, <code>{name}</code>), an access key, a full stop or an ellipsis, or if a reason for leaving something out does not begin the way the app expects. <code>scripts/update-pot.sh</code> brings each catalog in step with the sources.</li>
+<li><strong>GNOME 47, 48 and 49 in CI.</strong> The whole gate now also runs on Fedora 41, 42 and 43, against each release's own GTK, libadwaita and compositor: the tests, GTK accepting the generated stylesheets, a libadwaita app computing every colour, and the app driven through apply, undo, the schedule and the editor.</li>
+<li><strong>An unchecked GNOME Shell is left alone.</strong> Velatura asks the running Shell its version. On one outside 47 to 51 the top bar and overview are left out, with the reason, unless the part is named outright with <code>--only gnome:shell</code>.</li>
+<li><strong>Ubuntu's session.</strong> Ubuntu's own session uses its own Shell stylesheet, Yaru, in a light and a dark form. The selectors of both were taken from Ubuntu 24.10, 25.04, 25.10 and 26.04 (GNOME 47 to 50), and a test checks that everything Velatura overrides is there. <code>scripts/shell-selectors-ubuntu.sh</code> takes them again for a new release.</li>
+</ul>
+
+<h2>What the older versions showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>Does the user's <code>gtk.css</code> win on libadwaita 1.6, as on 1.9? (open since Phase 0)</td><td>Yes: on GNOME 47 a libadwaita app computes all 58 colours of each generated stylesheet over conflicting definitions earlier in the file.</td></tr>
+<tr><td>Does the app, built against the 1.6 interface, run on 1.6?</td><td>Yes: the gate's app checks pass on GNOME 47, in a headless compositor.</td></tr>
+<tr><td>Can it be built with Fedora 41's own Rust?</td><td>No: the GTK bindings need a newer compiler than that release ships. The CI jobs for the older releases take the current toolchain from rustup; what they test against is the release's own.</td></tr>
+<tr><td>Ubuntu's stylesheet</td><td>All 17 selectors are there in 25.04, 25.10 and 26.04. In 24.10 the Run dialog has no rule of its own, only rules for what is inside it; the element is there, so the override still applies.</td></tr>
+</table></div>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Five tests for the catalogs: complete and well-formed Spanish, the language taken from the session, and the reader on escapes, plurals, long lines and fuzzy entries.</li>
+<li>One test for the unchecked Shell version, and one for Ubuntu's selectors.</li>
+<li>The app rendered in Spanish with <code>scripts/gui-shots.sh --lang es</code>; one tab label was shortened because it did not fit.</li>
+<li>137 tests in all. The template has 354 strings.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>No gettext at run time</strong> (<a href="../decisions.html#d53">D53</a>). The plan had gettext load catalogs installed by Meson. Reading the same <code>.po</code> files from inside the program needs no install step and no further library, and gettext's tools still make and check the catalogs.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>The command stays in English.</strong> Its help and its own short lines are not translated in this slice; mixing them with translated sentences would read worse than English throughout.</li>
+<li><strong>The Spanish has not been read by a second person.</strong> It was written with the app's wording rules in mind (neutral, no "tú"), and checked by rendering, not by a native reviewer other than the owner.</li>
+<li><strong>Languages that count differently</strong> (more than two plural forms) need a rule the reader does not have yet.</li>
+<li><strong>A real Shell on 47 to 49 and on Ubuntu</strong>: checked there by the lists of selectors only. A Shell cannot be started in a container; the live Shell check runs on GNOME 50.</li>
+<li><strong>Ubuntu's own extensions</strong> (the dock among them) bring their own colours, as other extensions do; Velatura's extension is the answer there too, and was not tried on Ubuntu.</li>
+<li>Still open from the MVP's list: screen reader and keyboard-only use, and the lock screen, need a person at the real session.</li>
+</ul>
+
+</main>
+</body>
+</html>

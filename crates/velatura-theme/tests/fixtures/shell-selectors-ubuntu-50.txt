@@ -1,0 +1,3086 @@
+#LookingGlassActors
+#LookingGlassDebugFlags .lg-debug-flag-button
+#LookingGlassDebugFlags .lg-debug-flag-button .toggle-switch
+#LookingGlassDebugFlags .lg-debug-flag-button .toggle-switch:checked
+#LookingGlassDebugFlags .lg-debug-flag-button .toggle-switch:checked:hover
+#LookingGlassDebugFlags .lg-debug-flag-button .toggle-switch:hover
+#LookingGlassDebugFlags .lg-debug-flag-button StLabel
+#LookingGlassDebugFlags .lg-debug-flag-button:active
+#LookingGlassDebugFlags .lg-debug-flag-button:active:focus
+#LookingGlassDebugFlags .lg-debug-flag-button:active:hover
+#LookingGlassDebugFlags .lg-debug-flag-button:checked
+#LookingGlassDebugFlags .lg-debug-flag-button:checked:active
+#LookingGlassDebugFlags .lg-debug-flag-button:checked:hover
+#LookingGlassDebugFlags .lg-debug-flag-button:focus
+#LookingGlassDebugFlags .lg-debug-flag-button:focus:hover
+#LookingGlassDebugFlags .lg-debug-flag-button:hover
+#LookingGlassDebugFlags .lg-debug-flag-button:insensitive
+#LookingGlassDebugFlags .lg-debug-flags-header
+#LookingGlassDialog
+#LookingGlassDialog .labels
+#LookingGlassDialog .notebook-tab
+#LookingGlassDialog .notebook-tab:active
+#LookingGlassDialog .notebook-tab:active:focus
+#LookingGlassDialog .notebook-tab:active:hover
+#LookingGlassDialog .notebook-tab:checked
+#LookingGlassDialog .notebook-tab:checked:active
+#LookingGlassDialog .notebook-tab:checked:hover
+#LookingGlassDialog .notebook-tab:focus
+#LookingGlassDialog .notebook-tab:focus:hover
+#LookingGlassDialog .notebook-tab:hover
+#LookingGlassDialog .notebook-tab:insensitive
+#LookingGlassDialog .notebook-tab:selected
+#LookingGlassDialog .notebook-tab:selected:focus
+#LookingGlassDialog .notebook-tab:selected:hover
+#LookingGlassDialog > #Toolbar
+#LookingGlassDialog > #Toolbar .lg-toolbar-button
+#LookingGlassDialog > #Toolbar .lg-toolbar-button > StIcon
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:active
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:active:focus
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:active:hover
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:checked
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:checked:active
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:checked:hover
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:focus
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:focus:hover
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:hover
+#LookingGlassDialog > #Toolbar .lg-toolbar-button:insensitive
+#LookingGlassDialog StEntry
+#LookingGlassDialog StLabel
+#LookingGlassEvaluator
+#LookingGlassEvaluator .evaluator-results
+#LookingGlassExtensions .lg-extension
+#LookingGlassExtensions .lg-extension .lg-extension-meta
+#LookingGlassExtensions .lg-extension .lg-extension-name
+#LookingGlassExtensions .lg-extensions-list
+#LookingGlassExtensions .lg-extensions-none
+#LookingGlassPropertyInspector
+#LookingGlassPropertyInspector .lg-obj-inspector-button
+#LookingGlassPropertyInspector .lg-obj-inspector-button:active
+#LookingGlassPropertyInspector .lg-obj-inspector-button:active:focus
+#LookingGlassPropertyInspector .lg-obj-inspector-button:active:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-button:checked
+#LookingGlassPropertyInspector .lg-obj-inspector-button:checked:active
+#LookingGlassPropertyInspector .lg-obj-inspector-button:checked:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-button:focus
+#LookingGlassPropertyInspector .lg-obj-inspector-button:focus:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-button:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-button:insensitive
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button > StIcon
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:active
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:active:focus
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:active:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:checked
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:checked:active
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:checked:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:focus
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:focus:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:hover
+#LookingGlassPropertyInspector .lg-obj-inspector-close-button:insensitive
+#LookingGlassPropertyInspector .lg-obj-inspector-title
+#LookingGlassWindows
+#LookingGlassWindows .lg-window
+#LookingGlassWindows .lg-window .lg-window-name
+#calendarArea
+#dash
+#dash .dash-background
+#dash .dash-item-container .app-grid-running-dot
+#dash .dash-item-container .empty-dash-drop-target
+#dash .dash-item-container .grid-search-result
+#dash .dash-item-container .grid-search-result .overview-icon
+#dash .dash-item-container .grid-search-result:active .overview-icon
+#dash .dash-item-container .grid-search-result:active .overview-icon:focus
+#dash .dash-item-container .grid-search-result:active .overview-icon:hover
+#dash .dash-item-container .grid-search-result:checked .overview-icon
+#dash .dash-item-container .grid-search-result:checked .overview-icon:active
+#dash .dash-item-container .grid-search-result:checked .overview-icon:hover
+#dash .dash-item-container .grid-search-result:focus .overview-icon
+#dash .dash-item-container .grid-search-result:focus .overview-icon:hover
+#dash .dash-item-container .grid-search-result:hover .overview-icon
+#dash .dash-item-container .overview-tile
+#dash .dash-item-container .overview-tile .overview-icon
+#dash .dash-item-container .overview-tile:active .overview-icon
+#dash .dash-item-container .overview-tile:active .overview-icon:focus
+#dash .dash-item-container .overview-tile:active .overview-icon:hover
+#dash .dash-item-container .overview-tile:checked .overview-icon
+#dash .dash-item-container .overview-tile:checked .overview-icon:active
+#dash .dash-item-container .overview-tile:checked .overview-icon:hover
+#dash .dash-item-container .overview-tile:focus .overview-icon
+#dash .dash-item-container .overview-tile:focus .overview-icon:hover
+#dash .dash-item-container .overview-tile:hover .overview-icon
+#dash .dash-item-container .placeholder
+#dash .dash-item-container .show-apps
+#dash .dash-item-container .show-apps .overview-icon
+#dash .dash-item-container .show-apps:active .overview-icon
+#dash .dash-item-container .show-apps:active .overview-icon:focus
+#dash .dash-item-container .show-apps:active .overview-icon:hover
+#dash .dash-item-container .show-apps:checked .overview-icon
+#dash .dash-item-container .show-apps:checked .overview-icon:active
+#dash .dash-item-container .show-apps:checked .overview-icon:hover
+#dash .dash-item-container .show-apps:focus .overview-icon
+#dash .dash-item-container .show-apps:focus .overview-icon:hover
+#dash .dash-item-container .show-apps:hover .overview-icon
+#dash .dash-separator
+#dashtodockContainer .metro .overview-icon
+#dashtodockContainer .notification-badge
+#dashtodockContainer .number-overlay
+#dashtodockContainer.bottom #dash
+#dashtodockContainer.bottom #dash #dashtodockDashContainer
+#dashtodockContainer.bottom #dash .dash-background
+#dashtodockContainer.bottom #dash .dash-item-container
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.bottom #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.bottom #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.bottom #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.bottom #dash .dash-item-container > *
+#dashtodockContainer.bottom #dash .dash-item-container > StButton
+#dashtodockContainer.bottom #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.bottom #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.bottom #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.bottom #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.bottom #dash .dash-separator
+#dashtodockContainer.bottom #dash .placeholder
+#dashtodockContainer.bottom .dash-item-container .app-grid-running-dot
+#dashtodockContainer.bottom .dash-item-container .app-well-app
+#dashtodockContainer.bottom .dash-item-container .app-well-app:active .overview-icon
+#dashtodockContainer.bottom .dash-item-container .app-well-app:checked .overview-icon
+#dashtodockContainer.bottom .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.bottom .dash-item-container .focused.grid-search-result .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .focused.grid-search-result .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .grid-search-result
+#dashtodockContainer.bottom .dash-item-container .grid-search-result .overview-icon
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:active .overview-icon
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:active .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:active .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:checked .overview-icon
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:checked .overview-icon:active
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:checked .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:focus .overview-icon
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:focus .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .grid-search-result:hover .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile
+#dashtodockContainer.bottom .dash-item-container .overview-tile .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile.focused .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .overview-tile.focused .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .overview-tile:active .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile:active .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .overview-tile:active .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .overview-tile:checked .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile:checked .overview-icon:active
+#dashtodockContainer.bottom .dash-item-container .overview-tile:checked .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .overview-tile:focus .overview-icon
+#dashtodockContainer.bottom .dash-item-container .overview-tile:focus .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .overview-tile:hover .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps
+#dashtodockContainer.bottom .dash-item-container .show-apps .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps.focused .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps.focused .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .show-apps.focused .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .show-apps:active .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps:active .overview-icon:focus
+#dashtodockContainer.bottom .dash-item-container .show-apps:active .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .show-apps:checked .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps:checked .overview-icon:active
+#dashtodockContainer.bottom .dash-item-container .show-apps:checked .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .show-apps:focus .overview-icon
+#dashtodockContainer.bottom .dash-item-container .show-apps:focus .overview-icon:hover
+#dashtodockContainer.bottom .dash-item-container .show-apps:hover .overview-icon
+#dashtodockContainer.bottom .metro.running2.focused
+#dashtodockContainer.bottom .metro.running3.focused
+#dashtodockContainer.bottom .metro.running4.focused
+#dashtodockContainer.bottom.dashtodock #dash
+#dashtodockContainer.bottom.dashtodock #dash .dash-background
+#dashtodockContainer.bottom.dashtodock #dash .dash-separator
+#dashtodockContainer.bottom.extended #dash
+#dashtodockContainer.bottom.extended #dash #dashtodockDashContainer
+#dashtodockContainer.bottom.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.bottom.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.bottom.extended #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.bottom.extended #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.bottom.extended #dash .dash-background
+#dashtodockContainer.bottom.extended #dash .dash-item-container
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.bottom.extended #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.extended #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container > *
+#dashtodockContainer.bottom.extended #dash .dash-item-container > StButton
+#dashtodockContainer.bottom.extended #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.bottom.extended #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.bottom.extended #dash .dash-separator
+#dashtodockContainer.bottom.extended.dashtodock #dash .dash-background
+#dashtodockContainer.bottom.extended.fixed #dash .dash-background
+#dashtodockContainer.bottom.extended.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.extended.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.extended.shrink #dash
+#dashtodockContainer.bottom.extended.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.bottom.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.bottom.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.bottom.extended.shrink #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.bottom.extended.shrink #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.bottom.extended.shrink #dash .dash-background
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container > *
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.bottom.extended.shrink #dash .dash-separator
+#dashtodockContainer.bottom.extended.shrink.fixed #dash .dash-background
+#dashtodockContainer.bottom.extended.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.extended.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.fixed #dash .dash-background
+#dashtodockContainer.bottom.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.overview #dash .dash-background
+#dashtodockContainer.bottom.overview.dashtodock #dash .dash-background
+#dashtodockContainer.bottom.overview.shrink #dash .dash-background
+#dashtodockContainer.bottom.shrink #dash
+#dashtodockContainer.bottom.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.bottom.shrink #dash .dash-background
+#dashtodockContainer.bottom.shrink #dash .dash-item-container
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container > *
+#dashtodockContainer.bottom.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.bottom.shrink #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.bottom.shrink #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.bottom.shrink #dash .dash-separator
+#dashtodockContainer.bottom.shrink.fixed #dash .dash-background
+#dashtodockContainer.bottom.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.bottom.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.dashtodock #dash .dash-background
+#dashtodockContainer.dashtodock .progress-bar
+#dashtodockContainer.dummy-opaque
+#dashtodockContainer.dummy-transparent
+#dashtodockContainer.left #dash
+#dashtodockContainer.left #dash #dashtodockDashContainer
+#dashtodockContainer.left #dash .dash-background
+#dashtodockContainer.left #dash .dash-item-container
+#dashtodockContainer.left #dash .dash-item-container .app-well-app
+#dashtodockContainer.left #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.left #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.left #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.left #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.left #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .grid-search-result
+#dashtodockContainer.left #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.left #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.left #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.left #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.left #dash .dash-item-container .overview-tile
+#dashtodockContainer.left #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.left #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.left #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.left #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.left #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.left #dash .dash-item-container .show-apps
+#dashtodockContainer.left #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.left #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.left #dash .dash-item-container > *
+#dashtodockContainer.left #dash .dash-item-container > StButton
+#dashtodockContainer.left #dash .dash-item-container:first-child
+#dashtodockContainer.left #dash .dash-item-container:last-child
+#dashtodockContainer.left #dash .dash-separator
+#dashtodockContainer.left .dash-item-container .app-grid-running-dot
+#dashtodockContainer.left .dash-item-container .app-well-app
+#dashtodockContainer.left .dash-item-container .app-well-app:active .overview-icon
+#dashtodockContainer.left .dash-item-container .app-well-app:checked .overview-icon
+#dashtodockContainer.left .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.left .dash-item-container .focused.grid-search-result .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .focused.grid-search-result .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .grid-search-result
+#dashtodockContainer.left .dash-item-container .grid-search-result .overview-icon
+#dashtodockContainer.left .dash-item-container .grid-search-result:active .overview-icon
+#dashtodockContainer.left .dash-item-container .grid-search-result:active .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .grid-search-result:active .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .grid-search-result:checked .overview-icon
+#dashtodockContainer.left .dash-item-container .grid-search-result:checked .overview-icon:active
+#dashtodockContainer.left .dash-item-container .grid-search-result:checked .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .grid-search-result:focus .overview-icon
+#dashtodockContainer.left .dash-item-container .grid-search-result:focus .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .grid-search-result:hover .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile
+#dashtodockContainer.left .dash-item-container .overview-tile .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile.focused .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .overview-tile.focused .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .overview-tile:active .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile:active .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .overview-tile:active .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .overview-tile:checked .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile:checked .overview-icon:active
+#dashtodockContainer.left .dash-item-container .overview-tile:checked .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .overview-tile:focus .overview-icon
+#dashtodockContainer.left .dash-item-container .overview-tile:focus .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .overview-tile:hover .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps
+#dashtodockContainer.left .dash-item-container .show-apps .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps.focused .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps.focused .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .show-apps.focused .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .show-apps:active .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps:active .overview-icon:focus
+#dashtodockContainer.left .dash-item-container .show-apps:active .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .show-apps:checked .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps:checked .overview-icon:active
+#dashtodockContainer.left .dash-item-container .show-apps:checked .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .show-apps:focus .overview-icon
+#dashtodockContainer.left .dash-item-container .show-apps:focus .overview-icon:hover
+#dashtodockContainer.left .dash-item-container .show-apps:hover .overview-icon
+#dashtodockContainer.left .metro.running2.focused
+#dashtodockContainer.left .metro.running3.focused
+#dashtodockContainer.left .metro.running4.focused
+#dashtodockContainer.left.dashtodock #dash
+#dashtodockContainer.left.dashtodock #dash .dash-background
+#dashtodockContainer.left.dashtodock #dash .dash-separator
+#dashtodockContainer.left.extended #dash
+#dashtodockContainer.left.extended #dash #dashtodockDashContainer
+#dashtodockContainer.left.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.left.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.left.extended #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.left.extended #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.left.extended #dash .dash-background
+#dashtodockContainer.left.extended #dash .dash-item-container
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.left.extended #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.left.extended #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .grid-search-result
+#dashtodockContainer.left.extended #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.left.extended #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.left.extended #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.left.extended #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.left.extended #dash .dash-item-container .show-apps
+#dashtodockContainer.left.extended #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.left.extended #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.left.extended #dash .dash-item-container > *
+#dashtodockContainer.left.extended #dash .dash-item-container > StButton
+#dashtodockContainer.left.extended #dash .dash-item-container:first-child
+#dashtodockContainer.left.extended #dash .dash-item-container:last-child
+#dashtodockContainer.left.extended #dash .dash-separator
+#dashtodockContainer.left.extended.dashtodock #dash .dash-background
+#dashtodockContainer.left.extended.fixed #dash .dash-background
+#dashtodockContainer.left.extended.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.extended.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.left.extended.shrink #dash
+#dashtodockContainer.left.extended.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.left.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.left.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.left.extended.shrink #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.left.extended.shrink #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.left.extended.shrink #dash .dash-background
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container > *
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container:first-child
+#dashtodockContainer.left.extended.shrink #dash .dash-item-container:last-child
+#dashtodockContainer.left.extended.shrink #dash .dash-separator
+#dashtodockContainer.left.extended.shrink.fixed #dash .dash-background
+#dashtodockContainer.left.extended.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.extended.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.left.fixed #dash .dash-background
+#dashtodockContainer.left.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.left.overview #dash .dash-background
+#dashtodockContainer.left.overview.dashtodock #dash .dash-background
+#dashtodockContainer.left.overview.shrink #dash .dash-background
+#dashtodockContainer.left.shrink #dash
+#dashtodockContainer.left.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.left.shrink #dash .dash-background
+#dashtodockContainer.left.shrink #dash .dash-item-container
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.left.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.left.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.left.shrink #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.left.shrink #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.left.shrink #dash .dash-item-container > *
+#dashtodockContainer.left.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.left.shrink #dash .dash-item-container:first-child
+#dashtodockContainer.left.shrink #dash .dash-item-container:last-child
+#dashtodockContainer.left.shrink #dash .dash-separator
+#dashtodockContainer.left.shrink.fixed #dash .dash-background
+#dashtodockContainer.left.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.left.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.right #dash
+#dashtodockContainer.right #dash #dashtodockDashContainer
+#dashtodockContainer.right #dash .dash-background
+#dashtodockContainer.right #dash .dash-item-container
+#dashtodockContainer.right #dash .dash-item-container .app-well-app
+#dashtodockContainer.right #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.right #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.right #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.right #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.right #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .grid-search-result
+#dashtodockContainer.right #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.right #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.right #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.right #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.right #dash .dash-item-container .overview-tile
+#dashtodockContainer.right #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.right #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.right #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.right #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.right #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.right #dash .dash-item-container .show-apps
+#dashtodockContainer.right #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.right #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.right #dash .dash-item-container > *
+#dashtodockContainer.right #dash .dash-item-container > StButton
+#dashtodockContainer.right #dash .dash-item-container:first-child
+#dashtodockContainer.right #dash .dash-item-container:last-child
+#dashtodockContainer.right #dash .dash-separator
+#dashtodockContainer.right .dash-item-container .app-grid-running-dot
+#dashtodockContainer.right .dash-item-container .app-well-app
+#dashtodockContainer.right .dash-item-container .app-well-app:active .overview-icon
+#dashtodockContainer.right .dash-item-container .app-well-app:checked .overview-icon
+#dashtodockContainer.right .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.right .dash-item-container .focused.grid-search-result .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .focused.grid-search-result .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .grid-search-result
+#dashtodockContainer.right .dash-item-container .grid-search-result .overview-icon
+#dashtodockContainer.right .dash-item-container .grid-search-result:active .overview-icon
+#dashtodockContainer.right .dash-item-container .grid-search-result:active .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .grid-search-result:active .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .grid-search-result:checked .overview-icon
+#dashtodockContainer.right .dash-item-container .grid-search-result:checked .overview-icon:active
+#dashtodockContainer.right .dash-item-container .grid-search-result:checked .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .grid-search-result:focus .overview-icon
+#dashtodockContainer.right .dash-item-container .grid-search-result:focus .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .grid-search-result:hover .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile
+#dashtodockContainer.right .dash-item-container .overview-tile .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile.focused .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .overview-tile.focused .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .overview-tile:active .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile:active .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .overview-tile:active .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .overview-tile:checked .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile:checked .overview-icon:active
+#dashtodockContainer.right .dash-item-container .overview-tile:checked .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .overview-tile:focus .overview-icon
+#dashtodockContainer.right .dash-item-container .overview-tile:focus .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .overview-tile:hover .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps
+#dashtodockContainer.right .dash-item-container .show-apps .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps.focused .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps.focused .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .show-apps.focused .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .show-apps:active .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps:active .overview-icon:focus
+#dashtodockContainer.right .dash-item-container .show-apps:active .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .show-apps:checked .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps:checked .overview-icon:active
+#dashtodockContainer.right .dash-item-container .show-apps:checked .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .show-apps:focus .overview-icon
+#dashtodockContainer.right .dash-item-container .show-apps:focus .overview-icon:hover
+#dashtodockContainer.right .dash-item-container .show-apps:hover .overview-icon
+#dashtodockContainer.right .metro.running2.focused
+#dashtodockContainer.right .metro.running3.focused
+#dashtodockContainer.right .metro.running4.focused
+#dashtodockContainer.right.dashtodock #dash
+#dashtodockContainer.right.dashtodock #dash .dash-background
+#dashtodockContainer.right.dashtodock #dash .dash-separator
+#dashtodockContainer.right.extended #dash
+#dashtodockContainer.right.extended #dash #dashtodockDashContainer
+#dashtodockContainer.right.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.right.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.right.extended #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.right.extended #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.right.extended #dash .dash-background
+#dashtodockContainer.right.extended #dash .dash-item-container
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.right.extended #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.right.extended #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .grid-search-result
+#dashtodockContainer.right.extended #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.right.extended #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.right.extended #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.right.extended #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.right.extended #dash .dash-item-container .show-apps
+#dashtodockContainer.right.extended #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.right.extended #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.right.extended #dash .dash-item-container > *
+#dashtodockContainer.right.extended #dash .dash-item-container > StButton
+#dashtodockContainer.right.extended #dash .dash-item-container:first-child
+#dashtodockContainer.right.extended #dash .dash-item-container:last-child
+#dashtodockContainer.right.extended #dash .dash-separator
+#dashtodockContainer.right.extended.dashtodock #dash .dash-background
+#dashtodockContainer.right.extended.fixed #dash .dash-background
+#dashtodockContainer.right.extended.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.extended.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.right.extended.shrink #dash
+#dashtodockContainer.right.extended.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.right.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.right.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.right.extended.shrink #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.right.extended.shrink #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.right.extended.shrink #dash .dash-background
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container > *
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container:first-child
+#dashtodockContainer.right.extended.shrink #dash .dash-item-container:last-child
+#dashtodockContainer.right.extended.shrink #dash .dash-separator
+#dashtodockContainer.right.extended.shrink.fixed #dash .dash-background
+#dashtodockContainer.right.extended.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.extended.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.right.fixed #dash .dash-background
+#dashtodockContainer.right.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.right.overview #dash .dash-background
+#dashtodockContainer.right.overview.dashtodock #dash .dash-background
+#dashtodockContainer.right.overview.shrink #dash .dash-background
+#dashtodockContainer.right.shrink #dash
+#dashtodockContainer.right.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.right.shrink #dash .dash-background
+#dashtodockContainer.right.shrink #dash .dash-item-container
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app:first-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .app-well-app:last-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.right.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .grid-search-result:first-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .grid-search-result:last-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile:first-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .overview-tile:last-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.right.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.right.shrink #dash .dash-item-container .show-apps:first-child
+#dashtodockContainer.right.shrink #dash .dash-item-container .show-apps:last-child
+#dashtodockContainer.right.shrink #dash .dash-item-container > *
+#dashtodockContainer.right.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.right.shrink #dash .dash-item-container:first-child
+#dashtodockContainer.right.shrink #dash .dash-item-container:last-child
+#dashtodockContainer.right.shrink #dash .dash-separator
+#dashtodockContainer.right.shrink.fixed #dash .dash-background
+#dashtodockContainer.right.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.right.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.shrink.straight-corner #dash .dash-background
+#dashtodockContainer.straight-corner #dash .dash-background
+#dashtodockContainer.top #dash
+#dashtodockContainer.top #dash #dashtodockDashContainer
+#dashtodockContainer.top #dash .dash-background
+#dashtodockContainer.top #dash .dash-item-container
+#dashtodockContainer.top #dash .dash-item-container .app-well-app
+#dashtodockContainer.top #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.top #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.top #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.top #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.top #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.top #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.top #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.top #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.top #dash .dash-item-container .overview-tile
+#dashtodockContainer.top #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.top #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.top #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.top #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.top #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.top #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.top #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.top #dash .dash-item-container .show-apps
+#dashtodockContainer.top #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.top #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.top #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.top #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.top #dash .dash-item-container > *
+#dashtodockContainer.top #dash .dash-item-container > StButton
+#dashtodockContainer.top #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.top #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.top #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.top #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.top #dash .dash-separator
+#dashtodockContainer.top #dash .placeholder
+#dashtodockContainer.top .dash-item-container .app-grid-running-dot
+#dashtodockContainer.top .dash-item-container .app-well-app
+#dashtodockContainer.top .dash-item-container .app-well-app:active .overview-icon
+#dashtodockContainer.top .dash-item-container .app-well-app:checked .overview-icon
+#dashtodockContainer.top .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.top .dash-item-container .focused.grid-search-result .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .focused.grid-search-result .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .grid-search-result
+#dashtodockContainer.top .dash-item-container .grid-search-result .overview-icon
+#dashtodockContainer.top .dash-item-container .grid-search-result:active .overview-icon
+#dashtodockContainer.top .dash-item-container .grid-search-result:active .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .grid-search-result:active .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .grid-search-result:checked .overview-icon
+#dashtodockContainer.top .dash-item-container .grid-search-result:checked .overview-icon:active
+#dashtodockContainer.top .dash-item-container .grid-search-result:checked .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .grid-search-result:focus .overview-icon
+#dashtodockContainer.top .dash-item-container .grid-search-result:focus .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .grid-search-result:hover .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile
+#dashtodockContainer.top .dash-item-container .overview-tile .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile.focused .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .overview-tile.focused .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .overview-tile:active .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile:active .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .overview-tile:active .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .overview-tile:checked .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile:checked .overview-icon:active
+#dashtodockContainer.top .dash-item-container .overview-tile:checked .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .overview-tile:focus .overview-icon
+#dashtodockContainer.top .dash-item-container .overview-tile:focus .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .overview-tile:hover .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps
+#dashtodockContainer.top .dash-item-container .show-apps .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps.focused .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps.focused .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .show-apps.focused .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .show-apps:active .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps:active .overview-icon:focus
+#dashtodockContainer.top .dash-item-container .show-apps:active .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .show-apps:checked .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps:checked .overview-icon:active
+#dashtodockContainer.top .dash-item-container .show-apps:checked .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .show-apps:focus .overview-icon
+#dashtodockContainer.top .dash-item-container .show-apps:focus .overview-icon:hover
+#dashtodockContainer.top .dash-item-container .show-apps:hover .overview-icon
+#dashtodockContainer.top .metro.running2.focused
+#dashtodockContainer.top .metro.running3.focused
+#dashtodockContainer.top .metro.running4.focused
+#dashtodockContainer.top.dashtodock #dash
+#dashtodockContainer.top.dashtodock #dash .dash-background
+#dashtodockContainer.top.dashtodock #dash .dash-separator
+#dashtodockContainer.top.extended #dash
+#dashtodockContainer.top.extended #dash #dashtodockDashContainer
+#dashtodockContainer.top.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.top.extended #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.top.extended #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.top.extended #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.top.extended #dash .dash-background
+#dashtodockContainer.top.extended #dash .dash-item-container
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.top.extended #dash .dash-item-container .show-apps
+#dashtodockContainer.top.extended #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container > *
+#dashtodockContainer.top.extended #dash .dash-item-container > StButton
+#dashtodockContainer.top.extended #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.top.extended #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.top.extended #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.top.extended #dash .dash-separator
+#dashtodockContainer.top.extended.dashtodock #dash .dash-background
+#dashtodockContainer.top.extended.fixed #dash .dash-background
+#dashtodockContainer.top.extended.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.extended.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.top.extended.shrink #dash
+#dashtodockContainer.top.extended.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.top.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:first-child
+#dashtodockContainer.top.extended.shrink #dash #dashtodockDashContainer #dashtodockDashScrollview:last-child
+#dashtodockContainer.top.extended.shrink #dash #dashtodockDashContainer > :first-child .show-apps
+#dashtodockContainer.top.extended.shrink #dash #dashtodockDashContainer > :last-child .show-apps
+#dashtodockContainer.top.extended.shrink #dash .dash-background
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container > *
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.top.extended.shrink #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.top.extended.shrink #dash .dash-separator
+#dashtodockContainer.top.extended.shrink.fixed #dash .dash-background
+#dashtodockContainer.top.extended.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.extended.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.top.fixed #dash .dash-background
+#dashtodockContainer.top.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.fixed #dash .dash-item-container .show-apps
+#dashtodockContainer.top.overview #dash .dash-background
+#dashtodockContainer.top.overview.dashtodock #dash .dash-background
+#dashtodockContainer.top.overview.shrink #dash .dash-background
+#dashtodockContainer.top.shrink #dash
+#dashtodockContainer.top.shrink #dash #dashtodockDashContainer
+#dashtodockContainer.top.shrink #dash .dash-background
+#dashtodockContainer.top.shrink #dash .dash-item-container
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app .app-grid-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app .app-well-app-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app.focused .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app.running .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app:ltr:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app:ltr:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app:rtl:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .app-well-app:rtl:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .focused.grid-search-result .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result .app-grid-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result .app-well-app-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result:ltr:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result:ltr:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result:rtl:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .grid-search-result:rtl:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile .app-grid-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile .app-well-app-running-dot
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile.focused .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile.running .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile:ltr:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile:ltr:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile:rtl:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .overview-tile:rtl:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .running.grid-search-result .overview-icon
+#dashtodockContainer.top.shrink #dash .dash-item-container .show-apps
+#dashtodockContainer.top.shrink #dash .dash-item-container .show-apps:ltr:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .show-apps:ltr:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .show-apps:rtl:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container .show-apps:rtl:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container > *
+#dashtodockContainer.top.shrink #dash .dash-item-container > StButton
+#dashtodockContainer.top.shrink #dash .dash-item-container:ltr:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container:ltr:last-child
+#dashtodockContainer.top.shrink #dash .dash-item-container:rtl:first-child
+#dashtodockContainer.top.shrink #dash .dash-item-container:rtl:last-child
+#dashtodockContainer.top.shrink #dash .dash-separator
+#dashtodockContainer.top.shrink.fixed #dash .dash-background
+#dashtodockContainer.top.shrink.fixed #dash .dash-item-container .app-well-app
+#dashtodockContainer.top.shrink.fixed #dash .dash-item-container .show-apps
+#dashtodockPreviewSeparator.popup-separator-menu-item-horizontal
+#keyboard
+#keyboard .page-indicator
+#keyboard .page-indicator .page-indicator-icon
+#lockDialogGroup
+#overview .app-folder-dialog .progress-bar
+#overview .grid-search-results .grid-search-result .progress-bar
+#overview .grid-search-results .overview-tile .progress-bar
+#overview .progress-bar
+#overviewGroup
+#panel
+#panel .panel-button
+#panel .panel-button .panel-status-indicators-box
+#panel .panel-button .panel-status-indicators-box > .system-status-icon
+#panel .panel-button .system-status-icon
+#panel .panel-button#panelActivities .workspace-dot
+#panel .panel-button#panelActivities StBoxLayout
+#panel .panel-button.clock-display
+#panel .panel-button.clock-display .clock
+#panel .panel-button.clock-display .messages-indicator
+#panel .panel-button.clock-display:active
+#panel .panel-button.clock-display:active .clock
+#panel .panel-button.clock-display:active .clock:hover
+#panel .panel-button.clock-display:active:hover
+#panel .panel-button.clock-display:checked
+#panel .panel-button.clock-display:checked .clock
+#panel .panel-button.clock-display:checked .clock:hover
+#panel .panel-button.clock-display:checked:hover
+#panel .panel-button.clock-display:focus
+#panel .panel-button.clock-display:focus .clock
+#panel .panel-button.clock-display:hover
+#panel .panel-button.clock-display:hover .clock
+#panel .panel-button.screen-recording-indicator
+#panel .panel-button.screen-recording-indicator StBoxLayout
+#panel .panel-button.screen-recording-indicator StIcon
+#panel .panel-button.screen-recording-indicator:active
+#panel .panel-button.screen-recording-indicator:active:hover
+#panel .panel-button.screen-recording-indicator:checked
+#panel .panel-button.screen-recording-indicator:checked:hover
+#panel .panel-button.screen-recording-indicator:focus
+#panel .panel-button.screen-recording-indicator:hover
+#panel .panel-button.screen-sharing-indicator
+#panel .panel-button.screen-sharing-indicator StBoxLayout
+#panel .panel-button.screen-sharing-indicator StIcon
+#panel .panel-button.screen-sharing-indicator:active
+#panel .panel-button.screen-sharing-indicator:active:hover
+#panel .panel-button.screen-sharing-indicator:checked
+#panel .panel-button.screen-sharing-indicator:checked:hover
+#panel .panel-button.screen-sharing-indicator:focus
+#panel .panel-button.screen-sharing-indicator:hover
+#panel .panel-button:active
+#panel .panel-button:active:hover
+#panel .panel-button:checked
+#panel .panel-button:checked:hover
+#panel .panel-button:focus
+#panel .panel-button:hover
+#panel .panel-status-indicators-box
+#panel .power-status.panel-status-indicators-box
+#panel .privacy-indicator
+#panel .system-status-icon
+#panel.login-screen
+#panel.login-screen .panel-button
+#panel.login-screen .panel-button.clock-display
+#panel.login-screen .panel-button.clock-display .clock
+#panel.login-screen .panel-button.clock-display:active
+#panel.login-screen .panel-button.clock-display:active .clock
+#panel.login-screen .panel-button.clock-display:active .clock:hover
+#panel.login-screen .panel-button.clock-display:active:hover
+#panel.login-screen .panel-button.clock-display:checked
+#panel.login-screen .panel-button.clock-display:checked .clock
+#panel.login-screen .panel-button.clock-display:checked .clock:hover
+#panel.login-screen .panel-button.clock-display:checked:hover
+#panel.login-screen .panel-button.clock-display:focus
+#panel.login-screen .panel-button.clock-display:focus .clock
+#panel.login-screen .panel-button.clock-display:hover
+#panel.login-screen .panel-button.clock-display:hover .clock
+#panel.login-screen .panel-button.screen-recording-indicator
+#panel.login-screen .panel-button.screen-recording-indicator:active
+#panel.login-screen .panel-button.screen-recording-indicator:active:hover
+#panel.login-screen .panel-button.screen-recording-indicator:checked
+#panel.login-screen .panel-button.screen-recording-indicator:checked:hover
+#panel.login-screen .panel-button.screen-recording-indicator:focus
+#panel.login-screen .panel-button.screen-recording-indicator:hover
+#panel.login-screen .panel-button.screen-sharing-indicator
+#panel.login-screen .panel-button.screen-sharing-indicator:active
+#panel.login-screen .panel-button.screen-sharing-indicator:active:hover
+#panel.login-screen .panel-button.screen-sharing-indicator:checked
+#panel.login-screen .panel-button.screen-sharing-indicator:checked:hover
+#panel.login-screen .panel-button.screen-sharing-indicator:focus
+#panel.login-screen .panel-button.screen-sharing-indicator:hover
+#panel.login-screen .panel-button:active
+#panel.login-screen .panel-button:active:hover
+#panel.login-screen .panel-button:checked
+#panel.login-screen .panel-button:checked:hover
+#panel.login-screen .panel-button:focus
+#panel.login-screen .panel-button:hover
+#panel.unlock-screen
+#panel.unlock-screen .panel-button
+#panel.unlock-screen .panel-button.clock-display
+#panel.unlock-screen .panel-button.clock-display .clock
+#panel.unlock-screen .panel-button.clock-display:active
+#panel.unlock-screen .panel-button.clock-display:active .clock
+#panel.unlock-screen .panel-button.clock-display:active .clock:hover
+#panel.unlock-screen .panel-button.clock-display:active:hover
+#panel.unlock-screen .panel-button.clock-display:checked
+#panel.unlock-screen .panel-button.clock-display:checked .clock
+#panel.unlock-screen .panel-button.clock-display:checked .clock:hover
+#panel.unlock-screen .panel-button.clock-display:checked:hover
+#panel.unlock-screen .panel-button.clock-display:focus
+#panel.unlock-screen .panel-button.clock-display:focus .clock
+#panel.unlock-screen .panel-button.clock-display:hover
+#panel.unlock-screen .panel-button.clock-display:hover .clock
+#panel.unlock-screen .panel-button.screen-recording-indicator
+#panel.unlock-screen .panel-button.screen-recording-indicator:active
+#panel.unlock-screen .panel-button.screen-recording-indicator:active:hover
+#panel.unlock-screen .panel-button.screen-recording-indicator:checked
+#panel.unlock-screen .panel-button.screen-recording-indicator:checked:hover
+#panel.unlock-screen .panel-button.screen-recording-indicator:focus
+#panel.unlock-screen .panel-button.screen-recording-indicator:hover
+#panel.unlock-screen .panel-button.screen-sharing-indicator
+#panel.unlock-screen .panel-button.screen-sharing-indicator:active
+#panel.unlock-screen .panel-button.screen-sharing-indicator:active:hover
+#panel.unlock-screen .panel-button.screen-sharing-indicator:checked
+#panel.unlock-screen .panel-button.screen-sharing-indicator:checked:hover
+#panel.unlock-screen .panel-button.screen-sharing-indicator:focus
+#panel.unlock-screen .panel-button.screen-sharing-indicator:hover
+#panel.unlock-screen .panel-button:active
+#panel.unlock-screen .panel-button:active:hover
+#panel.unlock-screen .panel-button:checked
+#panel.unlock-screen .panel-button:checked:hover
+#panel.unlock-screen .panel-button:focus
+#panel.unlock-screen .panel-button:hover
+#panel:overview
+#panel:overview .panel-button
+#panel:overview .panel-button#panelActivities .workspace-dot
+#panel:overview .panel-button.clock-display
+#panel:overview .panel-button.clock-display .clock
+#panel:overview .panel-button.clock-display:active
+#panel:overview .panel-button.clock-display:active .clock
+#panel:overview .panel-button.clock-display:active .clock:hover
+#panel:overview .panel-button.clock-display:active:hover
+#panel:overview .panel-button.clock-display:checked
+#panel:overview .panel-button.clock-display:checked .clock
+#panel:overview .panel-button.clock-display:checked .clock:hover
+#panel:overview .panel-button.clock-display:checked:hover
+#panel:overview .panel-button.clock-display:focus
+#panel:overview .panel-button.clock-display:focus .clock
+#panel:overview .panel-button.clock-display:hover
+#panel:overview .panel-button.clock-display:hover .clock
+#panel:overview .panel-button.screen-recording-indicator
+#panel:overview .panel-button.screen-recording-indicator:active
+#panel:overview .panel-button.screen-recording-indicator:active:hover
+#panel:overview .panel-button.screen-recording-indicator:checked
+#panel:overview .panel-button.screen-recording-indicator:checked:hover
+#panel:overview .panel-button.screen-recording-indicator:focus
+#panel:overview .panel-button.screen-recording-indicator:hover
+#panel:overview .panel-button.screen-sharing-indicator
+#panel:overview .panel-button.screen-sharing-indicator:active
+#panel:overview .panel-button.screen-sharing-indicator:active:hover
+#panel:overview .panel-button.screen-sharing-indicator:checked
+#panel:overview .panel-button.screen-sharing-indicator:checked:hover
+#panel:overview .panel-button.screen-sharing-indicator:focus
+#panel:overview .panel-button.screen-sharing-indicator:hover
+#panel:overview .panel-button:active
+#panel:overview .panel-button:active:hover
+#panel:overview .panel-button:checked
+#panel:overview .panel-button:checked:hover
+#panel:overview .panel-button:focus
+#panel:overview .panel-button:hover
+#searchResults
+#searchResultsContent
+#unlockDialogNotifications > .hhandle
+#unlockDialogNotifications > .hhandle:active
+#unlockDialogNotifications > .hhandle:focus
+#unlockDialogNotifications > .hhandle:hover
+#unlockDialogNotifications > .vhandle
+#unlockDialogNotifications > .vhandle:active
+#unlockDialogNotifications > .vhandle:focus
+#unlockDialogNotifications > .vhandle:hover
+.access-dialog
+.app-folder
+.app-folder-dialog
+.app-folder-dialog .calendar .calendar-month-header .pager-button
+.app-folder-dialog .calendar .calendar-month-header .pager-button:active
+.app-folder-dialog .calendar .calendar-month-header .pager-button:active:focus
+.app-folder-dialog .calendar .calendar-month-header .pager-button:active:hover
+.app-folder-dialog .calendar .calendar-month-header .pager-button:hover
+.app-folder-dialog .folder-name-container
+.app-folder-dialog .folder-name-container .folder-name-entry
+.app-folder-dialog .folder-name-container .folder-name-entry StLabel.hint-text
+.app-folder-dialog .folder-name-container .folder-name-entry:focus
+.app-folder-dialog .folder-name-container .folder-name-entry:hover
+.app-folder-dialog .folder-name-container .folder-name-entry:insensitive
+.app-folder-dialog .folder-name-container .folder-name-label
+.app-folder-dialog .grid-search-result
+.app-folder-dialog .grid-search-result:active
+.app-folder-dialog .grid-search-result:active:focus
+.app-folder-dialog .grid-search-result:active:hover
+.app-folder-dialog .grid-search-result:checked
+.app-folder-dialog .grid-search-result:checked:active
+.app-folder-dialog .grid-search-result:checked:hover
+.app-folder-dialog .grid-search-result:drop
+.app-folder-dialog .grid-search-result:focus
+.app-folder-dialog .grid-search-result:focus:hover
+.app-folder-dialog .grid-search-result:highlighted
+.app-folder-dialog .grid-search-result:highlighted:active
+.app-folder-dialog .grid-search-result:highlighted:hover
+.app-folder-dialog .grid-search-result:hover
+.app-folder-dialog .grid-search-result:insensitive
+.app-folder-dialog .grid-search-result:selected
+.app-folder-dialog .grid-search-result:selected:active
+.app-folder-dialog .grid-search-result:selected:hover
+.app-folder-dialog .icon-button
+.app-folder-dialog .icon-button:active
+.app-folder-dialog .icon-button:active:focus
+.app-folder-dialog .icon-button:active:hover
+.app-folder-dialog .icon-button:hover
+.app-folder-dialog .login-dialog-button.a11y-button
+.app-folder-dialog .login-dialog-button.a11y-button:active
+.app-folder-dialog .login-dialog-button.a11y-button:active:focus
+.app-folder-dialog .login-dialog-button.a11y-button:active:hover
+.app-folder-dialog .login-dialog-button.a11y-button:hover
+.app-folder-dialog .login-dialog-button.cancel-button
+.app-folder-dialog .login-dialog-button.cancel-button:active
+.app-folder-dialog .login-dialog-button.cancel-button:active:focus
+.app-folder-dialog .login-dialog-button.cancel-button:active:hover
+.app-folder-dialog .login-dialog-button.cancel-button:hover
+.app-folder-dialog .login-dialog-button.login-dialog-auth-menu-button
+.app-folder-dialog .login-dialog-button.login-dialog-auth-menu-button:active
+.app-folder-dialog .login-dialog-button.login-dialog-auth-menu-button:active:focus
+.app-folder-dialog .login-dialog-button.login-dialog-auth-menu-button:active:hover
+.app-folder-dialog .login-dialog-button.login-dialog-auth-menu-button:hover
+.app-folder-dialog .login-dialog-button.login-dialog-session-list-button
+.app-folder-dialog .login-dialog-button.login-dialog-session-list-button:active
+.app-folder-dialog .login-dialog-button.login-dialog-session-list-button:active:focus
+.app-folder-dialog .login-dialog-button.login-dialog-session-list-button:active:hover
+.app-folder-dialog .login-dialog-button.login-dialog-session-list-button:hover
+.app-folder-dialog .login-dialog-button.switch-user-button
+.app-folder-dialog .login-dialog-button.switch-user-button:active
+.app-folder-dialog .login-dialog-button.switch-user-button:active:focus
+.app-folder-dialog .login-dialog-button.switch-user-button:active:hover
+.app-folder-dialog .login-dialog-button.switch-user-button:hover
+.app-folder-dialog .login-dialog-button.web-login-intro-button
+.app-folder-dialog .login-dialog-button.web-login-intro-button:active
+.app-folder-dialog .login-dialog-button.web-login-intro-button:active:focus
+.app-folder-dialog .login-dialog-button.web-login-intro-button:active:hover
+.app-folder-dialog .login-dialog-button.web-login-intro-button:hover
+.app-folder-dialog .message .message-header .message-close-button
+.app-folder-dialog .message .message-header .message-close-button:active
+.app-folder-dialog .message .message-header .message-close-button:active:focus
+.app-folder-dialog .message .message-header .message-close-button:active:hover
+.app-folder-dialog .message .message-header .message-close-button:hover
+.app-folder-dialog .message .message-header .message-expand-button
+.app-folder-dialog .message .message-header .message-expand-button:active
+.app-folder-dialog .message .message-header .message-expand-button:active:focus
+.app-folder-dialog .message .message-header .message-expand-button:active:hover
+.app-folder-dialog .message .message-header .message-expand-button:hover
+.app-folder-dialog .message-notification-group .message-collapse-button
+.app-folder-dialog .message-notification-group .message-collapse-button:active
+.app-folder-dialog .message-notification-group .message-collapse-button:active:focus
+.app-folder-dialog .message-notification-group .message-collapse-button:active:hover
+.app-folder-dialog .message-notification-group .message-collapse-button:hover
+.app-folder-dialog .overview-tile
+.app-folder-dialog .overview-tile:active
+.app-folder-dialog .overview-tile:active:focus
+.app-folder-dialog .overview-tile:active:hover
+.app-folder-dialog .overview-tile:checked
+.app-folder-dialog .overview-tile:checked:active
+.app-folder-dialog .overview-tile:checked:hover
+.app-folder-dialog .overview-tile:drop
+.app-folder-dialog .overview-tile:focus
+.app-folder-dialog .overview-tile:focus:hover
+.app-folder-dialog .overview-tile:highlighted
+.app-folder-dialog .overview-tile:highlighted:active
+.app-folder-dialog .overview-tile:highlighted:hover
+.app-folder-dialog .overview-tile:hover
+.app-folder-dialog .overview-tile:insensitive
+.app-folder-dialog .overview-tile:selected
+.app-folder-dialog .overview-tile:selected:active
+.app-folder-dialog .overview-tile:selected:hover
+.app-folder-dialog .page-indicators
+.app-folder-dialog .page-navigation-arrow
+.app-folder-dialog .page-navigation-arrow:active
+.app-folder-dialog .page-navigation-arrow:active:focus
+.app-folder-dialog .page-navigation-arrow:active:hover
+.app-folder-dialog .page-navigation-arrow:hover
+.app-folder-dialog .screenshot-ui-show-pointer-button
+.app-folder-dialog .screenshot-ui-show-pointer-button:active
+.app-folder-dialog .screenshot-ui-show-pointer-button:active:focus
+.app-folder-dialog .screenshot-ui-show-pointer-button:active:hover
+.app-folder-dialog .screenshot-ui-show-pointer-button:hover
+.app-folder-dialog-container
+.app-folder:active
+.app-folder:active:focus
+.app-folder:active:hover
+.app-folder:checked
+.app-folder:checked:active
+.app-folder:checked:hover
+.app-folder:drop
+.app-folder:focus
+.app-folder:focus:hover
+.app-folder:highlighted
+.app-folder:highlighted:active
+.app-folder:highlighted:hover
+.app-folder:hover
+.app-folder:insensitive
+.app-folder:selected
+.app-folder:selected:active
+.app-folder:selected:hover
+.app-grid-running-dot
+.app-menu
+.app-menu .popup-inactive-menu-item:first-child > StLabel
+.app-menu .popup-inactive-menu-item:first-child > StLabel:ltr
+.app-menu .popup-inactive-menu-item:first-child > StLabel:rtl
+.apps-scroll-view
+.apps-scroll-view .progress-bar
+.audio-device-selection-dialog
+.audio-device-selection-dialog .audio-selection-box
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device .audio-selection-device-box
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device .audio-selection-device-icon
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:active
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:active:focus
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:active:hover
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:checked
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:checked:active
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:checked:hover
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:drop
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:focus
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:focus:hover
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:highlighted
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:highlighted:active
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:highlighted:hover
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:hover
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:insensitive
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:selected
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:selected:active
+.audio-device-selection-dialog .audio-selection-box .audio-selection-device:selected:hover
+.auth-notification-banner .message-header
+.auth-notification-banner .message-header .message-close-button
+.background-app-item .calendar .calendar-month-header .pager-button
+.background-app-item .calendar .calendar-month-header .pager-button:active
+.background-app-item .calendar .calendar-month-header .pager-button:hover
+.background-app-item .icon-button
+.background-app-item .icon-button:active
+.background-app-item .icon-button:hover
+.background-app-item .login-dialog-button.a11y-button
+.background-app-item .login-dialog-button.a11y-button:active
+.background-app-item .login-dialog-button.a11y-button:hover
+.background-app-item .login-dialog-button.cancel-button
+.background-app-item .login-dialog-button.cancel-button:active
+.background-app-item .login-dialog-button.cancel-button:hover
+.background-app-item .login-dialog-button.login-dialog-auth-menu-button
+.background-app-item .login-dialog-button.login-dialog-auth-menu-button:active
+.background-app-item .login-dialog-button.login-dialog-auth-menu-button:hover
+.background-app-item .login-dialog-button.login-dialog-session-list-button
+.background-app-item .login-dialog-button.login-dialog-session-list-button:active
+.background-app-item .login-dialog-button.login-dialog-session-list-button:hover
+.background-app-item .login-dialog-button.switch-user-button
+.background-app-item .login-dialog-button.switch-user-button:active
+.background-app-item .login-dialog-button.switch-user-button:hover
+.background-app-item .login-dialog-button.web-login-intro-button
+.background-app-item .login-dialog-button.web-login-intro-button:active
+.background-app-item .login-dialog-button.web-login-intro-button:hover
+.background-app-item .message .message-header .message-close-button
+.background-app-item .message .message-header .message-close-button:active
+.background-app-item .message .message-header .message-close-button:hover
+.background-app-item .message .message-header .message-expand-button
+.background-app-item .message .message-header .message-expand-button:active
+.background-app-item .message .message-header .message-expand-button:hover
+.background-app-item .message-notification-group .message-collapse-button
+.background-app-item .message-notification-group .message-collapse-button:active
+.background-app-item .message-notification-group .message-collapse-button:hover
+.background-app-item .popup-menu-icon
+.background-app-item .screenshot-ui-show-pointer-button
+.background-app-item .screenshot-ui-show-pointer-button:active
+.background-app-item .screenshot-ui-show-pointer-button:hover
+.background-app-item .spinner
+.background-app-item .subtitle
+.background-app-item .title
+.background-app-item.popup-inactive-menu-item
+.background-apps-quick-toggle
+.background-apps-quick-toggle StIcon
+.background-menu
+.bottom #dashtodockDashScrollview
+.bt-device-item .popup-menu-icon
+.bt-menu-placeholder.popup-menu-item
+.button
+.button.default
+.button.default:active
+.button.default:active:focus
+.button.default:active:hover
+.button.default:focus
+.button.default:focus:hover
+.button.default:hover
+.button.default:insensitive
+.button.flat
+.button.flat:active
+.button.flat:active:focus
+.button.flat:active:hover
+.button.flat:checked
+.button.flat:checked:active
+.button.flat:checked:hover
+.button.flat:focus
+.button.flat:focus:hover
+.button.flat:hover
+.button.flat:insensitive
+.button.flat:selected
+.button.flat:selected:focus
+.button.flat:selected:hover
+.button:active
+.button:active:focus
+.button:active:hover
+.button:checked
+.button:checked:active
+.button:checked:hover
+.button:focus
+.button:focus:hover
+.button:hover
+.button:insensitive
+.button:selected
+.button:selected:focus
+.button:selected:hover
+.calendar
+.calendar .calendar-day
+.calendar .calendar-day-heading
+.calendar .calendar-day-heading:active
+.calendar .calendar-day-heading:active:focus
+.calendar .calendar-day-heading:active:hover
+.calendar .calendar-day-heading:checked
+.calendar .calendar-day-heading:checked:active
+.calendar .calendar-day-heading:checked:hover
+.calendar .calendar-day-heading:focus
+.calendar .calendar-day-heading:focus:hover
+.calendar .calendar-day-heading:hover
+.calendar .calendar-day-heading:insensitive
+.calendar .calendar-day-heading:selected
+.calendar .calendar-day-heading:selected:focus
+.calendar .calendar-day-heading:selected:hover
+.calendar .calendar-day.calendar-day-with-events
+.calendar .calendar-day.calendar-other-month
+.calendar .calendar-day.calendar-other-month.calendar-weekend
+.calendar .calendar-day.calendar-today
+.calendar .calendar-day.calendar-today.calendar-day-with-events
+.calendar .calendar-day.calendar-today:active
+.calendar .calendar-day.calendar-today:active:focus
+.calendar .calendar-day.calendar-today:active:hover
+.calendar .calendar-day.calendar-today:focus
+.calendar .calendar-day.calendar-today:focus:hover
+.calendar .calendar-day.calendar-today:hover
+.calendar .calendar-day.calendar-today:insensitive
+.calendar .calendar-day.calendar-weekend
+.calendar .calendar-day:active
+.calendar .calendar-day:active:focus
+.calendar .calendar-day:active:hover
+.calendar .calendar-day:checked
+.calendar .calendar-day:checked:active
+.calendar .calendar-day:checked:hover
+.calendar .calendar-day:focus
+.calendar .calendar-day:focus:hover
+.calendar .calendar-day:hover
+.calendar .calendar-day:insensitive
+.calendar .calendar-day:selected
+.calendar .calendar-day:selected:focus
+.calendar .calendar-day:selected:hover
+.calendar .calendar-month-header .app-folder-dialog .pager-button
+.calendar .calendar-month-header .app-folder-dialog .pager-button:active
+.calendar .calendar-month-header .app-folder-dialog .pager-button:active:focus
+.calendar .calendar-month-header .app-folder-dialog .pager-button:active:hover
+.calendar .calendar-month-header .app-folder-dialog .pager-button:hover
+.calendar .calendar-month-header .background-app-item .pager-button
+.calendar .calendar-month-header .background-app-item .pager-button:active
+.calendar .calendar-month-header .background-app-item .pager-button:hover
+.calendar .calendar-month-header .calendar-change-month-back StIcon
+.calendar .calendar-month-header .calendar-change-month-forward StIcon
+.calendar .calendar-month-header .calendar-month-label
+.calendar .calendar-month-header .calendar-month-label:active
+.calendar .calendar-month-header .calendar-month-label:active:focus
+.calendar .calendar-month-header .calendar-month-label:active:hover
+.calendar .calendar-month-header .calendar-month-label:checked
+.calendar .calendar-month-header .calendar-month-label:checked:active
+.calendar .calendar-month-header .calendar-month-label:checked:hover
+.calendar .calendar-month-header .calendar-month-label:focus
+.calendar .calendar-month-header .calendar-month-label:focus:hover
+.calendar .calendar-month-header .calendar-month-label:hover
+.calendar .calendar-month-header .calendar-month-label:insensitive
+.calendar .calendar-month-header .calendar-month-label:selected
+.calendar .calendar-month-header .calendar-month-label:selected:focus
+.calendar .calendar-month-header .calendar-month-label:selected:hover
+.calendar .calendar-month-header .default.pager-button
+.calendar .calendar-month-header .default.pager-button:active
+.calendar .calendar-month-header .default.pager-button:active:focus
+.calendar .calendar-month-header .default.pager-button:active:hover
+.calendar .calendar-month-header .default.pager-button:focus
+.calendar .calendar-month-header .default.pager-button:focus:hover
+.calendar .calendar-month-header .default.pager-button:hover
+.calendar .calendar-month-header .default.pager-button:insensitive
+.calendar .calendar-month-header .pager-button
+.calendar .calendar-month-header .pager-button StIcon
+.calendar .calendar-month-header .pager-button:active
+.calendar .calendar-month-header .pager-button:active:focus
+.calendar .calendar-month-header .pager-button:active:hover
+.calendar .calendar-month-header .pager-button:checked
+.calendar .calendar-month-header .pager-button:checked:active
+.calendar .calendar-month-header .pager-button:checked:hover
+.calendar .calendar-month-header .pager-button:focus
+.calendar .calendar-month-header .pager-button:focus:hover
+.calendar .calendar-month-header .pager-button:hover
+.calendar .calendar-month-header .pager-button:insensitive
+.calendar .calendar-month-header .pager-button:selected
+.calendar .calendar-month-header .pager-button:selected:focus
+.calendar .calendar-month-header .pager-button:selected:hover
+.calendar .calendar-month-header .quick-settings .pager-button
+.calendar .calendar-month-header .quick-slider .pager-button
+.calendar .calendar-month-header .unlock-dialog .pager-button
+.calendar .calendar-month-header .unlock-dialog .pager-button:active
+.calendar .calendar-month-header .unlock-dialog .pager-button:active:focus
+.calendar .calendar-month-header .unlock-dialog .pager-button:active:hover
+.calendar .calendar-month-header .unlock-dialog .pager-button:checked
+.calendar .calendar-month-header .unlock-dialog .pager-button:checked:active
+.calendar .calendar-month-header .unlock-dialog .pager-button:checked:hover
+.calendar .calendar-month-header .unlock-dialog .pager-button:focus
+.calendar .calendar-month-header .unlock-dialog .pager-button:focus:hover
+.calendar .calendar-month-header .unlock-dialog .pager-button:hover
+.calendar .calendar-month-header .unlock-dialog .pager-button:insensitive
+.calendar .calendar-week-number
+.calendar:active
+.calendar:active:focus
+.calendar:active:hover
+.calendar:focus
+.calendar:focus:hover
+.calendar:hover
+.calendar:insensitive
+.candidate-box
+.candidate-box:hover
+.candidate-box:selected
+.candidate-index
+.candidate-page-button
+.candidate-page-button StIcon
+.candidate-page-button-box
+.candidate-page-button-next
+.candidate-page-button-previous
+.candidate-popup-boxpointer
+.candidate-popup-content
+.caps-lock-warning-label
+.check-box StBin
+.check-box StBoxLayout
+.check-box StIcon
+.check-box:active StIcon
+.check-box:checked StIcon
+.check-box:checked:active StIcon
+.check-box:checked:hover StIcon
+.check-box:focus StBin
+.check-box:hover StIcon
+.clock-display-box
+.clock-display-box .clock
+.combo-box-label
+.conflicting-session-dialog-content
+.conflicting-session-dialog-content .conflicting-session-dialog-desc
+.conflicting-session-dialog-content .conflicting-session-dialog-desc-warning
+.conflicting-session-dialog-content .conflicting-session-dialog-title
+.cycler-highlight
+.dash-item-container .focused.grid-search-result .overview-icon
+.dash-item-container .grid-search-result .overview-icon
+.dash-item-container .grid-search-result:hover .overview-icon
+.dash-item-container .overview-tile .overview-icon
+.dash-item-container .overview-tile.focused .overview-icon
+.dash-item-container .overview-tile:hover .overview-icon
+.dash-item-container .show-apps .overview-icon
+.dash-item-container .show-apps:hover .overview-icon
+.dash-label
+.dash-label.bottom
+.dash-label.bottom.shrink
+.dash-label.left
+.dash-label.left.shrink
+.dash-label.right
+.dash-label.right.shrink
+.dash-label.top
+.dash-label.top.shrink
+.dashtodock-app-well-preview-menu-item.bottom
+.dashtodock-app-well-preview-menu-item.bottom:ltr:first-child
+.dashtodock-app-well-preview-menu-item.bottom:ltr:last-child
+.dashtodock-app-well-preview-menu-item.bottom:rtl:first-child
+.dashtodock-app-well-preview-menu-item.bottom:rtl:last-child
+.dashtodock-app-well-preview-menu-item.left
+.dashtodock-app-well-preview-menu-item.left:first-child
+.dashtodock-app-well-preview-menu-item.left:last-child
+.dashtodock-app-well-preview-menu-item.right
+.dashtodock-app-well-preview-menu-item.right:first-child
+.dashtodock-app-well-preview-menu-item.right:last-child
+.dashtodock-app-well-preview-menu-item.top
+.dashtodock-app-well-preview-menu-item.top:ltr:first-child
+.dashtodock-app-well-preview-menu-item.top:ltr:last-child
+.dashtodock-app-well-preview-menu-item.top:rtl:first-child
+.dashtodock-app-well-preview-menu-item.top:rtl:last-child
+.datemenu-calendar-column
+.datemenu-calendar-column .datemenu-displays-box
+.datemenu-calendar-column:ltr
+.datemenu-calendar-column:rtl
+.datemenu-popover
+.datemenu-today-button
+.datemenu-today-button .date-label
+.datemenu-today-button .day-label
+.datemenu-today-button:active
+.datemenu-today-button:active:focus
+.datemenu-today-button:active:hover
+.datemenu-today-button:focus
+.datemenu-today-button:focus:hover
+.datemenu-today-button:hover
+.datemenu-today-button:insensitive
+.default.login-dialog-button.a11y-button
+.default.login-dialog-button.a11y-button:active
+.default.login-dialog-button.a11y-button:active:focus
+.default.login-dialog-button.a11y-button:active:hover
+.default.login-dialog-button.a11y-button:focus
+.default.login-dialog-button.a11y-button:focus:hover
+.default.login-dialog-button.a11y-button:hover
+.default.login-dialog-button.a11y-button:insensitive
+.default.login-dialog-button.cancel-button
+.default.login-dialog-button.cancel-button:active
+.default.login-dialog-button.cancel-button:active:focus
+.default.login-dialog-button.cancel-button:active:hover
+.default.login-dialog-button.cancel-button:focus
+.default.login-dialog-button.cancel-button:focus:hover
+.default.login-dialog-button.cancel-button:hover
+.default.login-dialog-button.cancel-button:insensitive
+.default.login-dialog-button.login-dialog-auth-menu-button
+.default.login-dialog-button.login-dialog-auth-menu-button:active
+.default.login-dialog-button.login-dialog-auth-menu-button:active:focus
+.default.login-dialog-button.login-dialog-auth-menu-button:active:hover
+.default.login-dialog-button.login-dialog-auth-menu-button:focus
+.default.login-dialog-button.login-dialog-auth-menu-button:focus:hover
+.default.login-dialog-button.login-dialog-auth-menu-button:hover
+.default.login-dialog-button.login-dialog-auth-menu-button:insensitive
+.default.login-dialog-button.login-dialog-session-list-button
+.default.login-dialog-button.login-dialog-session-list-button:active
+.default.login-dialog-button.login-dialog-session-list-button:active:focus
+.default.login-dialog-button.login-dialog-session-list-button:active:hover
+.default.login-dialog-button.login-dialog-session-list-button:focus
+.default.login-dialog-button.login-dialog-session-list-button:focus:hover
+.default.login-dialog-button.login-dialog-session-list-button:hover
+.default.login-dialog-button.login-dialog-session-list-button:insensitive
+.default.login-dialog-button.switch-user-button
+.default.login-dialog-button.switch-user-button:active
+.default.login-dialog-button.switch-user-button:active:focus
+.default.login-dialog-button.switch-user-button:active:hover
+.default.login-dialog-button.switch-user-button:focus
+.default.login-dialog-button.switch-user-button:focus:hover
+.default.login-dialog-button.switch-user-button:hover
+.default.login-dialog-button.switch-user-button:insensitive
+.default.login-dialog-button.web-login-intro-button
+.default.login-dialog-button.web-login-intro-button:active
+.default.login-dialog-button.web-login-intro-button:active:focus
+.default.login-dialog-button.web-login-intro-button:active:hover
+.default.login-dialog-button.web-login-intro-button:focus
+.default.login-dialog-button.web-login-intro-button:focus:hover
+.default.login-dialog-button.web-login-intro-button:hover
+.default.login-dialog-button.web-login-intro-button:insensitive
+.default.screenshot-ui-show-pointer-button
+.default.screenshot-ui-show-pointer-button:active
+.default.screenshot-ui-show-pointer-button:active:focus
+.default.screenshot-ui-show-pointer-button:active:hover
+.default.screenshot-ui-show-pointer-button:focus
+.default.screenshot-ui-show-pointer-button:focus:hover
+.default.screenshot-ui-show-pointer-button:hover
+.default.screenshot-ui-show-pointer-button:insensitive
+.device-subtitle
+.dialog-list
+.dialog-list .dialog-list-box
+.dialog-list .dialog-list-box .dialog-list-item
+.dialog-list .dialog-list-box .dialog-list-item .dialog-list-item-description
+.dialog-list .dialog-list-box .dialog-list-item .dialog-list-item-title
+.dialog-list .dialog-list-scrollview
+.dialog-list .dialog-list-title
+.emoji-page .keyboard-key
+.emoji-panel .keyboard-key:latched
+.end-session-dialog
+.end-session-dialog .dialog-list-title
+.end-session-dialog .end-session-dialog-battery-warning
+.events-button
+.events-button .events-box .events-list
+.events-button .events-box .events-list .event-box
+.events-button .events-box .events-list .event-box .event-summary
+.events-button .events-box .events-list .event-box .event-time
+.events-button .events-box .events-list .event-placeholder
+.events-button .events-box .events-title
+.events-button:active
+.events-button:active:focus
+.events-button:active:hover
+.events-button:focus
+.events-button:focus:hover
+.events-button:hover
+.events-button:insensitive
+.flashspot
+.flat.login-dialog-button.a11y-button
+.flat.login-dialog-button.a11y-button:active
+.flat.login-dialog-button.a11y-button:active:focus
+.flat.login-dialog-button.a11y-button:active:hover
+.flat.login-dialog-button.a11y-button:checked
+.flat.login-dialog-button.a11y-button:checked:active
+.flat.login-dialog-button.a11y-button:checked:hover
+.flat.login-dialog-button.a11y-button:focus
+.flat.login-dialog-button.a11y-button:focus:hover
+.flat.login-dialog-button.a11y-button:hover
+.flat.login-dialog-button.a11y-button:insensitive
+.flat.login-dialog-button.a11y-button:selected
+.flat.login-dialog-button.a11y-button:selected:focus
+.flat.login-dialog-button.a11y-button:selected:hover
+.flat.login-dialog-button.cancel-button
+.flat.login-dialog-button.cancel-button:active
+.flat.login-dialog-button.cancel-button:active:focus
+.flat.login-dialog-button.cancel-button:active:hover
+.flat.login-dialog-button.cancel-button:checked
+.flat.login-dialog-button.cancel-button:checked:active
+.flat.login-dialog-button.cancel-button:checked:hover
+.flat.login-dialog-button.cancel-button:focus
+.flat.login-dialog-button.cancel-button:focus:hover
+.flat.login-dialog-button.cancel-button:hover
+.flat.login-dialog-button.cancel-button:insensitive
+.flat.login-dialog-button.cancel-button:selected
+.flat.login-dialog-button.cancel-button:selected:focus
+.flat.login-dialog-button.cancel-button:selected:hover
+.flat.login-dialog-button.login-dialog-auth-menu-button
+.flat.login-dialog-button.login-dialog-auth-menu-button:active
+.flat.login-dialog-button.login-dialog-auth-menu-button:active:focus
+.flat.login-dialog-button.login-dialog-auth-menu-button:active:hover
+.flat.login-dialog-button.login-dialog-auth-menu-button:checked
+.flat.login-dialog-button.login-dialog-auth-menu-button:checked:active
+.flat.login-dialog-button.login-dialog-auth-menu-button:checked:hover
+.flat.login-dialog-button.login-dialog-auth-menu-button:focus
+.flat.login-dialog-button.login-dialog-auth-menu-button:focus:hover
+.flat.login-dialog-button.login-dialog-auth-menu-button:hover
+.flat.login-dialog-button.login-dialog-auth-menu-button:insensitive
+.flat.login-dialog-button.login-dialog-auth-menu-button:selected
+.flat.login-dialog-button.login-dialog-auth-menu-button:selected:focus
+.flat.login-dialog-button.login-dialog-auth-menu-button:selected:hover
+.flat.login-dialog-button.login-dialog-session-list-button
+.flat.login-dialog-button.login-dialog-session-list-button:active
+.flat.login-dialog-button.login-dialog-session-list-button:active:focus
+.flat.login-dialog-button.login-dialog-session-list-button:active:hover
+.flat.login-dialog-button.login-dialog-session-list-button:checked
+.flat.login-dialog-button.login-dialog-session-list-button:checked:active
+.flat.login-dialog-button.login-dialog-session-list-button:checked:hover
+.flat.login-dialog-button.login-dialog-session-list-button:focus
+.flat.login-dialog-button.login-dialog-session-list-button:focus:hover
+.flat.login-dialog-button.login-dialog-session-list-button:hover
+.flat.login-dialog-button.login-dialog-session-list-button:insensitive
+.flat.login-dialog-button.login-dialog-session-list-button:selected
+.flat.login-dialog-button.login-dialog-session-list-button:selected:focus
+.flat.login-dialog-button.login-dialog-session-list-button:selected:hover
+.flat.login-dialog-button.switch-user-button
+.flat.login-dialog-button.switch-user-button:active
+.flat.login-dialog-button.switch-user-button:active:focus
+.flat.login-dialog-button.switch-user-button:active:hover
+.flat.login-dialog-button.switch-user-button:checked
+.flat.login-dialog-button.switch-user-button:checked:active
+.flat.login-dialog-button.switch-user-button:checked:hover
+.flat.login-dialog-button.switch-user-button:focus
+.flat.login-dialog-button.switch-user-button:focus:hover
+.flat.login-dialog-button.switch-user-button:hover
+.flat.login-dialog-button.switch-user-button:insensitive
+.flat.login-dialog-button.switch-user-button:selected
+.flat.login-dialog-button.switch-user-button:selected:focus
+.flat.login-dialog-button.switch-user-button:selected:hover
+.flat.login-dialog-button.web-login-intro-button
+.flat.login-dialog-button.web-login-intro-button:active
+.flat.login-dialog-button.web-login-intro-button:active:focus
+.flat.login-dialog-button.web-login-intro-button:active:hover
+.flat.login-dialog-button.web-login-intro-button:checked
+.flat.login-dialog-button.web-login-intro-button:checked:active
+.flat.login-dialog-button.web-login-intro-button:checked:hover
+.flat.login-dialog-button.web-login-intro-button:focus
+.flat.login-dialog-button.web-login-intro-button:focus:hover
+.flat.login-dialog-button.web-login-intro-button:hover
+.flat.login-dialog-button.web-login-intro-button:insensitive
+.flat.login-dialog-button.web-login-intro-button:selected
+.flat.login-dialog-button.web-login-intro-button:selected:focus
+.flat.login-dialog-button.web-login-intro-button:selected:hover
+.flat.screenshot-ui-show-pointer-button
+.flat.screenshot-ui-show-pointer-button:active
+.flat.screenshot-ui-show-pointer-button:active:focus
+.flat.screenshot-ui-show-pointer-button:active:hover
+.flat.screenshot-ui-show-pointer-button:checked
+.flat.screenshot-ui-show-pointer-button:checked:active
+.flat.screenshot-ui-show-pointer-button:checked:hover
+.flat.screenshot-ui-show-pointer-button:focus
+.flat.screenshot-ui-show-pointer-button:focus:hover
+.flat.screenshot-ui-show-pointer-button:hover
+.flat.screenshot-ui-show-pointer-button:insensitive
+.flat.screenshot-ui-show-pointer-button:selected
+.flat.screenshot-ui-show-pointer-button:selected:focus
+.flat.screenshot-ui-show-pointer-button:selected:hover
+.grid-search-result
+.grid-search-result .notification-badge
+.grid-search-result .number-overlay
+.grid-search-result .overview-icon.overview-icon-with-label > StBoxLayout
+.grid-search-result .progress-bar
+.grid-search-result:active
+.grid-search-result:active:focus
+.grid-search-result:active:hover
+.grid-search-result:checked
+.grid-search-result:checked:active
+.grid-search-result:checked:hover
+.grid-search-result:drop
+.grid-search-result:focus
+.grid-search-result:focus:hover
+.grid-search-result:highlighted
+.grid-search-result:highlighted:active
+.grid-search-result:highlighted:hover
+.grid-search-result:hover
+.grid-search-result:insensitive
+.grid-search-result:selected
+.grid-search-result:selected:active
+.grid-search-result:selected:hover
+.grid-search-results
+.hidden
+.horizontal .candidate-page-button-box
+.icon-button
+.icon-button StIcon
+.icon-button.default
+.icon-button.default:active
+.icon-button.default:active:focus
+.icon-button.default:active:hover
+.icon-button.default:focus
+.icon-button.default:focus:hover
+.icon-button.default:hover
+.icon-button.default:insensitive
+.icon-button.flat
+.icon-button.flat:active
+.icon-button.flat:active:focus
+.icon-button.flat:active:hover
+.icon-button.flat:checked
+.icon-button.flat:checked:active
+.icon-button.flat:checked:hover
+.icon-button.flat:focus
+.icon-button.flat:focus:hover
+.icon-button.flat:hover
+.icon-button.flat:insensitive
+.icon-button.flat:selected
+.icon-button.flat:selected:focus
+.icon-button.flat:selected:hover
+.icon-button:active
+.icon-button:active:focus
+.icon-button:active:hover
+.icon-button:checked
+.icon-button:checked:active
+.icon-button:checked:hover
+.icon-button:focus
+.icon-button:focus:hover
+.icon-button:hover
+.icon-button:insensitive
+.icon-button:selected
+.icon-button:selected:focus
+.icon-button:selected:hover
+.icon-dropshadow
+.icon-grid
+.icon-grid .notification-badge
+.icon-grid .number-overlay
+.icon-grid .progress-bar
+.input-source-switcher-symbol
+.key-container
+.keyboard-brightness-level
+.keyboard-brightness-level .button:active:checked
+.keyboard-brightness-level .button:active:focus:checked
+.keyboard-brightness-level .button:active:hover:checked
+.keyboard-brightness-level .button:checked
+.keyboard-brightness-level .button:focus:checked
+.keyboard-brightness-level .button:focus:hover:checked
+.keyboard-brightness-level .button:hover:checked
+.keyboard-brightness-level .button:insensitive:checked
+.keyboard-key
+.keyboard-key StIcon
+.keyboard-key.default-key
+.keyboard-key.default-key:active
+.keyboard-key.default-key:active:focus
+.keyboard-key.default-key:active:hover
+.keyboard-key.default-key:checked
+.keyboard-key.default-key:checked:active
+.keyboard-key.default-key:checked:hover
+.keyboard-key.default-key:hover
+.keyboard-key.default-key:latched
+.keyboard-key:active
+.keyboard-key:active:focus
+.keyboard-key:active:hover
+.keyboard-key:checked
+.keyboard-key:checked:active
+.keyboard-key:checked:hover
+.keyboard-key:focus
+.keyboard-key:focus:hover
+.keyboard-key:hover
+.keyboard-subkeys-boxpointer
+.keyboard-subkeys-boxpointer .key-container
+.left #dashtodockDashScrollview
+.lg-completions-text
+.lg-dialog .actor-link
+.lg-dialog .actor-link StIcon
+.lg-dialog .actor-link:active
+.lg-dialog .actor-link:hover
+.lg-dialog .shell-link
+.lg-dialog .shell-link:active
+.lg-dialog .shell-link:hover
+.lg-dialog StEntry
+.lg-dialog StEntry StLabel.hint-text
+.lg-dialog StEntry:focus
+.lg-dialog StEntry:hover
+.lg-dialog StEntry:insensitive
+.lightbox
+.list-search-result
+.list-search-result .list-search-result-content
+.list-search-result .list-search-result-description
+.list-search-result .list-search-result-title
+.list-search-result:active
+.list-search-result:active:focus
+.list-search-result:active:hover
+.list-search-result:checked
+.list-search-result:checked:active
+.list-search-result:checked:hover
+.list-search-result:drop
+.list-search-result:focus
+.list-search-result:focus:hover
+.list-search-result:highlighted
+.list-search-result:highlighted:active
+.list-search-result:highlighted:hover
+.list-search-result:hover
+.list-search-result:insensitive
+.list-search-result:selected
+.list-search-result:selected:active
+.list-search-result:selected:hover
+.list-search-results
+.login-dialog
+.login-dialog .caps-lock-warning-label
+.login-dialog .login-dialog-auth-list-item
+.login-dialog .login-dialog-auth-list-item:active
+.login-dialog .login-dialog-auth-list-item:active:focus
+.login-dialog .login-dialog-auth-list-item:active:hover
+.login-dialog .login-dialog-auth-list-item:focus
+.login-dialog .login-dialog-auth-list-item:focus:hover
+.login-dialog .login-dialog-auth-list-item:hover
+.login-dialog .login-dialog-auth-list-item:selected
+.login-dialog .login-dialog-auth-list-item:selected:hover
+.login-dialog .login-dialog-message-warning
+.login-dialog .login-dialog-prompt-entry
+.login-dialog .login-dialog-prompt-entry StLabel.hint-text
+.login-dialog .login-dialog-prompt-entry:focus
+.login-dialog .login-dialog-prompt-entry:hover
+.login-dialog .login-dialog-prompt-entry:insensitive
+.login-dialog .login-dialog-prompt-layout
+.login-dialog .user-widget .user-icon
+.login-dialog .user-widget .user-widget-label
+.login-dialog .user-widget.horizontal
+.login-dialog .user-widget.horizontal .user-widget-label
+.login-dialog .user-widget.vertical
+.login-dialog .user-widget.vertical .user-icon
+.login-dialog .user-widget.vertical .user-icon StIcon
+.login-dialog .user-widget.vertical .user-widget-label
+.login-dialog-auth-list
+.login-dialog-auth-list-item
+.login-dialog-auth-list-label
+.login-dialog-auth-list-label:ltr
+.login-dialog-auth-list-label:rtl
+.login-dialog-auth-list-title
+.login-dialog-auth-list-view
+.login-dialog-auth-menu-button-item
+.login-dialog-auth-menu-button-popup-menu-box
+.login-dialog-auth-menu-button-title
+.login-dialog-banner-view
+.login-dialog-banner-view .login-dialog-banner
+.login-dialog-bottom-button-group
+.login-dialog-button-box
+.login-dialog-button.a11y-button
+.login-dialog-button.a11y-button StIcon
+.login-dialog-button.a11y-button:active
+.login-dialog-button.a11y-button:active:focus
+.login-dialog-button.a11y-button:active:hover
+.login-dialog-button.a11y-button:checked
+.login-dialog-button.a11y-button:checked:active
+.login-dialog-button.a11y-button:checked:hover
+.login-dialog-button.a11y-button:focus
+.login-dialog-button.a11y-button:focus:hover
+.login-dialog-button.a11y-button:hover
+.login-dialog-button.a11y-button:insensitive
+.login-dialog-button.a11y-button:selected
+.login-dialog-button.a11y-button:selected:focus
+.login-dialog-button.a11y-button:selected:hover
+.login-dialog-button.cancel-button
+.login-dialog-button.cancel-button StIcon
+.login-dialog-button.cancel-button:active
+.login-dialog-button.cancel-button:active:focus
+.login-dialog-button.cancel-button:active:hover
+.login-dialog-button.cancel-button:checked
+.login-dialog-button.cancel-button:checked:active
+.login-dialog-button.cancel-button:checked:hover
+.login-dialog-button.cancel-button:focus
+.login-dialog-button.cancel-button:focus:hover
+.login-dialog-button.cancel-button:hover
+.login-dialog-button.cancel-button:insensitive
+.login-dialog-button.cancel-button:selected
+.login-dialog-button.cancel-button:selected:focus
+.login-dialog-button.cancel-button:selected:hover
+.login-dialog-button.login-dialog-auth-menu-button
+.login-dialog-button.login-dialog-auth-menu-button StIcon
+.login-dialog-button.login-dialog-auth-menu-button:active
+.login-dialog-button.login-dialog-auth-menu-button:active:focus
+.login-dialog-button.login-dialog-auth-menu-button:active:hover
+.login-dialog-button.login-dialog-auth-menu-button:checked
+.login-dialog-button.login-dialog-auth-menu-button:checked:active
+.login-dialog-button.login-dialog-auth-menu-button:checked:hover
+.login-dialog-button.login-dialog-auth-menu-button:focus
+.login-dialog-button.login-dialog-auth-menu-button:focus:hover
+.login-dialog-button.login-dialog-auth-menu-button:hover
+.login-dialog-button.login-dialog-auth-menu-button:insensitive
+.login-dialog-button.login-dialog-auth-menu-button:selected
+.login-dialog-button.login-dialog-auth-menu-button:selected:focus
+.login-dialog-button.login-dialog-auth-menu-button:selected:hover
+.login-dialog-button.login-dialog-session-list-button
+.login-dialog-button.login-dialog-session-list-button StIcon
+.login-dialog-button.login-dialog-session-list-button:active
+.login-dialog-button.login-dialog-session-list-button:active:focus
+.login-dialog-button.login-dialog-session-list-button:active:hover
+.login-dialog-button.login-dialog-session-list-button:checked
+.login-dialog-button.login-dialog-session-list-button:checked:active
+.login-dialog-button.login-dialog-session-list-button:checked:hover
+.login-dialog-button.login-dialog-session-list-button:focus
+.login-dialog-button.login-dialog-session-list-button:focus:hover
+.login-dialog-button.login-dialog-session-list-button:hover
+.login-dialog-button.login-dialog-session-list-button:insensitive
+.login-dialog-button.login-dialog-session-list-button:selected
+.login-dialog-button.login-dialog-session-list-button:selected:focus
+.login-dialog-button.login-dialog-session-list-button:selected:hover
+.login-dialog-button.switch-user-button
+.login-dialog-button.switch-user-button StIcon
+.login-dialog-button.switch-user-button:active
+.login-dialog-button.switch-user-button:active:focus
+.login-dialog-button.switch-user-button:active:hover
+.login-dialog-button.switch-user-button:checked
+.login-dialog-button.switch-user-button:checked:active
+.login-dialog-button.switch-user-button:checked:hover
+.login-dialog-button.switch-user-button:focus
+.login-dialog-button.switch-user-button:focus:hover
+.login-dialog-button.switch-user-button:hover
+.login-dialog-button.switch-user-button:insensitive
+.login-dialog-button.switch-user-button:selected
+.login-dialog-button.switch-user-button:selected:focus
+.login-dialog-button.switch-user-button:selected:hover
+.login-dialog-button.web-login-intro-button
+.login-dialog-button.web-login-intro-button StIcon
+.login-dialog-button.web-login-intro-button:active
+.login-dialog-button.web-login-intro-button:active:focus
+.login-dialog-button.web-login-intro-button:active:hover
+.login-dialog-button.web-login-intro-button:checked
+.login-dialog-button.web-login-intro-button:checked:active
+.login-dialog-button.web-login-intro-button:checked:hover
+.login-dialog-button.web-login-intro-button:focus
+.login-dialog-button.web-login-intro-button:focus:hover
+.login-dialog-button.web-login-intro-button:hover
+.login-dialog-button.web-login-intro-button:insensitive
+.login-dialog-button.web-login-intro-button:selected
+.login-dialog-button.web-login-intro-button:selected:focus
+.login-dialog-button.web-login-intro-button:selected:hover
+.login-dialog-logo-bin
+.login-dialog-menu-button-box
+.login-dialog-message
+.login-dialog-message-hint
+.login-dialog-not-listed-button
+.login-dialog-not-listed-button:active
+.login-dialog-not-listed-button:active:focus
+.login-dialog-not-listed-button:active:hover
+.login-dialog-not-listed-button:focus
+.login-dialog-not-listed-button:focus:hover
+.login-dialog-not-listed-button:hover
+.login-dialog-not-listed-label
+.login-dialog-user-list-view
+.login-dialog-user-list-view .login-dialog-user-list
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item .login-dialog-timed-login-indicator
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item .user-icon
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:active
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:active:focus
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:active:hover
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:focus
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:focus:hover
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:hover
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:logged-in .user-icon
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:logged-in .user-icon StIcon
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:selected
+.login-dialog-user-list-view .login-dialog-user-list .login-dialog-user-list-item:selected:hover
+.login-dialog-user-selection-box
+.lowres-icon
+.magnifier-zoom-region
+.magnifier-zoom-region.full-screen
+.media-message .message-icon
+.media-message .message-icon.message-themed-icon
+.message
+.message .message-action-bin
+.message .message-action-bin *
+.message .message-action-bin *:first-child:ltr
+.message .message-action-bin *:first-child:rtl
+.message .message-action-bin *:last-child:ltr
+.message .message-action-bin *:last-child:rtl
+.message .message-box
+.message .message-box .message-content
+.message .message-box .message-content .message-title
+.message .message-box .message-icon
+.message .message-box .message-icon.message-themed-icon
+.message .message-box .message-icon:ltr
+.message .message-box .message-icon:rtl
+.message .message-box:first-child
+.message .message-header
+.message .message-header .app-folder-dialog .message-close-button
+.message .message-header .app-folder-dialog .message-close-button:active
+.message .message-header .app-folder-dialog .message-close-button:active:focus
+.message .message-header .app-folder-dialog .message-close-button:active:hover
+.message .message-header .app-folder-dialog .message-close-button:hover
+.message .message-header .app-folder-dialog .message-expand-button
+.message .message-header .app-folder-dialog .message-expand-button:active
+.message .message-header .app-folder-dialog .message-expand-button:active:focus
+.message .message-header .app-folder-dialog .message-expand-button:active:hover
+.message .message-header .app-folder-dialog .message-expand-button:hover
+.message .message-header .background-app-item .message-close-button
+.message .message-header .background-app-item .message-close-button:active
+.message .message-header .background-app-item .message-close-button:hover
+.message .message-header .background-app-item .message-expand-button
+.message .message-header .background-app-item .message-expand-button:active
+.message .message-header .background-app-item .message-expand-button:hover
+.message .message-header .default.message-close-button
+.message .message-header .default.message-close-button:active
+.message .message-header .default.message-close-button:active:focus
+.message .message-header .default.message-close-button:active:hover
+.message .message-header .default.message-close-button:focus
+.message .message-header .default.message-close-button:focus:hover
+.message .message-header .default.message-close-button:hover
+.message .message-header .default.message-close-button:insensitive
+.message .message-header .default.message-expand-button
+.message .message-header .default.message-expand-button:active
+.message .message-header .default.message-expand-button:active:focus
+.message .message-header .default.message-expand-button:active:hover
+.message .message-header .default.message-expand-button:focus
+.message .message-header .default.message-expand-button:focus:hover
+.message .message-header .default.message-expand-button:hover
+.message .message-header .default.message-expand-button:insensitive
+.message .message-header .flat.message-close-button
+.message .message-header .flat.message-close-button:active
+.message .message-header .flat.message-close-button:active:focus
+.message .message-header .flat.message-close-button:active:hover
+.message .message-header .flat.message-close-button:checked
+.message .message-header .flat.message-close-button:checked:active
+.message .message-header .flat.message-close-button:checked:hover
+.message .message-header .flat.message-close-button:focus
+.message .message-header .flat.message-close-button:focus:hover
+.message .message-header .flat.message-close-button:hover
+.message .message-header .flat.message-close-button:insensitive
+.message .message-header .flat.message-close-button:selected
+.message .message-header .flat.message-close-button:selected:focus
+.message .message-header .flat.message-close-button:selected:hover
+.message .message-header .flat.message-expand-button
+.message .message-header .flat.message-expand-button:active
+.message .message-header .flat.message-expand-button:active:focus
+.message .message-header .flat.message-expand-button:active:hover
+.message .message-header .flat.message-expand-button:checked
+.message .message-header .flat.message-expand-button:checked:active
+.message .message-header .flat.message-expand-button:checked:hover
+.message .message-header .flat.message-expand-button:focus
+.message .message-header .flat.message-expand-button:focus:hover
+.message .message-header .flat.message-expand-button:hover
+.message .message-header .flat.message-expand-button:insensitive
+.message .message-header .flat.message-expand-button:selected
+.message .message-header .flat.message-expand-button:selected:focus
+.message .message-header .flat.message-expand-button:selected:hover
+.message .message-header .message-close-button
+.message .message-header .message-close-button StIcon
+.message .message-header .message-close-button:active
+.message .message-header .message-close-button:active:focus
+.message .message-header .message-close-button:active:hover
+.message .message-header .message-close-button:checked
+.message .message-header .message-close-button:checked:active
+.message .message-header .message-close-button:checked:hover
+.message .message-header .message-close-button:focus
+.message .message-header .message-close-button:focus:hover
+.message .message-header .message-close-button:hover
+.message .message-header .message-close-button:insensitive
+.message .message-header .message-close-button:selected
+.message .message-header .message-close-button:selected:focus
+.message .message-header .message-close-button:selected:hover
+.message .message-header .message-expand-button
+.message .message-header .message-expand-button StIcon
+.message .message-header .message-expand-button:active
+.message .message-header .message-expand-button:active:focus
+.message .message-header .message-expand-button:active:hover
+.message .message-header .message-expand-button:checked
+.message .message-header .message-expand-button:checked:active
+.message .message-header .message-expand-button:checked:hover
+.message .message-header .message-expand-button:focus
+.message .message-header .message-expand-button:focus:hover
+.message .message-header .message-expand-button:hover
+.message .message-header .message-expand-button:insensitive
+.message .message-header .message-expand-button:selected
+.message .message-header .message-expand-button:selected:focus
+.message .message-header .message-expand-button:selected:hover
+.message .message-header .message-header-content
+.message .message-header .message-header-content .event-time
+.message .message-header .message-header-content .event-time:ltr
+.message .message-header .message-header-content .event-time:rtl
+.message .message-header .message-header-content .message-source-title
+.message .message-header .message-source-icon
+.message .message-header .quick-settings .message-close-button
+.message .message-header .quick-settings .message-expand-button
+.message .message-header .quick-slider .message-close-button
+.message .message-header .quick-slider .message-expand-button
+.message .message-header .unlock-dialog .message-close-button
+.message .message-header .unlock-dialog .message-close-button:active
+.message .message-header .unlock-dialog .message-close-button:active:focus
+.message .message-header .unlock-dialog .message-close-button:active:hover
+.message .message-header .unlock-dialog .message-close-button:checked
+.message .message-header .unlock-dialog .message-close-button:checked:active
+.message .message-header .unlock-dialog .message-close-button:checked:hover
+.message .message-header .unlock-dialog .message-close-button:focus
+.message .message-header .unlock-dialog .message-close-button:focus:hover
+.message .message-header .unlock-dialog .message-close-button:hover
+.message .message-header .unlock-dialog .message-close-button:insensitive
+.message .message-header .unlock-dialog .message-expand-button
+.message .message-header .unlock-dialog .message-expand-button:active
+.message .message-header .unlock-dialog .message-expand-button:active:focus
+.message .message-header .unlock-dialog .message-expand-button:active:hover
+.message .message-header .unlock-dialog .message-expand-button:checked
+.message .message-header .unlock-dialog .message-expand-button:checked:active
+.message .message-header .unlock-dialog .message-expand-button:checked:hover
+.message .message-header .unlock-dialog .message-expand-button:focus
+.message .message-header .unlock-dialog .message-expand-button:focus:hover
+.message .message-header .unlock-dialog .message-expand-button:hover
+.message .message-header .unlock-dialog .message-expand-button:insensitive
+.message .message-header:ltr
+.message .message-header:rtl
+.message-dialog-content
+.message-dialog-content .message-dialog-description
+.message-dialog-content .message-dialog-title
+.message-dialog-content .message-dialog-title.lightweight
+.message-list
+.message-list .message-list-placeholder
+.message-list .message-list-placeholder > StIcon
+.message-list-controls
+.message-list-controls .message-list-clear-button
+.message-list:ltr
+.message-list:rtl
+.message-media-control
+.message-media-control StIcon
+.message-media-control:active
+.message-media-control:hover
+.message-media-control:insensitive
+.message-notification-group
+.message-notification-group .app-folder-dialog .message-collapse-button
+.message-notification-group .app-folder-dialog .message-collapse-button:active
+.message-notification-group .app-folder-dialog .message-collapse-button:active:focus
+.message-notification-group .app-folder-dialog .message-collapse-button:active:hover
+.message-notification-group .app-folder-dialog .message-collapse-button:hover
+.message-notification-group .background-app-item .message-collapse-button
+.message-notification-group .background-app-item .message-collapse-button:active
+.message-notification-group .background-app-item .message-collapse-button:hover
+.message-notification-group .default.message-collapse-button
+.message-notification-group .default.message-collapse-button:active
+.message-notification-group .default.message-collapse-button:active:focus
+.message-notification-group .default.message-collapse-button:active:hover
+.message-notification-group .default.message-collapse-button:focus
+.message-notification-group .default.message-collapse-button:focus:hover
+.message-notification-group .default.message-collapse-button:hover
+.message-notification-group .default.message-collapse-button:insensitive
+.message-notification-group .flat.message-collapse-button
+.message-notification-group .flat.message-collapse-button:active
+.message-notification-group .flat.message-collapse-button:active:focus
+.message-notification-group .flat.message-collapse-button:active:hover
+.message-notification-group .flat.message-collapse-button:checked
+.message-notification-group .flat.message-collapse-button:checked:active
+.message-notification-group .flat.message-collapse-button:checked:hover
+.message-notification-group .flat.message-collapse-button:focus
+.message-notification-group .flat.message-collapse-button:focus:hover
+.message-notification-group .flat.message-collapse-button:hover
+.message-notification-group .flat.message-collapse-button:insensitive
+.message-notification-group .flat.message-collapse-button:selected
+.message-notification-group .flat.message-collapse-button:selected:focus
+.message-notification-group .flat.message-collapse-button:selected:hover
+.message-notification-group .message-collapse-button
+.message-notification-group .message-collapse-button StIcon
+.message-notification-group .message-collapse-button:active
+.message-notification-group .message-collapse-button:active:focus
+.message-notification-group .message-collapse-button:active:hover
+.message-notification-group .message-collapse-button:checked
+.message-notification-group .message-collapse-button:checked:active
+.message-notification-group .message-collapse-button:checked:hover
+.message-notification-group .message-collapse-button:focus
+.message-notification-group .message-collapse-button:focus:hover
+.message-notification-group .message-collapse-button:hover
+.message-notification-group .message-collapse-button:insensitive
+.message-notification-group .message-collapse-button:selected
+.message-notification-group .message-collapse-button:selected:focus
+.message-notification-group .message-collapse-button:selected:hover
+.message-notification-group .message-group-header
+.message-notification-group .message-group-header .message-group-title
+.message-notification-group .quick-settings .message-collapse-button
+.message-notification-group .quick-slider .message-collapse-button
+.message-notification-group .unlock-dialog .message-collapse-button
+.message-notification-group .unlock-dialog .message-collapse-button:active
+.message-notification-group .unlock-dialog .message-collapse-button:active:focus
+.message-notification-group .unlock-dialog .message-collapse-button:active:hover
+.message-notification-group .unlock-dialog .message-collapse-button:checked
+.message-notification-group .unlock-dialog .message-collapse-button:checked:active
+.message-notification-group .unlock-dialog .message-collapse-button:checked:hover
+.message-notification-group .unlock-dialog .message-collapse-button:focus
+.message-notification-group .unlock-dialog .message-collapse-button:focus:hover
+.message-notification-group .unlock-dialog .message-collapse-button:hover
+.message-notification-group .unlock-dialog .message-collapse-button:insensitive
+.message-view
+.message-view .message
+.message-view:ltr
+.message-view:rtl
+.message:active
+.message:active:focus
+.message:active:hover
+.message:focus
+.message:focus:hover
+.message:hover
+.message:insensitive
+.message:lower-in-stack
+.message:second-in-stack
+.modal-dialog
+.modal-dialog .modal-dialog-button-box
+.modal-dialog .modal-dialog-button-box .modal-dialog-button
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:active
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:active:focus
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:active:hover
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:checked
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:checked:active
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:checked:hover
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:focus
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:focus:hover
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:hover
+.modal-dialog .modal-dialog-button-box .modal-dialog-button:insensitive
+.modal-dialog .modal-dialog-content-box
+.nm-network-item .wireless-secure-icon
+.notification-banner
+.notification-button
+.notification-button:active
+.notification-button:active:focus
+.notification-button:active:hover
+.notification-button:checked
+.notification-button:checked:active
+.notification-button:checked:hover
+.notification-button:focus
+.notification-button:focus:hover
+.notification-button:hover
+.notification-button:insensitive
+.notification-buttons-bin
+.osd-break-countdown-label
+.osd-monitor-label
+.osd-window
+.osd-window .level
+.osd-window .level:first-child
+.osd-window .level:ltr
+.osd-window .level:rtl
+.osd-window > *
+.osd-window StIcon
+.osd-window StLabel:ltr
+.osd-window StLabel:rtl
+.overview-tile
+.overview-tile .notification-badge
+.overview-tile .number-overlay
+.overview-tile .overview-icon.overview-icon-with-label > StBoxLayout
+.overview-tile .progress-bar
+.overview-tile:active
+.overview-tile:active:focus
+.overview-tile:active:hover
+.overview-tile:checked
+.overview-tile:checked:active
+.overview-tile:checked:hover
+.overview-tile:drop
+.overview-tile:focus
+.overview-tile:focus:hover
+.overview-tile:highlighted
+.overview-tile:highlighted:active
+.overview-tile:highlighted:hover
+.overview-tile:hover
+.overview-tile:insensitive
+.overview-tile:selected
+.overview-tile:selected:active
+.overview-tile:selected:hover
+.pad-osd-window
+.pad-osd-window .button
+.pad-osd-window .button:insensitive
+.pad-osd-window .pad-osd-title-box
+.pad-osd-window .pad-osd-title-menu-box
+.page-indicator
+.page-indicator .page-indicator-icon
+.page-navigation-arrow
+.page-navigation-arrow > StIcon
+.page-navigation-arrow:active
+.page-navigation-arrow:active:focus
+.page-navigation-arrow:active:hover
+.page-navigation-arrow:hover
+.page-navigation-hint.dnd
+.page-navigation-hint.next:ltr
+.page-navigation-hint.next:rtl
+.page-navigation-hint.previous:ltr
+.page-navigation-hint.previous:rtl
+.parental-controls-shield
+.parental-controls-shield .parental-controls-shield-button
+.parental-controls-shield .parental-controls-shield-button:active
+.parental-controls-shield .parental-controls-shield-button:active:focus
+.parental-controls-shield .parental-controls-shield-button:active:hover
+.parental-controls-shield .parental-controls-shield-button:checked
+.parental-controls-shield .parental-controls-shield-button:checked:active
+.parental-controls-shield .parental-controls-shield-button:checked:hover
+.parental-controls-shield .parental-controls-shield-button:focus
+.parental-controls-shield .parental-controls-shield-button:focus:hover
+.parental-controls-shield .parental-controls-shield-button:hover
+.parental-controls-shield .parental-controls-shield-button:insensitive
+.parental-controls-shield .parental-controls-shield-description
+.parental-controls-shield .parental-controls-shield-title
+.pie-timer
+.polkit-dialog-user-layout
+.polkit-dialog-user-layout .polkit-dialog-user-label
+.polkit-dialog-user-layout .polkit-dialog-user-root-label
+.popup-inactive-menu-item
+.popup-inactive-menu-item:insensitive
+.popup-menu
+.popup-menu-arrow
+.popup-menu-boxpointer
+.popup-menu-content
+.popup-menu-icon
+.popup-menu-item
+.popup-menu-item .toggle-switch:ltr
+.popup-menu-item .toggle-switch:rtl
+.popup-menu-item:active
+.popup-menu-item:active:focus
+.popup-menu-item:active:hover
+.popup-menu-item:checked
+.popup-menu-item:hover
+.popup-menu-item:insensitive
+.popup-menu-item:selected
+.popup-menu-ornament
+.popup-menu.panel-menu
+.popup-ornamented-menu-item:ltr
+.popup-ornamented-menu-item:rtl
+.popup-separator-menu-item
+.popup-separator-menu-item .popup-separator-menu-item-separator
+.popup-sub-menu
+.popup-sub-menu .popup-menu-item
+.popup-sub-menu .popup-menu-item:active
+.popup-sub-menu .popup-menu-item:active:focus
+.popup-sub-menu .popup-menu-item:active:hover
+.popup-sub-menu .popup-menu-item:checked
+.popup-sub-menu .popup-menu-item:hover
+.popup-sub-menu .popup-menu-item:insensitive
+.popup-sub-menu .popup-menu-item:last-child
+.popup-sub-menu .popup-menu-item:selected
+.popup-sub-menu .popup-menu-section .popup-menu-item:last-child:focus
+.popup-sub-menu .popup-menu-section .popup-menu-item:last-child:hover
+.popup-sub-menu .popup-menu-section:last-child .popup-menu-item:last-child
+.popup-sub-menu .popup-separator-menu-item
+.popup-sub-menu .popup-separator-menu-item .popup-separator-menu-item-separator
+.popup-sub-menu .popup-separator-menu-item:ltr
+.popup-sub-menu .popup-separator-menu-item:rtl
+.prompt-dialog
+.prompt-dialog .prompt-dialog-error-label
+.prompt-dialog .prompt-dialog-info-label
+.prompt-dialog .prompt-dialog-null-label
+.prompt-dialog .prompt-dialog-password-entry
+.prompt-dialog .prompt-dialog-password-grid
+.prompt-dialog .prompt-dialog-password-grid .prompt-dialog-password-entry
+.prompt-dialog .prompt-dialog-password-grid .prompt-dialog-password-entry:ltr
+.prompt-dialog .prompt-dialog-password-grid .prompt-dialog-password-entry:rtl
+.prompt-dialog .prompt-dialog-password-layout
+.qr-code
+.quick-settings
+.quick-settings .button
+.quick-settings .calendar .calendar-month-header .pager-button
+.quick-settings .icon-button
+.quick-settings .login-dialog-button.a11y-button
+.quick-settings .login-dialog-button.cancel-button
+.quick-settings .login-dialog-button.login-dialog-auth-menu-button
+.quick-settings .login-dialog-button.login-dialog-session-list-button
+.quick-settings .login-dialog-button.switch-user-button
+.quick-settings .login-dialog-button.web-login-intro-button
+.quick-settings .message .message-header .message-close-button
+.quick-settings .message .message-header .message-expand-button
+.quick-settings .message-notification-group .message-collapse-button
+.quick-settings .screenshot-ui-show-pointer-button
+.quick-settings-grid
+.quick-settings-system-item .power-item
+.quick-settings-system-item .power-item:insensitive
+.quick-settings-system-item > StBoxLayout
+.quick-slider .calendar .calendar-month-header .pager-button
+.quick-slider .icon-button
+.quick-slider .login-dialog-button.a11y-button
+.quick-slider .login-dialog-button.cancel-button
+.quick-slider .login-dialog-button.login-dialog-auth-menu-button
+.quick-slider .login-dialog-button.login-dialog-session-list-button
+.quick-slider .login-dialog-button.switch-user-button
+.quick-slider .login-dialog-button.web-login-intro-button
+.quick-slider .message .message-header .message-close-button
+.quick-slider .message .message-header .message-expand-button
+.quick-slider .message-notification-group .message-collapse-button
+.quick-slider .screenshot-ui-show-pointer-button
+.quick-slider .slider-bin
+.quick-slider .slider-bin:focus
+.quick-slider .slider-bin:focus:hover
+.quick-slider > StBoxLayout
+.quick-toggle
+.quick-toggle .quick-toggle-icon
+.quick-toggle .quick-toggle-subtitle
+.quick-toggle .quick-toggle-title
+.quick-toggle > StBoxLayout
+.quick-toggle-has-menu
+.quick-toggle-has-menu .quick-toggle
+.quick-toggle-has-menu .quick-toggle-menu-button
+.quick-toggle-has-menu .quick-toggle-menu-button:active
+.quick-toggle-has-menu .quick-toggle-menu-button:active:focus
+.quick-toggle-has-menu .quick-toggle-menu-button:active:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:checked
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:active
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:active:focus
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:active:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:focus
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:focus:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:checked:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:focus
+.quick-toggle-has-menu .quick-toggle-menu-button:focus:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:hover
+.quick-toggle-has-menu .quick-toggle-menu-button:ltr
+.quick-toggle-has-menu .quick-toggle-menu-button:rtl
+.quick-toggle-has-menu .quick-toggle-separator
+.quick-toggle-has-menu .quick-toggle:ltr
+.quick-toggle-has-menu .quick-toggle:ltr > StBoxLayout
+.quick-toggle-has-menu .quick-toggle:ltr:last-child
+.quick-toggle-has-menu .quick-toggle:rtl
+.quick-toggle-has-menu .quick-toggle:rtl > StBoxLayout
+.quick-toggle-has-menu .quick-toggle:rtl:last-child
+.quick-toggle-has-menu:checked .quick-toggle-separator
+.quick-toggle-menu
+.quick-toggle-menu .header
+.quick-toggle-menu .header .icon
+.quick-toggle-menu .header .icon.active
+.quick-toggle-menu .header .subtitle
+.quick-toggle-menu .header .title
+.quick-toggle-menu .popup-menu-item > StIcon
+.quick-toggle-menu:active
+.quick-toggle-menu:active:focus
+.quick-toggle-menu:active:hover
+.quick-toggle-menu:focus
+.quick-toggle-menu:focus:hover
+.quick-toggle-menu:hover
+.quick-toggle-menu:insensitive
+.quick-toggle.button
+.quick-toggle:active:checked
+.quick-toggle:active:focus:checked
+.quick-toggle:active:hover:checked
+.quick-toggle:checked
+.quick-toggle:focus:checked
+.quick-toggle:focus:hover:checked
+.quick-toggle:hover:checked
+.quick-toggle:insensitive:checked
+.quick-toggle:ltr > StBoxLayout
+.quick-toggle:rtl > StBoxLayout
+.rename-folder-popup .rename-folder-popup-item
+.rename-folder-popup .rename-folder-popup-item:ltr
+.rename-folder-popup .rename-folder-popup-item:rtl
+.resize-popup
+.restart-message
+.right #dashtodockDashScrollview
+.ripple-box
+.ripple-box:rtl
+.ripple-pointer-location
+.run-dialog
+.run-dialog .run-dialog-description
+.run-dialog .run-dialog-entry
+.screen-shield-background
+.screenshot-ui-area-indicator-shade
+.screenshot-ui-area-selector .screenshot-ui-area-indicator-selection
+.screenshot-ui-area-selector .screenshot-ui-area-indicator-shade
+.screenshot-ui-area-selector-handle
+.screenshot-ui-capture-button
+.screenshot-ui-capture-button .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button .screenshot-ui-capture-button-circle:focus
+.screenshot-ui-capture-button .screenshot-ui-capture-button-circle:hover
+.screenshot-ui-capture-button:active .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:cast .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:cast:active .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:cast:focus .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:cast:hover .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:focus .screenshot-ui-capture-button-circle
+.screenshot-ui-capture-button:hover .screenshot-ui-capture-button-circle
+.screenshot-ui-close-button
+.screenshot-ui-close-button StIcon
+.screenshot-ui-close-button.left
+.screenshot-ui-close-button.right
+.screenshot-ui-close-button:active
+.screenshot-ui-close-button:hover
+.screenshot-ui-panel
+.screenshot-ui-screen-selector
+.screenshot-ui-screen-selector:active
+.screenshot-ui-screen-selector:checked
+.screenshot-ui-screen-selector:hover
+.screenshot-ui-shot-cast-button
+.screenshot-ui-shot-cast-button > StIcon
+.screenshot-ui-shot-cast-button:active
+.screenshot-ui-shot-cast-button:checked
+.screenshot-ui-shot-cast-button:focus
+.screenshot-ui-shot-cast-button:hover
+.screenshot-ui-shot-cast-button:insensitive
+.screenshot-ui-shot-cast-container
+.screenshot-ui-show-pointer-button
+.screenshot-ui-show-pointer-button StIcon
+.screenshot-ui-show-pointer-button:active
+.screenshot-ui-show-pointer-button:active:focus
+.screenshot-ui-show-pointer-button:active:hover
+.screenshot-ui-show-pointer-button:checked
+.screenshot-ui-show-pointer-button:checked:active
+.screenshot-ui-show-pointer-button:checked:hover
+.screenshot-ui-show-pointer-button:focus
+.screenshot-ui-show-pointer-button:focus:hover
+.screenshot-ui-show-pointer-button:hover
+.screenshot-ui-show-pointer-button:insensitive
+.screenshot-ui-show-pointer-button:selected
+.screenshot-ui-show-pointer-button:selected:focus
+.screenshot-ui-show-pointer-button:selected:hover
+.screenshot-ui-tooltip
+.screenshot-ui-type-button
+.screenshot-ui-type-button .icon-label-button-container
+.screenshot-ui-type-button .icon-label-button-container > StIcon
+.screenshot-ui-type-button:active
+.screenshot-ui-type-button:active:focus
+.screenshot-ui-type-button:active:hover
+.screenshot-ui-type-button:checked
+.screenshot-ui-type-button:checked:active
+.screenshot-ui-type-button:checked:hover
+.screenshot-ui-type-button:focus
+.screenshot-ui-type-button:focus:hover
+.screenshot-ui-type-button:hover
+.screenshot-ui-type-button:insensitive
+.screenshot-ui-window-selector
+.screenshot-ui-window-selector .screenshot-ui-window-selector-window-container
+.screenshot-ui-window-selector-check
+.screenshot-ui-window-selector-window-border
+.screenshot-ui-window-selector-window:checked .screenshot-ui-window-selector-check
+.screenshot-ui-window-selector-window:checked .screenshot-ui-window-selector-window-border
+.screenshot-ui-window-selector-window:hover .screenshot-ui-window-selector-window-border
+.screenshot-ui-window-selector:primary-monitor .screenshot-ui-window-selector-window-container
+.search-entry
+.search-entry .search-entry-icon
+.search-entry StLabel.hint-text
+.search-entry:focus
+.search-entry:hover
+.search-entry:insensitive
+.search-provider-icon
+.search-provider-icon .list-search-provider-content
+.search-provider-icon .list-search-provider-content .list-search-provider-details
+.search-provider-icon:active
+.search-provider-icon:active:focus
+.search-provider-icon:active:hover
+.search-provider-icon:checked
+.search-provider-icon:checked:active
+.search-provider-icon:checked:hover
+.search-provider-icon:drop
+.search-provider-icon:focus
+.search-provider-icon:focus:hover
+.search-provider-icon:highlighted
+.search-provider-icon:highlighted:active
+.search-provider-icon:highlighted:hover
+.search-provider-icon:hover
+.search-provider-icon:insensitive
+.search-provider-icon:ltr
+.search-provider-icon:rtl
+.search-provider-icon:selected
+.search-provider-icon:selected:active
+.search-provider-icon:selected:hover
+.search-section
+.search-section .search-section-separator
+.search-section-content
+.search-statusbox
+.search-statustext
+.secondary-monitor-workspaces
+.select-area-rubberband
+.shell-link
+.shell-link:hover
+.slider
+.slider:hover
+.switcher-arrow
+.switcher-arrow:highlighted
+.switcher-list
+.switcher-list .item-box
+.switcher-list .item-box:active
+.switcher-list .item-box:active:focus
+.switcher-list .item-box:active:hover
+.switcher-list .item-box:checked
+.switcher-list .item-box:checked:active
+.switcher-list .item-box:checked:hover
+.switcher-list .item-box:drop
+.switcher-list .item-box:focus
+.switcher-list .item-box:focus:hover
+.switcher-list .item-box:highlighted
+.switcher-list .item-box:highlighted:active
+.switcher-list .item-box:highlighted:hover
+.switcher-list .item-box:hover
+.switcher-list .item-box:insensitive
+.switcher-list .item-box:selected
+.switcher-list .item-box:selected:active
+.switcher-list .item-box:selected:hover
+.switcher-list .separator
+.switcher-list .switcher-list-item-container
+.switcher-list .thumbnail
+.switcher-list .thumbnail-box
+.switcher-popup
+.system-action-icon
+.tile-preview
+.toggle-switch
+.toggle-switch .handle
+.toggle-switch StIcon
+.toggle-switch:checked
+.toggle-switch:checked .handle
+.toggle-switch:checked:hover
+.toggle-switch:hover
+.top #dashtodockDashScrollview
+.unlock-dialog
+.unlock-dialog .button
+.unlock-dialog .button:active
+.unlock-dialog .button:active:focus
+.unlock-dialog .button:active:hover
+.unlock-dialog .button:checked
+.unlock-dialog .button:checked:active
+.unlock-dialog .button:checked:hover
+.unlock-dialog .button:focus
+.unlock-dialog .button:focus:hover
+.unlock-dialog .button:hover
+.unlock-dialog .button:insensitive
+.unlock-dialog .calendar .calendar-month-header .pager-button
+.unlock-dialog .calendar .calendar-month-header .pager-button:active
+.unlock-dialog .calendar .calendar-month-header .pager-button:active:focus
+.unlock-dialog .calendar .calendar-month-header .pager-button:active:hover
+.unlock-dialog .calendar .calendar-month-header .pager-button:checked
+.unlock-dialog .calendar .calendar-month-header .pager-button:checked:active
+.unlock-dialog .calendar .calendar-month-header .pager-button:checked:hover
+.unlock-dialog .calendar .calendar-month-header .pager-button:focus
+.unlock-dialog .calendar .calendar-month-header .pager-button:focus:hover
+.unlock-dialog .calendar .calendar-month-header .pager-button:hover
+.unlock-dialog .calendar .calendar-month-header .pager-button:insensitive
+.unlock-dialog .cancel-button
+.unlock-dialog .cancel-button:active
+.unlock-dialog .cancel-button:focus
+.unlock-dialog .cancel-button:hover
+.unlock-dialog .caps-lock-warning-label
+.unlock-dialog .icon-button
+.unlock-dialog .icon-button:active
+.unlock-dialog .icon-button:active:focus
+.unlock-dialog .icon-button:active:hover
+.unlock-dialog .icon-button:checked
+.unlock-dialog .icon-button:checked:active
+.unlock-dialog .icon-button:checked:hover
+.unlock-dialog .icon-button:focus
+.unlock-dialog .icon-button:focus:hover
+.unlock-dialog .icon-button:hover
+.unlock-dialog .icon-button:insensitive
+.unlock-dialog .login-dialog-auth-list-item
+.unlock-dialog .login-dialog-auth-list-item:active
+.unlock-dialog .login-dialog-auth-list-item:active:focus
+.unlock-dialog .login-dialog-auth-list-item:active:hover
+.unlock-dialog .login-dialog-auth-list-item:checked
+.unlock-dialog .login-dialog-auth-list-item:checked:active
+.unlock-dialog .login-dialog-auth-list-item:checked:hover
+.unlock-dialog .login-dialog-auth-list-item:focus
+.unlock-dialog .login-dialog-auth-list-item:focus:hover
+.unlock-dialog .login-dialog-auth-list-item:hover
+.unlock-dialog .login-dialog-auth-list-item:insensitive
+.unlock-dialog .login-dialog-button.a11y-button
+.unlock-dialog .login-dialog-button.a11y-button:active
+.unlock-dialog .login-dialog-button.a11y-button:active:focus
+.unlock-dialog .login-dialog-button.a11y-button:active:hover
+.unlock-dialog .login-dialog-button.a11y-button:checked
+.unlock-dialog .login-dialog-button.a11y-button:checked:active
+.unlock-dialog .login-dialog-button.a11y-button:checked:hover
+.unlock-dialog .login-dialog-button.a11y-button:focus
+.unlock-dialog .login-dialog-button.a11y-button:focus:hover
+.unlock-dialog .login-dialog-button.a11y-button:hover
+.unlock-dialog .login-dialog-button.a11y-button:insensitive
+.unlock-dialog .login-dialog-button.cancel-button
+.unlock-dialog .login-dialog-button.cancel-button:active
+.unlock-dialog .login-dialog-button.cancel-button:active:focus
+.unlock-dialog .login-dialog-button.cancel-button:active:hover
+.unlock-dialog .login-dialog-button.cancel-button:checked
+.unlock-dialog .login-dialog-button.cancel-button:checked:active
+.unlock-dialog .login-dialog-button.cancel-button:checked:hover
+.unlock-dialog .login-dialog-button.cancel-button:focus
+.unlock-dialog .login-dialog-button.cancel-button:focus:hover
+.unlock-dialog .login-dialog-button.cancel-button:hover
+.unlock-dialog .login-dialog-button.cancel-button:insensitive
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:active
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:active:focus
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:active:hover
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:checked
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:checked:active
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:checked:hover
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:focus
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:focus:hover
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:hover
+.unlock-dialog .login-dialog-button.login-dialog-auth-menu-button:insensitive
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:active
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:active:focus
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:active:hover
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:checked
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:checked:active
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:checked:hover
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:focus
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:focus:hover
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:hover
+.unlock-dialog .login-dialog-button.login-dialog-session-list-button:insensitive
+.unlock-dialog .login-dialog-button.switch-user-button
+.unlock-dialog .login-dialog-button.switch-user-button:active
+.unlock-dialog .login-dialog-button.switch-user-button:active:focus
+.unlock-dialog .login-dialog-button.switch-user-button:active:hover
+.unlock-dialog .login-dialog-button.switch-user-button:checked
+.unlock-dialog .login-dialog-button.switch-user-button:checked:active
+.unlock-dialog .login-dialog-button.switch-user-button:checked:hover
+.unlock-dialog .login-dialog-button.switch-user-button:focus
+.unlock-dialog .login-dialog-button.switch-user-button:focus:hover
+.unlock-dialog .login-dialog-button.switch-user-button:hover
+.unlock-dialog .login-dialog-button.switch-user-button:insensitive
+.unlock-dialog .login-dialog-button.web-login-intro-button
+.unlock-dialog .login-dialog-button.web-login-intro-button:active
+.unlock-dialog .login-dialog-button.web-login-intro-button:active:focus
+.unlock-dialog .login-dialog-button.web-login-intro-button:active:hover
+.unlock-dialog .login-dialog-button.web-login-intro-button:checked
+.unlock-dialog .login-dialog-button.web-login-intro-button:checked:active
+.unlock-dialog .login-dialog-button.web-login-intro-button:checked:hover
+.unlock-dialog .login-dialog-button.web-login-intro-button:focus
+.unlock-dialog .login-dialog-button.web-login-intro-button:focus:hover
+.unlock-dialog .login-dialog-button.web-login-intro-button:hover
+.unlock-dialog .login-dialog-button.web-login-intro-button:insensitive
+.unlock-dialog .login-dialog-message-warning
+.unlock-dialog .login-dialog-prompt-entry
+.unlock-dialog .login-dialog-prompt-entry StLabel.hint-text
+.unlock-dialog .login-dialog-prompt-entry:focus
+.unlock-dialog .login-dialog-prompt-entry:hover
+.unlock-dialog .login-dialog-prompt-entry:insensitive
+.unlock-dialog .login-dialog-prompt-layout
+.unlock-dialog .login-dialog-session-list-button
+.unlock-dialog .login-dialog-session-list-button:active
+.unlock-dialog .login-dialog-session-list-button:focus
+.unlock-dialog .login-dialog-session-list-button:hover
+.unlock-dialog .message .message-header .message-close-button
+.unlock-dialog .message .message-header .message-close-button:active
+.unlock-dialog .message .message-header .message-close-button:active:focus
+.unlock-dialog .message .message-header .message-close-button:active:hover
+.unlock-dialog .message .message-header .message-close-button:checked
+.unlock-dialog .message .message-header .message-close-button:checked:active
+.unlock-dialog .message .message-header .message-close-button:checked:hover
+.unlock-dialog .message .message-header .message-close-button:focus
+.unlock-dialog .message .message-header .message-close-button:focus:hover
+.unlock-dialog .message .message-header .message-close-button:hover
+.unlock-dialog .message .message-header .message-close-button:insensitive
+.unlock-dialog .message .message-header .message-expand-button
+.unlock-dialog .message .message-header .message-expand-button:active
+.unlock-dialog .message .message-header .message-expand-button:active:focus
+.unlock-dialog .message .message-header .message-expand-button:active:hover
+.unlock-dialog .message .message-header .message-expand-button:checked
+.unlock-dialog .message .message-header .message-expand-button:checked:active
+.unlock-dialog .message .message-header .message-expand-button:checked:hover
+.unlock-dialog .message .message-header .message-expand-button:focus
+.unlock-dialog .message .message-header .message-expand-button:focus:hover
+.unlock-dialog .message .message-header .message-expand-button:hover
+.unlock-dialog .message .message-header .message-expand-button:insensitive
+.unlock-dialog .message-notification-group .message-collapse-button
+.unlock-dialog .message-notification-group .message-collapse-button:active
+.unlock-dialog .message-notification-group .message-collapse-button:active:focus
+.unlock-dialog .message-notification-group .message-collapse-button:active:hover
+.unlock-dialog .message-notification-group .message-collapse-button:checked
+.unlock-dialog .message-notification-group .message-collapse-button:checked:active
+.unlock-dialog .message-notification-group .message-collapse-button:checked:hover
+.unlock-dialog .message-notification-group .message-collapse-button:focus
+.unlock-dialog .message-notification-group .message-collapse-button:focus:hover
+.unlock-dialog .message-notification-group .message-collapse-button:hover
+.unlock-dialog .message-notification-group .message-collapse-button:insensitive
+.unlock-dialog .screenshot-ui-show-pointer-button
+.unlock-dialog .screenshot-ui-show-pointer-button:active
+.unlock-dialog .screenshot-ui-show-pointer-button:active:focus
+.unlock-dialog .screenshot-ui-show-pointer-button:active:hover
+.unlock-dialog .screenshot-ui-show-pointer-button:checked
+.unlock-dialog .screenshot-ui-show-pointer-button:checked:active
+.unlock-dialog .screenshot-ui-show-pointer-button:checked:hover
+.unlock-dialog .screenshot-ui-show-pointer-button:focus
+.unlock-dialog .screenshot-ui-show-pointer-button:focus:hover
+.unlock-dialog .screenshot-ui-show-pointer-button:hover
+.unlock-dialog .screenshot-ui-show-pointer-button:insensitive
+.unlock-dialog .switch-user-button
+.unlock-dialog .switch-user-button:active
+.unlock-dialog .switch-user-button:focus
+.unlock-dialog .switch-user-button:hover
+.unlock-dialog .user-widget .user-icon
+.unlock-dialog .user-widget .user-widget-label
+.unlock-dialog .user-widget.horizontal
+.unlock-dialog .user-widget.horizontal .user-widget-label
+.unlock-dialog .user-widget.vertical
+.unlock-dialog .user-widget.vertical .user-icon
+.unlock-dialog .user-widget.vertical .user-icon StIcon
+.unlock-dialog .user-widget.vertical .user-widget-label
+.unlock-dialog StEntry
+.unlock-dialog StEntry StLabel.hint-text
+.unlock-dialog StEntry:focus
+.unlock-dialog StEntry:insensitive
+.unlock-dialog-clock
+.unlock-dialog-clock .unlock-dialog-clock-date
+.unlock-dialog-clock .unlock-dialog-clock-hint
+.unlock-dialog-clock .unlock-dialog-clock-time
+.unlock-dialog-notification-count-text
+.unlock-dialog-notification-icon
+.unlock-dialog-notification-label
+.unlock-dialog-notification-label:rtl
+.unlock-dialog-notifications-container
+.unlock-dialog-notifications-container .message
+.unlock-dialog-notifications-container .message .message-header
+.unlock-dialog-notifications-container .message StButton
+.unlock-dialog-notifications-container .message StButton:active
+.unlock-dialog-notifications-container .message StButton:active:focus
+.unlock-dialog-notifications-container .message StButton:active:hover
+.unlock-dialog-notifications-container .message StButton:checked
+.unlock-dialog-notifications-container .message StButton:checked:active
+.unlock-dialog-notifications-container .message StButton:checked:hover
+.unlock-dialog-notifications-container .message StButton:focus
+.unlock-dialog-notifications-container .message StButton:focus:hover
+.unlock-dialog-notifications-container .message StButton:hover
+.unlock-dialog-notifications-container .message StButton:insensitive
+.unlock-dialog-notifications-container .message.critical
+.unlock-dialog-notifications-container .message:active
+.unlock-dialog-notifications-container .summary-notification-stack-scrollview
+.unlock-dialog-notifications-container .unlock-dialog-notification-source
+.unlock-dialog-notifications-container .unlock-dialog-notification-source .message-header
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:active
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:active:focus
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:active:hover
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:checked
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:checked:active
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:checked:hover
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:focus
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:focus:hover
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:hover
+.unlock-dialog-notifications-container .unlock-dialog-notification-source StButton:insensitive
+.unlock-dialog-notifications-container .unlock-dialog-notification-source.critical
+.unlock-dialog-notifications-container .unlock-dialog-notification-source:active
+.url-highlighter
+.user-icon
+.user-icon StIcon
+.user-icon.user-avatar
+.vertical .candidate-page-button-box
+.weather-button
+.weather-button .weather-box
+.weather-button .weather-box .weather-grid
+.weather-button .weather-box .weather-grid .weather-forecast-icon
+.weather-button .weather-box .weather-grid .weather-forecast-temp
+.weather-button .weather-box .weather-grid .weather-forecast-time
+.weather-button .weather-box .weather-header-box
+.weather-button .weather-box .weather-header-box .weather-header
+.weather-button .weather-box .weather-header-box .weather-header.location
+.weather-button .weather-box .weather-header-box .weather-header.no-location
+.weather-button:active
+.weather-button:active:focus
+.weather-button:active:hover
+.weather-button:focus
+.weather-button:focus:hover
+.weather-button:hover
+.weather-button:insensitive
+.web-login-code-label
+.web-login-code-title-label
+.web-login-dialog-content-overlay
+.web-login-intro-button
+.web-login-intro-button-label
+.web-login-prompt
+.web-login-spinner
+.web-login-title-label
+.web-login-url-label
+.welcome-dialog-image
+.window-caption
+.window-close
+.window-close StIcon
+.window-close:active
+.window-close:hover
+.window-picker
+.word-suggestions
+.word-suggestions StButton
+.word-suggestions StButton:active
+.word-suggestions StButton:active:focus
+.word-suggestions StButton:active:hover
+.word-suggestions StButton:checked
+.word-suggestions StButton:checked:active
+.word-suggestions StButton:checked:hover
+.word-suggestions StButton:focus
+.word-suggestions StButton:focus:hover
+.word-suggestions StButton:hover
+.word-suggestions StButton:insensitive
+.workspace-animation
+.workspace-background
+.workspace-switcher
+.workspace-thumbnail-indicator
+.workspace-thumbnails
+.workspace-thumbnails .placeholder
+.workspace-thumbnails .workspace-thumbnail
+.world-clocks-button
+.world-clocks-button .world-clocks-grid
+.world-clocks-button .world-clocks-grid .world-clocks-time
+.world-clocks-button .world-clocks-grid .world-clocks-time:ltr
+.world-clocks-button .world-clocks-grid .world-clocks-time:rtl
+.world-clocks-button .world-clocks-grid .world-clocks-timezone
+.world-clocks-button .world-clocks-header
+.world-clocks-button .world-clocks-header.no-world-clocks
+.world-clocks-button:active
+.world-clocks-button:active:focus
+.world-clocks-button:active:hover
+.world-clocks-button:focus
+.world-clocks-button:focus:hover
+.world-clocks-button:hover
+.world-clocks-button:insensitive
+.ws-switcher-indicator
+.ws-switcher-indicator:active
+StEntry
+StEntry StIcon.capslock-warning
+StEntry StIcon.peek-password
+StEntry StLabel.hint-text
+StEntry:focus
+StEntry:hover
+StEntry:insensitive
+StScrollBar
+StScrollBar > .hhandle
+StScrollBar > .hhandle:active
+StScrollBar > .hhandle:hover
+StScrollBar > .vhandle
+StScrollBar > .vhandle:active
+StScrollBar > .vhandle:hover
+StScrollBar StBin#trough
+StScrollView StScrollBar
+StScrollView.hfade
+StScrollView.vfade
+stage

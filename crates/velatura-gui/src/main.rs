@@ -57,7 +57,7 @@ type U = Rc<Ui>;
 
 fn main() -> glib::ExitCode {
     // The sentences shared with the command use the same catalog.
-    velatura_text::set_translator(words::tr);
+    velatura_text::set_language(&|name| std::env::var(name).ok());
     let app = adw::Application::builder().application_id(APP_ID).build();
     app.connect_activate(|app| {
         if let Some(window) = app.active_window() {

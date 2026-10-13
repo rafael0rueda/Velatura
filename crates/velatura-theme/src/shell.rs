@@ -239,6 +239,49 @@ mod tests {
         }
     }
 
+    /// Ubuntu's own session uses its own Shell stylesheet (Yaru), in a
+    /// light and a dark form. The lists hold what both have.
+    #[test]
+    fn selectors_exist_in_ubuntus_stylesheet() {
+        let versions = [
+            (
+                "47",
+                include_str!("../tests/fixtures/shell-selectors-ubuntu-47.txt"),
+            ),
+            (
+                "48",
+                include_str!("../tests/fixtures/shell-selectors-ubuntu-48.txt"),
+            ),
+            (
+                "49",
+                include_str!("../tests/fixtures/shell-selectors-ubuntu-49.txt"),
+            ),
+            (
+                "50",
+                include_str!("../tests/fixtures/shell-selectors-ubuntu-50.txt"),
+            ),
+        ];
+        for (version, fixture) in versions {
+            let yaru: Vec<&str> = fixture.lines().collect();
+            assert!(
+                yaru.len() > 1000,
+                "Ubuntu {version}: the list looks cut short"
+            );
+            for selector in SELECTORS {
+                // A rule of its own, or named as the place other rules
+                // apply in: either way the Shell still has the element.
+                // (Ubuntu's 47 styles the Run dialog only through what is
+                // inside it.)
+                let inside = format!("{selector} ");
+                assert!(
+                    yaru.iter()
+                        .any(|s| *s == selector || s.starts_with(&inside)),
+                    "Ubuntu's GNOME Shell {version} has no {selector}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn the_folder_name_follows_the_colours() {
         let themes = bundled::themes();

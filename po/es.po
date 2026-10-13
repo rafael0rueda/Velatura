@@ -1,0 +1,1164 @@
+# Spanish translation of Velatura.
+# Copyright (C) 2026 Rafael Rueda
+# This file is distributed under the same license as the velatura package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: velatura\n"
+"Report-Msgid-Bugs-To: https://github.com/rafael0rueda/Velatura/issues\n"
+"PO-Revision-Date: 2026-10-13 09:00+0000\n"
+"Last-Translator: Rafael Rueda\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Background"
+msgstr "Fondo"
+
+msgid "Text"
+msgstr "Texto"
+
+msgid "Accent"
+msgstr "Acento"
+
+msgid "Dim Background"
+msgstr "Fondo atenuado"
+
+msgid "Surface"
+msgstr "Superficie"
+
+msgid "Border"
+msgstr "Borde"
+
+msgid "Secondary Text"
+msgstr "Texto secundario"
+
+msgid "Faint Text"
+msgstr "Texto tenue"
+
+msgid "Text on Accent"
+msgstr "Texto sobre el acento"
+
+msgid "Selection"
+msgstr "Selección"
+
+msgid "Selected Text"
+msgstr "Texto seleccionado"
+
+msgid "Cursor"
+msgstr "Cursor"
+
+msgid "Text Under Cursor"
+msgstr "Texto bajo el cursor"
+
+msgid "Link"
+msgstr "Enlace"
+
+msgid "Success"
+msgstr "Éxito"
+
+msgid "Warning"
+msgstr "Advertencia"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Black"
+msgstr "Negro"
+
+msgid "Red"
+msgstr "Rojo"
+
+msgid "Green"
+msgstr "Verde"
+
+msgid "Yellow"
+msgstr "Amarillo"
+
+msgid "Blue"
+msgstr "Azul"
+
+msgid "Magenta"
+msgstr "Magenta"
+
+msgid "Cyan"
+msgstr "Cian"
+
+msgid "White"
+msgstr "Blanco"
+
+msgid "Bright Black"
+msgstr "Negro brillante"
+
+msgid "Bright Red"
+msgstr "Rojo brillante"
+
+msgid "Bright Green"
+msgstr "Verde brillante"
+
+msgid "Bright Yellow"
+msgstr "Amarillo brillante"
+
+msgid "Bright Blue"
+msgstr "Azul brillante"
+
+msgid "Bright Magenta"
+msgstr "Magenta brillante"
+
+msgid "Bright Cyan"
+msgstr "Cian brillante"
+
+msgid "Bright White"
+msgstr "Blanco brillante"
+
+msgid "Comment"
+msgstr "Comentario"
+
+msgid "Keyword"
+msgstr "Palabra clave"
+
+msgid "String"
+msgstr "Cadena"
+
+msgid "Number"
+msgstr "Número"
+
+msgid "Constant"
+msgstr "Constante"
+
+msgid "Function"
+msgstr "Función"
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Variable"
+msgstr "Variable"
+
+msgid "Parameter"
+msgstr "Parámetro"
+
+msgid "Operator"
+msgstr "Operador"
+
+msgid "Punctuation"
+msgstr "Puntuación"
+
+msgid "Property"
+msgstr "Propiedad"
+
+msgid "Tag"
+msgstr "Etiqueta"
+
+msgid "Attribute"
+msgstr "Atributo"
+
+msgid "Built-In"
+msgstr "Integrado"
+
+msgid "Escape Sequence"
+msgstr "Secuencia de escape"
+
+msgid "Reset to Automatic"
+msgstr "Volver a automático"
+
+#, rust-format
+msgid "{role} is hard to read on {on}: {ratio} to 1, where {need} is needed"
+msgstr "{role} se lee con dificultad sobre {on}: {ratio} a 1, y se necesita {need}"
+
+msgid "Hard to Read"
+msgstr "Difícil de leer"
+
+msgid "Fix"
+msgstr "Corregir"
+
+msgid "Main Colors"
+msgstr "Colores principales"
+
+msgid "Every other color follows these three until it is given one of its own"
+msgstr "Los demás colores siguen a estos tres hasta que se les da uno propio"
+
+msgid "_Dark Theme"
+msgstr "Tema _oscuro"
+
+msgid "Apps and the desktop use their dark style with it"
+msgstr "Las aplicaciones y el escritorio usan con él su estilo oscuro"
+
+msgid "_Interface"
+msgstr "_Interfaz"
+
+#, rust-format
+msgid "{n} color set by hand"
+msgid_plural "{n} colors set by hand"
+msgstr[0] "{n} color definido a mano"
+msgstr[1] "{n} colores definidos a mano"
+
+msgid "Automatic"
+msgstr "Automático"
+
+msgid "_Terminal"
+msgstr "_Terminal"
+
+msgid "Set by hand"
+msgstr "Definidos a mano"
+
+msgid "_Reset Terminal Colors to Automatic"
+msgstr "_Volver los colores de la terminal a automático"
+
+msgid "_Code"
+msgstr "_Código"
+
+#, rust-format
+msgid "{n} color set"
+msgid_plural "{n} colors set"
+msgstr[0] "{n} color definido"
+msgstr[1] "{n} colores definidos"
+
+msgid "Not set"
+msgstr "Sin definir"
+
+msgid "_Discard"
+msgstr "_Descartar"
+
+msgid "_Save Theme"
+msgstr "_Guardar tema"
+
+msgid "_Name"
+msgstr "_Nombre"
+
+msgid "Edit Theme"
+msgstr "Editar tema"
+
+msgid "New Theme"
+msgstr "Tema nuevo"
+
+msgid "A theme needs a name"
+msgstr "Un tema necesita un nombre"
+
+msgid "Theme saved"
+msgstr "Tema guardado"
+
+msgid "The change could not be started"
+msgstr "No se pudo iniciar el cambio"
+
+#, rust-format
+msgid "{name} (Copy)"
+msgstr "{name} (copia)"
+
+msgid "_Themes"
+msgstr "_Temas"
+
+msgid "_Apps & Desktop"
+msgstr "_Apps y escritorio"
+
+msgid "_History"
+msgstr "_Historial"
+
+msgid "_Undo Last Apply"
+msgstr "_Deshacer la última aplicación"
+
+msgid "_Troubleshooting"
+msgstr "_Solución de problemas"
+
+msgid "_Keyboard Shortcuts"
+msgstr "Atajos del _teclado"
+
+msgid "_About Velatura"
+msgstr "_Acerca de Velatura"
+
+msgid "Main Menu"
+msgstr "Menú principal"
+
+msgid "General"
+msgstr "General"
+
+msgid "Undo Last Apply"
+msgstr "Deshacer la última aplicación"
+
+msgid "Import Theme"
+msgstr "Importar tema"
+
+msgid "Save Theme"
+msgstr "Guardar tema"
+
+msgid "Back"
+msgstr "Atrás"
+
+msgid "Keyboard Shortcuts"
+msgstr "Atajos del teclado"
+
+msgid "Close Window"
+msgstr "Cerrar la ventana"
+
+msgid "Quit"
+msgstr "Salir"
+
+msgid "_Undo"
+msgstr "_Deshacer"
+
+msgid "No Home Folder"
+msgstr "No hay carpeta personal"
+
+msgid "Velatura needs a home folder to work in"
+msgstr "Velatura necesita una carpeta personal para trabajar"
+
+msgid "An earlier change was interrupted"
+msgstr "Un cambio anterior quedó interrumpido"
+
+msgid "_Roll Back"
+msgstr "_Revertir"
+
+msgid "High Contrast is on ‒ apps are not recolored"
+msgstr "El contraste alto está activado ‒ las aplicaciones no se recolorean"
+
+msgid "Light"
+msgstr "Claro"
+
+msgid "Dark"
+msgstr "Oscuro"
+
+msgid "In use"
+msgstr "En uso"
+
+msgid "In Use"
+msgstr "En uso"
+
+msgid "_New Theme"
+msgstr "Tema _nuevo"
+
+msgid "_Import…"
+msgstr "_Importar…"
+
+msgid "Day and Night"
+msgstr "Día y noche"
+
+msgid "Two themes to change between with one press"
+msgstr "Dos temas entre los que cambiar con una pulsación"
+
+msgid "None"
+msgstr "Ninguno"
+
+msgid "_Daytime Theme"
+msgstr "Tema de _día"
+
+msgid "_Nighttime Theme"
+msgstr "Tema de n_oche"
+
+msgid "The choice could not be saved"
+msgstr "No se pudo guardar la elección"
+
+msgid "_Switch to Nighttime Theme"
+msgstr "_Cambiar al tema de noche"
+
+msgid "_Switch to Daytime Theme"
+msgstr "_Cambiar al tema de día"
+
+msgid "That theme is no longer available"
+msgstr "Ese tema ya no está disponible"
+
+msgid "Schedule"
+msgstr "Horario"
+
+msgid "Changes between the two themes by the clock. Apps that are already open keep their colors until reopened"
+msgstr "Cambia entre los dos temas según la hora. Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
+
+msgid "The timer was changed outside Velatura. Turn this off and on to repair it"
+msgstr "El temporizador se cambió fuera de Velatura. Desactive y active esta opción para repararlo"
+
+msgid "Needs the velatura command installed, for example in ~/.local/bin"
+msgstr "Necesita la orden velatura instalada, por ejemplo en ~/.local/bin"
+
+msgid "Choose a daytime and a nighttime theme first"
+msgstr "Elija primero un tema de día y uno de noche"
+
+msgid "_Change on a Schedule"
+msgstr "Cambiar según un _horario"
+
+msgid "_Follow the Dark Style"
+msgstr "_Seguir el estilo oscuro"
+
+msgid "The daytime theme with the light style, the nighttime theme with the dark style. Needs a light and a dark theme"
+msgstr "El tema de día con el estilo claro y el de noche con el estilo oscuro. Necesita un tema claro y uno oscuro"
+
+msgid "Daytime Theme _Begins"
+msgstr "_Empieza el tema de día"
+
+msgid "Nighttime Theme B_egins"
+msgstr "E_mpieza el tema de noche"
+
+msgid "Schedule turned on"
+msgstr "Horario activado"
+
+msgid "Schedule turned off"
+msgstr "Horario desactivado"
+
+msgid "Turn the Schedule On?"
+msgstr "¿Activar el horario?"
+
+#, rust-format
+msgid "Another timer that may change the theme is turned on: {units}. Two schedules would work against each other."
+msgstr "Hay activado otro temporizador que puede cambiar el tema: {units}. Dos horarios se estorbarían entre sí."
+
+msgid "_Cancel"
+msgstr "_Cancelar"
+
+msgid "_Turn On"
+msgstr "_Activar"
+
+msgid "_Duplicate to Edit"
+msgstr "_Duplicar para editar"
+
+msgid "_Edit Theme"
+msgstr "_Editar tema"
+
+msgid "E_xport…"
+msgstr "E_xportar…"
+
+msgid "_Remove Theme"
+msgstr "_Quitar tema"
+
+msgid "Theme Files"
+msgstr "Archivos de tema"
+
+msgid "Export Theme"
+msgstr "Exportar tema"
+
+msgid "Theme exported"
+msgstr "Tema exportado"
+
+msgid "Theme removed"
+msgstr "Tema quitado"
+
+msgid "The theme could not be put back"
+msgstr "No se pudo reponer el tema"
+
+#, rust-format
+msgid "By {author}."
+msgstr "De {author}."
+
+msgid "A theme with the same id is already in the library."
+msgstr "Ya hay en la biblioteca un tema con el mismo identificador."
+
+#, rust-format
+msgid "Import {name}?"
+msgstr "¿Importar {name}?"
+
+msgid "_Import"
+msgstr "_Importar"
+
+msgid "_Keep Both"
+msgstr "Conservar a_mbos"
+
+msgid "_Replace"
+msgstr "_Reemplazar"
+
+msgid "Theme imported"
+msgstr "Tema importado"
+
+msgid "Style"
+msgstr "Estilo"
+
+msgid "System Accent"
+msgstr "Acento del sistema"
+
+#, rust-format
+msgid "{accent}, the nearest to {color}"
+msgstr "{accent}, el más cercano a {color}"
+
+msgid "Text Contrast"
+msgstr "Contraste del texto"
+
+#, rust-format
+msgid "{ratio} to 1"
+msgstr "{ratio} a 1"
+
+msgid "Author"
+msgstr "Autor"
+
+msgid "Suggested Icons"
+msgstr "Iconos sugeridos"
+
+msgid "Suggested Cursor"
+msgstr "Cursor sugerido"
+
+msgid "Not installed"
+msgstr "No instalado"
+
+msgid "Use"
+msgstr "Usar"
+
+msgid "Applied"
+msgstr "Aplicado"
+
+msgid "_Apply Theme"
+msgstr "_Aplicar tema"
+
+msgid "Still working on the last change"
+msgstr "Aún se está haciendo el último cambio"
+
+msgid "Another Velatura is making changes"
+msgstr "Otro Velatura está haciendo cambios"
+
+msgid "Nothing to undo"
+msgstr "No hay nada que deshacer"
+
+msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
+msgstr "Un cambio anterior interrumpido no se pudo revertir del todo, así que no se cambió nada nuevo."
+
+msgid "Velatura's own records cannot be read. Nothing was changed."
+msgstr "No se pueden leer los registros de Velatura. No se cambió nada."
+
+msgid "Theme Not Applied"
+msgstr "Tema no aplicado"
+
+msgid "Nothing to change"
+msgstr "No hay nada que cambiar"
+
+msgid "Text in this theme has low contrast and may be hard to read."
+msgstr "El texto de este tema tiene poco contraste y puede costar leerlo."
+
+#, rust-format
+msgid "Apply {name}?"
+msgstr "¿Aplicar {name}?"
+
+msgid "Show _Details"
+msgstr "Mostrar _detalles"
+
+msgid "Apply _Anyway"
+msgstr "Aplicar de _todos modos"
+
+msgid "Nothing Was Changed"
+msgstr "No se cambió nada"
+
+#, rust-format
+msgid "{name} applied"
+msgstr "{name} aplicado"
+
+#, rust-format
+msgid "{name} Applied"
+msgstr "{name} aplicado"
+
+msgid "A few things to know"
+msgstr "Algunas cosas que conviene saber"
+
+msgid "Last apply undone"
+msgstr "Última aplicación deshecha"
+
+msgid "Undone, With Exceptions"
+msgstr "Deshecho, con excepciones"
+
+msgid "Not Undone"
+msgstr "No se deshizo"
+
+msgid "The interrupted change was rolled back"
+msgstr "Se revirtió el cambio interrumpido"
+
+msgid "Rolled Back"
+msgstr "Revertido"
+
+msgid "Not Fully Rolled Back"
+msgstr "No se revirtió del todo"
+
+msgid "Desktop"
+msgstr "Escritorio"
+
+msgid "Terminals"
+msgstr "Terminales"
+
+msgid "Apps"
+msgstr "Aplicaciones"
+
+msgid "Themed"
+msgstr "Con el tema"
+
+msgid "Themed, and left out of the next apply"
+msgstr "Con el tema, y fuera de la próxima aplicación"
+
+msgid "Included in the next apply"
+msgstr "Incluido en la próxima aplicación"
+
+msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
+msgstr "Permite que todas las aplicaciones Flatpak lean las dos carpetas de configuración de GTK, para que les lleguen los colores"
+
+msgid "Left out"
+msgstr "Se omite"
+
+msgid "Set up, but not taking effect"
+msgstr "Configurado, pero sin efecto"
+
+msgid "Unofficial: may stop working after a GNOME update"
+msgstr "No oficial: puede dejar de funcionar tras una actualización de GNOME"
+
+msgid "_Remove Everything Velatura Added"
+msgstr "_Quitar todo lo que añadió Velatura"
+
+msgid "Shell Extension"
+msgstr "Extensión de Shell"
+
+msgid "Velatura's own extension themes the top bar and overview where other extensions bring their own colors"
+msgstr "La extensión propia de Velatura da el tema a la barra superior y a la vista de actividades allí donde otras extensiones traen sus colores"
+
+msgid "Velatura Extension"
+msgstr "Extensión de Velatura"
+
+msgid "_Install"
+msgstr "_Instalar"
+
+msgid "_Update"
+msgstr "Act_ualizar"
+
+msgid "_Remove"
+msgstr "_Quitar"
+
+msgid "Extension installed. It can be turned on after signing out and in"
+msgstr "Extensión instalada. Se podrá activar tras cerrar la sesión y volver a entrar"
+
+msgid "Extension removed"
+msgstr "Extensión quitada"
+
+msgid "Icons, Wallpaper and Fonts"
+msgstr "Iconos, fondo de pantalla y tipografías"
+
+msgid "These stay as chosen when the theme changes"
+msgstr "Se quedan como se eligieron cuando cambia el tema"
+
+#, rust-format
+msgid "{what} changed"
+msgstr "Se cambió: {what}"
+
+msgid "Not Changed"
+msgstr "No se cambió"
+
+msgid "Nothing to remove"
+msgstr "No hay nada que quitar"
+
+msgid "Everything Velatura added was removed"
+msgstr "Se quitó todo lo que añadió Velatura"
+
+msgid "Not Removed"
+msgstr "No se quitó"
+
+msgid "No Backups Yet"
+msgstr "Aún no hay copias de seguridad"
+
+msgid "A backup is made each time a theme is applied"
+msgstr "Se hace una copia de seguridad cada vez que se aplica un tema"
+
+msgid "Restoring goes back to how things were just before that change"
+msgstr "Restaurar devuelve todo a como estaba justo antes de ese cambio"
+
+#, rust-format
+msgid "Applied {theme}"
+msgstr "Se aplicó {theme}"
+
+#, rust-format
+msgid "Switched to {theme} on schedule"
+msgstr "Se cambió a {theme} según el horario"
+
+#, rust-format
+msgid "Changed {what}"
+msgstr "Se cambió: {what}"
+
+msgid "Removed everything Velatura added"
+msgstr "Se quitó todo lo que añadió Velatura"
+
+msgid "Change"
+msgstr "Cambio"
+
+msgid "Undone"
+msgstr "Deshecho"
+
+msgid "Restore…"
+msgstr "Restaurar…"
+
+msgid "Go Back to Before This Change?"
+msgstr "¿Volver a antes de este cambio?"
+
+#, rust-format
+msgid "{n} change is undone. Files edited by hand since then are kept."
+msgid_plural "{n} changes are undone, newest first. Files edited by hand since then are kept."
+msgstr[0] "Se deshace {n} cambio. Los archivos editados a mano desde entonces se conservan."
+msgstr[1] "Se deshacen {n} cambios, del más reciente al más antiguo. Los archivos editados a mano desde entonces se conservan."
+
+msgid "_Restore"
+msgstr "_Restaurar"
+
+msgid "Restored"
+msgstr "Restaurado"
+
+msgid "Not Restored"
+msgstr "No se restauró"
+
+msgid "Apps and Desktop"
+msgstr "Aplicaciones y escritorio"
+
+msgid "Can be themed"
+msgstr "Admite tema"
+
+msgid "Other Tools That Change Colors"
+msgstr "Otras herramientas que cambian colores"
+
+#, rust-format
+msgid "Found at {path}. It may write the same colors"
+msgstr "Está en {path}. Puede escribir los mismos colores"
+
+msgid "A timer that may change the theme is turned on"
+msgstr "Hay activado un temporizador que puede cambiar el tema"
+
+#, rust-format
+msgid "Found at {path}. It can overwrite changes made here"
+msgstr "Está en {path}. Puede sobrescribir los cambios hechos aquí"
+
+msgid "None found"
+msgstr "No se encontró ninguna"
+
+msgid "If the Desktop Becomes Unreadable"
+msgstr "Si el escritorio queda ilegible"
+
+msgid "Switch to a text console with Ctrl+Alt+F3, sign in, and run this command"
+msgstr "Cambie a una consola de texto con Ctrl+Alt+F3, inicie sesión y ejecute esta orden"
+
+msgid "Troubleshooting"
+msgstr "Solución de problemas"
+
+msgid "One color theme for the whole desktop"
+msgstr "Un solo tema de color para todo el escritorio"
+
+msgid "background"
+msgstr "fondo"
+
+msgid "surface"
+msgstr "superficie"
+
+msgid "accent"
+msgstr "acento"
+
+msgid "text"
+msgstr "texto"
+
+msgid "red"
+msgstr "rojo"
+
+msgid "green"
+msgstr "verde"
+
+msgid "blue"
+msgstr "azul"
+
+msgid "Colors"
+msgstr "Colores"
+
+msgid "Illustration of a terminal in this theme"
+msgstr "Ilustración de una terminal con este tema"
+
+msgid "Window"
+msgstr "Ventana"
+
+msgid "Text in this theme"
+msgstr "Texto con este tema"
+
+msgid "Secondary text"
+msgstr "Texto secundario"
+
+msgid "Button"
+msgstr "Botón"
+
+msgid "Illustration. Some apps keep their own colors"
+msgstr "Ilustración. Algunas aplicaciones conservan sus propios colores"
+
+#, rust-format
+msgid "Adds one line to a settings file."
+msgid_plural "Adds one line to each of {n} settings files."
+msgstr[0] "Añade una línea a un archivo de configuración."
+msgstr[1] "Añade una línea a cada uno de {n} archivos de configuración."
+
+#, rust-format
+msgid "Creates {n} file."
+msgid_plural "Creates {n} files."
+msgstr[0] "Crea {n} archivo."
+msgstr[1] "Crea {n} archivos."
+
+#, rust-format
+msgid "Updates {n} file made by Velatura."
+msgid_plural "Updates {n} files made by Velatura."
+msgstr[0] "Actualiza {n} archivo hecho por Velatura."
+msgstr[1] "Actualiza {n} archivos hechos por Velatura."
+
+#, rust-format
+msgid "Changes {n} system setting."
+msgid_plural "Changes {n} system settings."
+msgstr[0] "Cambia {n} ajuste del sistema."
+msgstr[1] "Cambia {n} ajustes del sistema."
+
+msgid "Nothing is deleted."
+msgstr "No se borra nada."
+
+msgid "This can be undone at any time."
+msgstr "Se puede deshacer en cualquier momento."
+
+msgid "Left out: "
+msgstr "Se omite: "
+
+msgid "Kitty"
+msgstr "Kitty"
+
+msgid "Ghostty"
+msgstr "Ghostty"
+
+msgid "Apps (GTK 4 and libadwaita)"
+msgstr "Aplicaciones (GTK 4 y libadwaita)"
+
+msgid "Older Apps (GTK 3)"
+msgstr "Aplicaciones antiguas (GTK 3)"
+
+msgid "Top Bar and Overview"
+msgstr "Barra superior y vista de actividades"
+
+msgid "Style and Accent Color"
+msgstr "Estilo y color de acento"
+
+msgid "Flatpak Apps"
+msgstr "Aplicaciones Flatpak"
+
+msgid "Icons, Cursor, Wallpaper and Fonts"
+msgstr "Iconos, cursor, fondo de pantalla y tipografías"
+
+msgid "Changes"
+msgstr "Cambios"
+
+msgid "Accent Color"
+msgstr "Color de acento"
+
+msgid "Legacy Application Theme"
+msgstr "Tema de aplicaciones antiguas"
+
+msgid "Shell Theme"
+msgstr "Tema de Shell"
+
+msgid "Icons"
+msgstr "Iconos"
+
+msgid "Wallpaper"
+msgstr "Fondo de pantalla"
+
+msgid "Wallpaper for the Dark Style"
+msgstr "Fondo de pantalla para el estilo oscuro"
+
+msgid "Interface Font"
+msgstr "Tipografía de la interfaz"
+
+msgid "Document Font"
+msgstr "Tipografía de documentos"
+
+msgid "Monospace Font"
+msgstr "Tipografía monoespaciada"
+
+msgid "the default"
+msgstr "el valor predeterminado"
+
+msgid "Default"
+msgstr "Predeterminado"
+
+msgid "Not one of the installed wallpapers, and not the full path of a picture"
+msgstr "No es uno de los fondos de pantalla instalados ni la ruta completa de una imagen"
+
+msgid "No installed theme has that name"
+msgstr "Ningún tema instalado tiene ese nombre"
+
+msgid "A font is written as its name and a size, for example Adwaita Sans 11"
+msgstr "Una tipografía se escribe con su nombre y un tamaño, por ejemplo Adwaita Sans 11"
+
+#, rust-format
+msgid "Create the folder {1}"
+msgstr "Crear la carpeta {1}"
+
+#, rust-format
+msgid "Remove the folder {1} if it is empty"
+msgstr "Quitar la carpeta {1} si está vacía"
+
+#, rust-format
+msgid "Create {1}"
+msgstr "Crear {1}"
+
+#, rust-format
+msgid "Update {1}"
+msgstr "Actualizar {1}"
+
+#, rust-format
+msgid "Remove {1} (created by Velatura)"
+msgstr "Quitar {1} (creado por Velatura)"
+
+#, rust-format
+msgid "Remove {1} (created by Velatura, holds nothing else)"
+msgstr "Quitar {1} (creado por Velatura, no contiene nada más)"
+
+#, rust-format
+msgid "Let Flatpak apps read the two GTK settings folders, by adding to a list in {1}"
+msgstr "Permitir que las aplicaciones Flatpak lean las dos carpetas de configuración de GTK, añadiendo a una lista en {1}"
+
+#, rust-format
+msgid "Take what Velatura added out of the list in {1}"
+msgstr "Sacar de la lista en {1} lo que añadió Velatura"
+
+#, rust-format
+msgid "Add a marked block with one line at the end of {1}"
+msgstr "Añadir un bloque marcado con una línea al final de {1}"
+
+#, rust-format
+msgid "Take the Velatura block out of {1}"
+msgstr "Sacar el bloque de Velatura de {1}"
+
+#, rust-format
+msgid "Update the Velatura block in {1}"
+msgstr "Actualizar el bloque de Velatura en {1}"
+
+#, rust-format
+msgid "Set {1} to {2}"
+msgstr "Poner {1} en {2}"
+
+msgid "Left out: adding a line to the settings file was not agreed to"
+msgstr "Se omite: no se aceptó añadir una línea al archivo de configuración"
+
+#, rust-format
+msgid "Left out: {1} leads outside the home folder"
+msgstr "Se omite: {1} lleva fuera de la carpeta personal"
+
+#, rust-format
+msgid "Left out: {1} is not a regular file or folder"
+msgstr "Se omite: {1} no es un archivo ni una carpeta normal"
+
+#, rust-format
+msgid "Left out: {1} cannot be read"
+msgstr "Se omite: no se puede leer {1}"
+
+#, rust-format
+msgid "Left out: the Velatura markers in {1} are damaged. Remove both marker lines, then apply again"
+msgstr "Se omite: las marcas de Velatura en {1} están dañadas. Quite las dos líneas de marca y aplique de nuevo"
+
+#, rust-format
+msgid "Left out: {1} already exists and was not created by Velatura"
+msgstr "Se omite: {1} ya existe y no lo creó Velatura"
+
+#, rust-format
+msgid "Left out: {1} was changed outside Velatura. Use --replace-changed to overwrite it"
+msgstr "Se omite: {1} se cambió fuera de Velatura. Use --replace-changed para sobrescribirlo"
+
+#, rust-format
+msgid "Left out: desktop settings are not available ({1})"
+msgstr "Se omite: la configuración del escritorio no está disponible ({1})"
+
+#, rust-format
+msgid "Left out: {1} has more than one name (a hard link), and replacing it would split them"
+msgstr "Se omite: {1} tiene más de un nombre (un enlace duro), y reemplazarlo los separaría"
+
+msgid "Left out: High Contrast is on, and recoloring would lower contrast"
+msgstr "Se omite: el contraste alto está activado, y recolorear lo reduciría"
+
+msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too"
+msgstr "Se omite: la barra superior y la vista de actividades se recolorean mediante una extensión, y no hay ninguna activada. La propia de Velatura se instala con: velatura extension install. La extensión User Themes también sirve"
+
+#, rust-format
+msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
+msgstr "Se omite: Velatura no se ha comprobado con GNOME Shell {1}, así que la barra superior y la vista de actividades se dejan como están. Para darles el tema de todos modos: velatura apply <tema> --only gnome:shell"
+
+msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
+msgstr "Se omite: las aplicaciones antiguas solo se pueden recolorear con el tema adw-gtk3, que no está instalado. Se puede instalar sin permisos de administrador en ~/.local/share/themes, o con el paquete adw-gtk3-theme"
+
+#, rust-format
+msgid "{1} has lines after the Velatura block that win over the theme (line {2})"
+msgstr "{1} tiene líneas después del bloque de Velatura que se imponen al tema (línea {2})"
+
+#, rust-format
+msgid "{1} exists. Kitty applies it over every other color setting, so the theme does not show until that file is renamed"
+msgstr "{1} existe. Kitty lo aplica por encima de cualquier otro ajuste de color, así que el tema no se verá hasta que se cambie el nombre de ese archivo"
+
+msgid "If open Kitty windows keep the old colors, press Ctrl+Shift+F5 in each"
+msgstr "Si las ventanas abiertas de Kitty conservan los colores anteriores, pulse Ctrl+Mayús+F5 en cada una"
+
+msgid "To update open Ghostty windows, press Ctrl+Shift+Comma in one of them"
+msgstr "Para actualizar las ventanas abiertas de Ghostty, pulse Ctrl+Mayús+Coma en una de ellas"
+
+msgid "Apps that are already open keep their colors until reopened"
+msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
+
+#, rust-format
+msgid "{1} is a link. The change is written to {2}"
+msgstr "{1} es un enlace. El cambio se escribe en {2}"
+
+#, rust-format
+msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
+msgstr "{1} no se pudo reponer sin una sesión de escritorio. Tras iniciar sesión, ejecute: {2}"
+
+msgid "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app"
+msgstr "La extensión User Themes está desactivada, así que la barra superior conserva sus colores. Actívela en la aplicación Extensiones"
+
+#, rust-format
+msgid "These extensions bring their own colors, which win over the theme where they apply: {1}"
+msgstr "Estas extensiones traen sus propios colores, que se imponen al tema allí donde se aplican: {1}"
+
+#, rust-format
+msgid "{1} asks older apps for dark and can work against this light theme"
+msgstr "{1} pide el modo oscuro a las aplicaciones antiguas y puede ir en contra de este tema claro"
+
+#, rust-format
+msgid "The theme's accent is {1}. GNOME offers nine accents; the nearest is {2}"
+msgstr "El acento del tema es {1}. GNOME ofrece nueve acentos; el más cercano es {2}"
+
+msgid "This GNOME version has no accent color setting"
+msgstr "Esta versión de GNOME no tiene ajuste de color de acento"
+
+#, rust-format
+msgid "{1} is locked by the system administrator and was not changed"
+msgstr "{1} está bloqueado por el administrador del sistema y no se cambió"
+
+#, rust-format
+msgid "{1} was changed outside Velatura and is left as it is"
+msgstr "{1} se cambió fuera de Velatura y se deja como está"
+
+msgid "Text on background is below a contrast of 4.5 to 1 and may be hard to read"
+msgstr "El texto sobre el fondo no llega a un contraste de 4,5 a 1 y puede costar leerlo"
+
+#, rust-format
+msgid "Another theming tool, {1}, is present ({2}). It may write the same colors"
+msgstr "Hay otra herramienta de temas, {1} ({2}). Puede escribir los mismos colores"
+
+#, rust-format
+msgid "A timer that may change the theme is turned on: {1}"
+msgstr "Hay activado un temporizador que puede cambiar el tema: {1}"
+
+#, rust-format
+msgid "Settings files may be managed by {1} ({2}). It can overwrite changes made here"
+msgstr "Puede que {1} gestione los archivos de configuración ({2}). Puede sobrescribir los cambios hechos aquí"
+
+msgid "Scheduled switching is off"
+msgstr "El cambio según horario está desactivado"
+
+msgid "The themes follow the dark style: the daytime theme with the light style, the nighttime theme with the dark style"
+msgstr "Los temas siguen al estilo oscuro: el tema de día con el estilo claro y el de noche con el estilo oscuro"
+
+#, rust-format
+msgid "Scheduled switching is on: the daytime theme from {1}, the nighttime theme from {2}"
+msgstr "El cambio según horario está activado: el tema de día desde las {1} y el de noche desde las {2}"
+
+msgid "Its timer was changed or removed outside Velatura. To repair it: velatura schedule set"
+msgstr "Su temporizador se cambió o se quitó fuera de Velatura. Para repararlo: velatura schedule set"
+
+msgid "The last scheduled switch did nothing: no daytime theme is chosen"
+msgstr "El último cambio programado no hizo nada: no hay tema de día elegido"
+
+msgid "The last scheduled switch did nothing: no nighttime theme is chosen"
+msgstr "El último cambio programado no hizo nada: no hay tema de noche elegido"
+
+msgid "The last scheduled switch failed. Applying the theme by hand shows why"
+msgstr "El último cambio programado falló. Aplicar el tema a mano muestra el motivo"
+
+#, rust-format
+msgid "The last scheduled switch left out: {1}. Applying the theme by hand shows why"
+msgstr "El último cambio programado omitió: {1}. Aplicar el tema a mano muestra el motivo"
+
+msgid "Velatura's extension is not installed"
+msgstr "La extensión de Velatura no está instalada"
+
+msgid "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in"
+msgstr "La extensión de Velatura está activada. Esta versión trae una copia más nueva: instálela de nuevo y luego cierre la sesión y vuelva a entrar"
+
+msgid "Velatura's extension is on: the top bar and overview are themed through it"
+msgstr "La extensión de Velatura está activada: la barra superior y la vista de actividades reciben el tema a través de ella"
+
+#, rust-format
+msgid "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
+msgstr "La extensión de Velatura está instalada y desactivada. Tras cerrar la sesión y volver a entrar una vez, actívela en la aplicación Extensiones, o con: gnome-extensions enable {1}"
+
+msgid "The two themes cannot start at the same time"
+msgstr "Los dos temas no pueden empezar a la misma hora"
+
+msgid "Following the dark style needs a light theme for the day and a dark theme for the night"
+msgstr "Seguir el estilo oscuro necesita un tema claro para el día y uno oscuro para la noche"
+
+#, rust-format
+msgid "A schedule needs the velatura command installed where it stays, such as ~/.local/bin. This copy is at {1}"
+msgstr "Un horario necesita la orden velatura instalada en un lugar estable, como ~/.local/bin. Esta copia está en {1}"
+
+#, rust-format
+msgid "Another timer that may change the theme is turned on: {1}. Two schedules would work against each other"
+msgstr "Hay activado otro temporizador que puede cambiar el tema: {1}. Dos horarios se estorbarían entre sí"
+
+#, rust-format
+msgid "{1} already exists and was not created by Velatura"
+msgstr "{1} ya existe y no lo creó Velatura"
+
+#, rust-format
+msgid "{1} leads outside the home folder"
+msgstr "{1} lleva fuera de la carpeta personal"
+
+msgid "Another Velatura is making changes. Try again in a moment"
+msgstr "Otro Velatura está haciendo cambios. Inténtelo de nuevo en un momento"
+
+#, rust-format
+msgid "The timer could not be turned on or off ({1})"
+msgstr "No se pudo activar ni desactivar el temporizador ({1})"
+
+#, rust-format
+msgid "  Kept, because it was changed afterwards: {1}\n"
+msgstr "  Se conserva, porque se cambió después: {1}\n"
+
+#, rust-format
+msgid "  Could not be put back: {1} ({2})\n"
+msgstr "  No se pudo reponer: {1} ({2})\n"
+
+#, rust-format
+msgid "Nothing was changed: {1} changed after the preview. Run the command again."
+msgstr "No se cambió nada: {1} cambió después de la vista previa. Ejecute la orden de nuevo."
+
+#, rust-format
+msgid "Nothing was changed: the backup could not be written ({1})."
+msgstr "No se cambió nada: no se pudo escribir la copia de seguridad ({1})."
+
+#, rust-format
+msgid "The change failed at {1} ({2}).\n"
+msgstr "El cambio falló en {1} ({2}).\n"
+
+msgid "Everything was put back as it was."
+msgstr "Todo se dejó como estaba."
+
+msgid "Everything else was put back as it was.\n"
+msgstr "Todo lo demás se dejó como estaba.\n"
+
+msgid "Rolling back did not finish:\n"
+msgstr "La reversión no terminó:\n"
+
+msgid "Backups are in ~/.local/share/velatura/backups. To try again: velatura recover"
+msgstr "Las copias de seguridad están en ~/.local/share/velatura/backups. Para intentarlo de nuevo: velatura recover"
+
+#, rust-format
+msgid "\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
+msgstr "«{1}» es un tema que viene con Velatura y no se puede reemplazar ni quitar"
+
+#, rust-format
+msgid "A theme with the id \"{1}\" already exists"
+msgstr "Ya existe un tema con el identificador «{1}»"
+
+#, rust-format
+msgid "\"{1}\" cannot be a theme's id. An id is made of lower-case letters, digits and hyphens"
+msgstr "«{1}» no puede ser el identificador de un tema. Un identificador se compone de letras minúsculas, cifras y guiones"
+
+#, rust-format
+msgid "No theme of this user has the id \"{1}\""
+msgstr "Ningún tema de este usuario tiene el identificador «{1}»"
+
+#, rust-format
+msgid "{1} already exists and is not that theme's file"
+msgstr "{1} ya existe y no es el archivo de ese tema"
+
+msgid "Not a theme file"
+msgstr "No es un archivo de tema"
+
+#, rust-format
+msgid "Not a valid theme file: {1}"
+msgstr "No es un archivo de tema válido: {1}"
+
+msgid "Theme files hold only colors and names. They cannot run anything"
+msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"

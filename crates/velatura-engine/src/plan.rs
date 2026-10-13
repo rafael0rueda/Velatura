@@ -76,6 +76,8 @@ pub enum Skip {
     /// The Shell can only load a stylesheet through the User Themes
     /// extension, which is not installed.
     NeedsUserThemes,
+    /// A GNOME Shell version Velatura has not been checked with.
+    UntestedShell(String),
 }
 
 /// Something the user should know that does not stop the operation.

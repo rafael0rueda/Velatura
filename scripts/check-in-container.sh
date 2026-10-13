@@ -10,6 +10,10 @@
 #                                              checks run headless
 #   VELATURA_IMAGE=fedora:45 scripts/check-in-container.sh --desktop
 #                                              the same on GNOME 51
+#   VELATURA_RUSTUP=1 VELATURA_IMAGE=fedora:41 scripts/check-in-container.sh --desktop
+#                                              on a release whose own Rust is
+#                                              too old to build with: take the
+#                                              current toolchain from rustup
 set -euo pipefail
 cd "$(dirname "$0")/.."
 fmt=""; desktop=""
@@ -22,4 +26,9 @@ packages=$(tr '\n' ' ' < scripts/ci-packages.txt)
 exec podman run --rm --security-opt label=disable -v "$PWD":/src -w /src \
     -e CARGO_TARGET_DIR=/tmp/target -e VELATURA_CI=1 ${desktop:+-e VELATURA_DESKTOP=1} "$image" bash -ec "
     dnf install -y -q --setopt=install_weak_deps=False $packages >/dev/null
+    if [ -n \"${VELATURA_RUSTUP:-}\" ]; then
+        dnf install -y -q --setopt=install_weak_deps=False rustup >/dev/null
+        rustup-init -y -q --profile minimal --component clippy,rustfmt >/dev/null 2>&1
+        . \"\$HOME/.cargo/env\"
+    fi
     $fmt scripts/check.sh"

@@ -3,19 +3,16 @@
 //! Every string a person reads goes through [`tr`], so it can be translated.
 //! Source text is US English and follows the GNOME writing guidelines.
 
-use gtk::glib;
 use velatura_engine::plan::{Change, Plan};
-
-pub const DOMAIN: &str = "velatura";
 
 /// Look a string up in the translation catalog.
 pub fn tr(text: &str) -> String {
-    glib::dgettext(Some(DOMAIN), text).into()
+    velatura_text::tr(text)
 }
 
 /// Pick the form for `n` and put the number in place of `{n}`.
 pub fn plural(one: &str, many: &str, n: usize) -> String {
-    glib::dngettext(Some(DOMAIN), one, many, n as u64).replace("{n}", &n.to_string())
+    velatura_text::plural(one, many, n)
 }
 
 /// What a plan does, counted by kind.
@@ -91,7 +88,9 @@ pub fn summary(c: Counts) -> String {
 
 /// Turn "Left out: reason" from the shared messages into "Reason".
 pub fn reason(text: &str) -> String {
-    let rest = text.strip_prefix("Left out: ").unwrap_or(text);
+    let rest = text
+        .strip_prefix(velatura_text::left_out_prefix().as_str())
+        .unwrap_or(text);
     let mut chars = rest.chars();
     chars
         .next()

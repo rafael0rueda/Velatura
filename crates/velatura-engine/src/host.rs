@@ -230,6 +230,9 @@ pub enum SettingsError {
 /// other types read in their printed form (`true`, `42`) and are not written.
 /// A schema given as `id@/folder` is looked up in that folder's compiled
 /// schemas, where an extension installed for one user keeps its own.
+/// A schema given as `dbus:name` is not a setting at all: it reads the
+/// property `key` of the program of that name on the session bus, which is
+/// how the running Shell says which version it is. Never written.
 pub trait Settings {
     /// `Ok(None)` when the schema or the key does not exist on this system.
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError>;
