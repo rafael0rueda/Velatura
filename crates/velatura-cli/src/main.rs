@@ -612,7 +612,9 @@ impl Cx<'_> {
         Exit {
             code: match why {
                 library::Refused::Io(_) => FAILED,
-                library::Refused::Invalid(_) | library::Refused::NotAThemeFile => FAILED,
+                library::Refused::Invalid(_)
+                | library::Refused::Incomplete(_)
+                | library::Refused::NotAThemeFile => FAILED,
                 _ => USAGE,
             },
             message: text::library_refused(&why, self.home),
@@ -626,8 +628,14 @@ impl Cx<'_> {
             code: FAILED,
             message: clean_text(&e.to_string(), 200),
         })?;
-        let (loaded, source) =
-            library::inspect(&self.host, &path).map_err(|why| self.library_exit(why))?;
+        let library::Inspected {
+            loaded,
+            source,
+            from,
+        } = library::inspect(&self.host, &path).map_err(|why| self.library_exit(why))?;
+        if let Some(format) = from {
+            println!("{}.", text::imported_from(format));
+        }
         for w in &loaded.warnings {
             eprintln!("warning: {w}");
         }

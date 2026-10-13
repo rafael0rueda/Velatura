@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use velatura_engine::host::{Dirs, Host, NoSettings, StdFs};
 use velatura_engine::library::{self, Refused};
 use velatura_theme::editor::Draft;
+use velatura_theme::import::Format;
 use velatura_theme::model::to_toml;
 use velatura_theme::{Appearance, Color, bundled};
 
@@ -160,7 +161,7 @@ fn an_imported_file_is_checked_and_kept_as_it_was_written() {
     );
     fs::write(&file, &written).unwrap();
 
-    let (loaded, source) = library::inspect(&host, &file).unwrap();
+    let library::Inspected { loaded, source, .. } = library::inspect(&host, &file).unwrap();
     assert_eq!(loaded.theme.id, "theirs");
     assert!(!home.themes().exists(), "looking is not importing");
     library::save(&host, &loaded.theme, Some(&source), false).unwrap();
@@ -257,6 +258,59 @@ fn a_file_in_the_way_is_not_overwritten_and_export_asks_before_replacing() {
         Err(Refused::NotFound(_))
     ));
     // What was exported imports again as the same theme.
-    let (loaded, _) = library::inspect(&host, &out).unwrap();
+    let loaded = library::inspect(&host, &out).unwrap().loaded;
     assert_eq!(loaded.theme, bundled::themes()[1]);
+}
+
+#[test]
+fn themes_in_other_formats_are_imported_as_themes_written_out() {
+    let home = Home::new();
+    let host = home.host();
+    let fixtures =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../velatura-theme/tests/fixtures");
+    for (file, format, id) in [
+        ("base16-ocean.yaml", Format::Base16, "ocean"),
+        ("base24-one-light.yaml", Format::Base24, "one-light"),
+        ("kitty-dracula.conf", Format::Kitty, "dracula"),
+    ] {
+        let found = library::inspect(&host, &fixtures.join(file)).unwrap();
+        assert_eq!(found.from, Some(format));
+        assert_eq!(found.loaded.theme.id, id);
+        let saved = library::save(&host, &found.loaded.theme, Some(&found.source), false).unwrap();
+        // Stored as a theme file like any other: nothing of the file it
+        // came from is kept but its colours and names.
+        let stored = fs::read_to_string(saved).unwrap();
+        assert_eq!(stored, to_toml(&found.loaded.theme));
+        let (entries, rejected) = library::load(&host);
+        assert!(rejected.is_empty());
+        assert!(entries.iter().any(|e| e.theme == found.loaded.theme));
+    }
+    // The same file again is the same id, refused like any other clash.
+    let again = library::inspect(&host, &fixtures.join("kitty-dracula.conf")).unwrap();
+    assert!(matches!(
+        library::save(&host, &again.loaded.theme, Some(&again.source), false),
+        Err(Refused::Exists(_))
+    ));
+
+    // One that lacks colours says which, and nothing is stored.
+    let file = home.root.join("short.yaml");
+    fs::write(
+        &file,
+        "scheme: \"Short\"\nbase00: \"000000\"\nbase05: \"ffffff\"\n",
+    )
+    .unwrap();
+    match library::inspect(&host, &file) {
+        Err(Refused::Incomplete(lacking)) => {
+            assert_eq!(lacking.format, Format::Base16);
+            assert_eq!(lacking.missing.len(), 14);
+        }
+        other => panic!("{:?}", other.map(|i| i.from)),
+    }
+    // A file of Velatura's own with a mistake is still reported as that.
+    let file = home.root.join("mine.toml");
+    fs::write(&file, "schema = 1\n[meta]\nid = \"Bad Id\"\n").unwrap();
+    assert!(matches!(
+        library::inspect(&host, &file),
+        Err(Refused::Invalid(_))
+    ));
 }

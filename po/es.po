@@ -1198,5 +1198,26 @@ msgstr "No es un archivo de tema"
 msgid "Not a valid theme file: {1}"
 msgstr "No es un archivo de tema válido: {1}"
 
+#, rust-format
+msgid "{1} that could not be made into a theme"
+msgstr "{1} que no se pudo convertir en un tema"
+
+#, rust-format
+msgid "{1} without all the colors a theme needs. Missing: {2}"
+msgstr "{1} sin todos los colores que necesita un tema. Faltan: {2}"
+
+msgid "A base16 scheme"
+msgstr "Un esquema base16"
+
+msgid "A base24 scheme"
+msgstr "Un esquema base24"
+
+msgid "A Kitty theme"
+msgstr "Un tema de Kitty"
+
+#, rust-format
+msgid "{1}, read as a theme. Colors it does not give were worked out from the ones it does"
+msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de los que sí da"
+
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"

@@ -787,10 +787,14 @@ fn theme_actions(ui: &U, id: &str, variant: &str, bundled: bool) -> adw::Prefere
     group
 }
 
-fn toml_filter() -> gio::ListStore {
+/// Velatura's own theme files, and `also` for what else can be read.
+fn toml_filter(also: &[&str]) -> gio::ListStore {
     let filter = gtk::FileFilter::new();
     filter.set_name(Some(&tr("Theme Files")));
     filter.add_pattern("*.toml");
+    for other in also {
+        filter.add_pattern(other);
+    }
     let filters = gio::ListStore::new::<gtk::FileFilter>();
     filters.append(&filter);
     filters
@@ -801,7 +805,7 @@ async fn export_theme(ui: &U, id: String) {
     let dialog = gtk::FileDialog::builder()
         .title(tr("Export Theme"))
         .initial_name(format!("{id}.toml"))
-        .filters(&toml_filter())
+        .filters(&toml_filter(&[]))
         .build();
     // Cancelling is not an error.
     let Some(path) = dialog
@@ -861,7 +865,7 @@ async fn remove_theme(ui: &U, id: String) {
 async fn import_theme(ui: &U) {
     let dialog = gtk::FileDialog::builder()
         .title(tr("Import Theme"))
-        .filters(&toml_filter())
+        .filters(&toml_filter(&["*.yaml", "*.yml", "*.conf"]))
         .build();
     let Some(path) = dialog
         .open_future(Some(&ui.window))
@@ -873,8 +877,8 @@ async fn import_theme(ui: &U) {
     };
     let home = ui.snap.borrow().home.clone();
     let looked = data::run(move |host| library::inspect(host, &path)).await;
-    let (loaded, source) = match looked {
-        Some(Ok(found)) => found,
+    let (loaded, source, from) = match looked {
+        Some(Ok(found)) => (found.loaded, found.source, found.from),
         Some(Err(why)) => {
             toast(ui, &velatura_text::library_refused(&why, &home));
             return;
@@ -899,6 +903,10 @@ async fn import_theme(ui: &U) {
             tr("By {author}.").replace("{author}", &theme.author)
         )
     };
+    if let Some(format) = from {
+        body.push_str(&velatura_text::imported_from(format));
+        body.push_str(".\n\n");
+    }
     body.push_str(&velatura_text::import_promise());
     body.push('.');
     if clash.is_some() {

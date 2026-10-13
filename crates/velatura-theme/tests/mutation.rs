@@ -148,3 +148,37 @@ fn damaged_theme_files_never_panic_and_never_produce_bad_output() {
     assert!(loaded > 1_500, "only {loaded} mutated themes loaded");
     eprintln!("{loaded} of 30000 mutated themes loaded and were rendered");
 }
+
+/// The same for files in the other formats that can be imported: damaged
+/// copies never panic, and whatever is read is a theme the validator
+/// passes, with an id that can be a file name.
+#[test]
+fn damaged_files_in_other_formats_never_panic() {
+    let fixtures = [
+        include_str!("fixtures/base16-ocean.yaml"),
+        include_str!("fixtures/base16-ocean-palette.yaml"),
+        include_str!("fixtures/base24-one-light.yaml"),
+        include_str!("fixtures/kitty-dracula.conf"),
+    ];
+    let mut read = 0;
+    for (n, source) in fixtures.iter().enumerate() {
+        for seed in 1..=5_000u64 {
+            let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ n as u64);
+            let bytes = mutate(source.as_bytes(), &mut rng);
+            let text = String::from_utf8_lossy(&bytes);
+            let Some(Ok((loaded, _))) = velatura_theme::import::read(&text, "a file") else {
+                continue;
+            };
+            read += 1;
+            let theme = &loaded.theme;
+            assert!(velatura_theme::model::is_slug(&theme.id), "seed {seed}");
+            let again = parse_theme(&velatura_theme::model::to_toml(theme));
+            assert_eq!(
+                again.map(|l| l.theme).ok().as_ref(),
+                Some(theme),
+                "seed {seed}"
+            );
+        }
+    }
+    assert!(read > 2_000, "only {read} damaged files were read");
+}

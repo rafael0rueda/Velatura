@@ -118,7 +118,7 @@ cursor_theme = "capitaine-cursors"
 <li><strong>Limits.</strong> Size cap before parsing; reserved ids for bundled themes; an imported theme whose id already exists must be renamed or explicitly replace the other.</li>
 <li>User themes live in <code>~/.local/share/velatura/themes/</code>. Bundled themes are read-only and are duplicated before editing.</li>
 </ul>
-<p>The first version of this format could not hold Aetherius and Ember without loss (they have 44 named colours each). The open palette table and the diff and diagnostic groups fix that. Importers for base16/base24 and Kitty themes come later and produce this same format.</p>
+<p>The first version of this format could not hold Aetherius and Ember without loss (they have 44 named colours each). The open palette table and the diff and diagnostic groups fix that. Themes in base16, base24 and Kitty form are read by import since Phase 3b and become files in this same format.</p>
 
 <h2 id="safety">4. Safety requirements</h2>
 <p>These are requirements on the engine. The mechanics are in <a href="architecture.html#engine">Architecture</a>.</p>

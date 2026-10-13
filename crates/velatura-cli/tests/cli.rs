@@ -577,6 +577,39 @@ fn themes_in_and_out_of_the_library() {
     assert_eq!(code, 1);
     assert!(err.contains("Not a valid theme file"), "{err}");
 
+    // A Kitty theme and a base16 scheme are read as themes, and apply like
+    // any other.
+    let fixtures =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../velatura-theme/tests/fixtures");
+    let dracula = fixtures.join("kitty-dracula.conf");
+    let (code, out, err) = sb.velatura(&["theme", "import", dracula.to_str().unwrap()]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(out.contains("A Kitty theme, read as a theme."), "{out}");
+    assert!(out.contains("Imported Dracula as"), "{out}");
+    let ocean = fixtures.join("base16-ocean.yaml");
+    let (code, out, err) =
+        sb.velatura(&["theme", "import", ocean.to_str().unwrap(), "--as", "sea"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(out.contains("A base16 scheme, read as a theme."), "{out}");
+    let (code, out, _) = sb.velatura(&["show", "sea"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("#2b303b"), "{out}");
+    let (code, out, err) = sb.velatura(&["apply", "dracula", "--only", "gnome:appearance"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert_eq!(sb.gsetting("accent-color"), "'purple'");
+    let short = sb.root.join("short.conf");
+    fs::write(
+        &short,
+        "background #000000\nforeground #ffffff\ncolor0 #000000\n",
+    )
+    .unwrap();
+    let (code, _, err) = sb.velatura(&["theme", "import", short.to_str().unwrap()]);
+    assert_eq!(code, 1);
+    assert!(
+        err.contains("A Kitty theme without all the colors a theme needs. Missing: color1, color2"),
+        "{err}"
+    );
+
     assert_eq!(sb.velatura(&["theme", "remove", "ember"]).0, 2);
     let (code, out, _) = sb.velatura(&["theme", "remove", "embers"]);
     assert_eq!(code, 0);
