@@ -7,6 +7,7 @@
 
 use std::path::Path;
 
+use velatura_engine::companion;
 use velatura_engine::library::{Refused as LibraryRefused, Why};
 use velatura_engine::look::{Kind, Rejected};
 use velatura_engine::plan::{Change, Note, Skip};
@@ -32,6 +33,10 @@ Usage:
   velatura schedule                whether the themes change by the clock
   velatura schedule set            turn that on; with --day and --night, set the times
   velatura schedule off            turn it off and remove its timer
+  velatura schedule follow         change with the desktop's light and dark style instead
+  velatura extension               whether Velatura's own Shell extension is installed
+  velatura extension install       install it for this user (turning it on is left to you)
+  velatura extension remove        remove the copy Velatura installed
   velatura theme import <file>     add a theme file to the library
   velatura theme export <theme> [<file>]   write a theme's file, or print it
   velatura theme resolve <theme>   print a theme with every color written out
@@ -318,7 +323,7 @@ pub fn skip(why: &Skip, home: &Path) -> String {
             t("Left out: High Contrast is on, and recoloring would lower contrast")
         }
         Skip::NeedsUserThemes => t(
-            "Left out: the top bar and overview can only be recolored through the User Themes extension, which is not installed. It is in the gnome-shell-extension-user-theme package and on extensions.gnome.org",
+            "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too",
         ),
         Skip::NeedsAdwGtk3 => t(
             "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
@@ -429,11 +434,17 @@ pub fn schedule(s: &Status) -> String {
     if !s.on {
         return t("Scheduled switching is off");
     }
-    let line = tf!(
-        "Scheduled switching is on: the daytime theme from {1}, the nighttime theme from {2}",
-        format_time(s.times.day),
-        format_time(s.times.night)
-    );
+    let line = if s.follows_style {
+        t(
+            "The themes follow the dark style: the daytime theme with the light style, the nighttime theme with the dark style",
+        )
+    } else {
+        tf!(
+            "Scheduled switching is on: the daytime theme from {1}, the nighttime theme from {2}",
+            format_time(s.times.day),
+            format_time(s.times.night)
+        )
+    };
     if s.damaged {
         format!(
             "{line}. {}",
@@ -470,11 +481,31 @@ pub fn last_run(last: &LastRun) -> Option<String> {
     }
 }
 
+/// Where Velatura's own Shell extension stands, and what is left to do.
+pub fn extension(s: &companion::Status) -> String {
+    match (&s.installed, s.enabled) {
+        (None, _) => t("Velatura's extension is not installed"),
+        (Some(_), Some(true)) if s.outdated => t(
+            "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in",
+        ),
+        (Some(_), Some(true)) => {
+            t("Velatura's extension is on: the top bar and overview are themed through it")
+        }
+        (Some(_), _) => tf!(
+            "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}",
+            companion::UUID
+        ),
+    }
+}
+
 /// Why the schedule was not turned on or off.
 pub fn refused(why: &Refused, home: &Path) -> String {
     match why {
         Refused::NoThemes => t("Choose a daytime and a nighttime theme first"),
         Refused::SameTime => t("The two themes cannot start at the same time"),
+        Refused::NotAPair => t(
+            "Following the dark style needs a light theme for the day and a dark theme for the night",
+        ),
         Refused::NotInstalled(p) => tf!(
             "A schedule needs the velatura command installed where it stays, such as ~/.local/bin. This copy is at {1}",
             path(p, home)

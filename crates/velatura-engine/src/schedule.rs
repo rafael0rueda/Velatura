@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde_json::{Value, json};
-use velatura_theme::{Resolved, sha256_hex};
+use velatura_theme::{Appearance, Resolved, sha256_hex};
 
 use crate::engine::{self, ApplyOpts, Error, Report};
 use crate::host::{Host, Kind, Systemd, acquire_lock};
@@ -25,6 +25,9 @@ use crate::targets::{self, Env, OtherTool};
 
 pub const TIMER: &str = "velatura-switch.timer";
 pub const SERVICE: &str = "velatura-switch.service";
+/// The unit that starts the service when the desktop's settings change,
+/// for following the dark style.
+pub const WATCH: &str = "velatura-follow.path";
 
 /// When each of the two themes starts, in minutes after midnight.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -195,6 +198,39 @@ pub fn units(exe: &Path, times: Times) -> Option<(String, String)> {
     Some((service, timer))
 }
 
+/// The service and the unit that watches the desktop's settings, for
+/// following the dark style. `settings` is the settings database file.
+pub fn follow_units(exe: &Path, settings: &Path) -> Option<(String, String)> {
+    let (service, _) = units(exe, Times::default())?;
+    let watched = settings
+        .to_str()
+        .filter(|text| settings.is_absolute() && !text.chars().any(char::is_control))?;
+    // The settings file changes in bursts, and systemd by default refuses
+    // to start a service more than five times in ten seconds, after which
+    // the watching unit fails and stays off. The command is cheap and does
+    // nothing unless the style changed, so the limit is lifted.
+    let service = service.replacen("[Unit]\n", "[Unit]\nStartLimitIntervalSec=0\n", 1);
+    // Signed in, the service runs once, so the theme matches from the start.
+    let service = format!("{service}\n[Install]\nWantedBy=default.target\n");
+    let watch = format!(
+        "# Written by Velatura. To remove it: velatura schedule off\n\
+         [Unit]\n\
+         Description=Velatura: watch for a change between the light and the dark style\n\
+         \n\
+         [Path]\n\
+         # Every change of a desktop setting rewrites this file. The command\n\
+         # it starts does nothing unless the style is not the one it last saw.\n\
+         PathChanged={}\n\
+         Unit={SERVICE}\n\
+         \n\
+         [Install]\n\
+         WantedBy=default.target\n",
+        // The two things systemd would read something into in a path.
+        watched.replace('%', "%%").replace(' ', "\\x20")
+    );
+    Some((service, watch))
+}
+
 /// True if a timer can count on finding the command at `exe` later: not a
 /// copy in a build folder.
 pub fn lasting(host: &Host<'_>, exe: &Path) -> bool {
@@ -214,7 +250,11 @@ pub fn lasting(host: &Host<'_>, exe: &Path) -> bool {
 struct Setup {
     exe: String,
     service: String,
+    /// The hash of the unit that starts the service: the timer, or with
+    /// `follow` the unit that watches the settings.
     timer: String,
+    /// True when the themes follow the dark style and not the clock.
+    follow: bool,
     /// Folders made for the unit files, removed again if still empty.
     dirs: Vec<String>,
 }
@@ -230,6 +270,11 @@ fn read_record(host: &Host<'_>, path: &Path) -> Option<Value> {
 }
 
 impl Setup {
+    /// The unit that starts the service.
+    fn trigger(&self) -> &'static str {
+        if self.follow { WATCH } else { TIMER }
+    }
+
     fn load(host: &Host<'_>) -> Option<Self> {
         let v = read_record(host, &setup_path(host))?;
         let text = |k: &str| v.get(k).and_then(Value::as_str).map(str::to_owned);
@@ -237,6 +282,7 @@ impl Setup {
             exe: text("exe")?,
             service: text("service")?,
             timer: text("timer")?,
+            follow: v.get("follow").and_then(Value::as_bool).unwrap_or(false),
             dirs: v
                 .get("dirs")?
                 .as_array()?
@@ -252,7 +298,8 @@ impl Setup {
             &setup_path(host),
             &to_bytes(&json!({
                 "version": VERSION, "exe": self.exe,
-                "service": self.service, "timer": self.timer, "dirs": self.dirs,
+                "service": self.service, "timer": self.timer,
+                "follow": self.follow, "dirs": self.dirs,
             })),
             0o600,
         )
@@ -353,6 +400,8 @@ pub(crate) fn clear_left_out(host: &Host<'_>) {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Status {
     pub on: bool,
+    /// On, and following the desktop's dark style instead of the clock.
+    pub follows_style: bool,
     /// The timer's files or the command it starts were changed or removed
     /// outside Velatura. Setting the schedule again repairs it.
     pub damaged: bool,
@@ -369,11 +418,12 @@ pub fn status(host: &Host<'_>) -> Status {
     let dir = unit_dir(host);
     let intact = setup.as_ref().is_some_and(|s| {
         hash_at(host, &dir.join(SERVICE)).as_deref() == Some(s.service.as_str())
-            && hash_at(host, &dir.join(TIMER)).as_deref() == Some(s.timer.as_str())
+            && hash_at(host, &dir.join(s.trigger())).as_deref() == Some(s.timer.as_str())
             && matches!(host.fs.kind(Path::new(&s.exe)), Ok(Some(_)))
     });
     Status {
         on: setup.is_some(),
+        follows_style: setup.as_ref().is_some_and(|s| s.follow),
         damaged: setup.is_some() && !intact,
         times: Times::load(host),
         last: load_auto(host).1,
@@ -390,6 +440,9 @@ pub enum Refused {
     NoThemes,
     /// The two times are the same.
     SameTime,
+    /// Following the dark style needs a light daytime theme and a dark
+    /// nighttime theme.
+    NotAPair,
     /// The command runs from a place a timer cannot count on.
     NotInstalled(PathBuf),
     /// Other timers that may change the theme are turned on.
@@ -417,16 +470,64 @@ pub fn enable(
     times: Times,
     anyway: bool,
 ) -> Result<(), Refused> {
+    set_up(host, systemd, exe, Some(times), anyway)
+}
+
+/// Change between the two themes when the desktop changes between its
+/// light and its dark style, in place of the clock. Needs a light theme
+/// for the day and a dark one for the night. While this is on, applying a
+/// theme leaves the style setting alone: the style leads, the theme follows.
+pub fn enable_follow(
+    host: &Host<'_>,
+    systemd: &dyn Systemd,
+    exe: &Path,
+    anyway: bool,
+) -> Result<(), Refused> {
+    set_up(host, systemd, exe, None, anyway)
+}
+
+/// The appearance of the chosen daytime and nighttime themes.
+fn chosen_pair(host: &Host<'_>) -> Option<(Appearance, Appearance)> {
+    let chosen = DayNight::load(host);
+    let (themes, _) = library::load(host);
+    let appearance = |spec: Option<String>| {
+        let spec = spec?;
+        let (id, variant) = match spec.split_once('/') {
+            Some((id, v)) => (id, Some(v)),
+            None => (spec.as_str(), None),
+        };
+        let entry = themes.iter().find(|e| e.theme.id == id)?;
+        Resolved::new(&entry.theme, variant).map(|r| r.colors.appearance)
+    };
+    appearance(chosen.day).zip(appearance(chosen.night))
+}
+
+fn set_up(
+    host: &Host<'_>,
+    systemd: &dyn Systemd,
+    exe: &Path,
+    times: Option<Times>,
+    anyway: bool,
+) -> Result<(), Refused> {
+    let follow = times.is_none();
     let chosen = DayNight::load(host);
     if chosen.day.is_none() || chosen.night.is_none() {
         return Err(Refused::NoThemes);
     }
-    if times.day == times.night {
+    if times.is_some_and(|t| t.day == t.night) {
         return Err(Refused::SameTime);
     }
-    let Some((service, timer)) = units(exe, times).filter(|_| lasting(host, exe)) else {
+    if follow && chosen_pair(host) != Some((Appearance::Light, Appearance::Dark)) {
+        return Err(Refused::NotAPair);
+    }
+    let written = match times {
+        Some(times) => units(exe, times),
+        None => follow_units(exe, &host.dirs.config.join("dconf").join("user")),
+    };
+    let Some((service, timer)) = written.filter(|_| lasting(host, exe)) else {
         return Err(Refused::NotInstalled(exe.to_owned()));
     };
+    let trigger = if follow { WATCH } else { TIMER };
     let others: Vec<String> = targets::other_tools(host)
         .into_iter()
         .filter_map(|tool| match tool {
@@ -438,9 +539,14 @@ pub fn enable(
         return Err(Refused::OtherTimers(others));
     }
 
+    // One or the other: the clock's timer goes when the style takes over,
+    // and the other way round.
+    if Setup::load(host).is_some_and(|s| s.follow != follow) {
+        disable(host, systemd)?;
+    }
     let dir = unit_dir(host);
     let before = Setup::load(host);
-    let wanted = [(SERVICE, &service), (TIMER, &timer)];
+    let wanted = [(SERVICE, &service), (trigger, &timer)];
     for (name, content) in wanted {
         let path = dir.join(name);
         let ours = before.as_ref().map(|s| match name {
@@ -475,11 +581,14 @@ pub fn enable(
         remove_dirs(host, &made);
         return Err(Refused::OutsideHome(dir));
     }
-    io(times.save(host))?;
+    if let Some(times) = times {
+        io(times.save(host))?;
+    }
     let setup = Setup {
         exe: path_str(exe),
         service: sha256_hex(service.as_bytes()),
         timer: sha256_hex(timer.as_bytes()),
+        follow,
         dirs: made,
     };
     // The record first: a file without one would later count as foreign.
@@ -490,11 +599,16 @@ pub fn enable(
             .write_atomic(&dir.join(name), content.as_bytes(), 0o644))?;
     }
 
+    let enable: &[&str] = if follow {
+        &["enable", WATCH, SERVICE]
+    } else {
+        &["enable", TIMER]
+    };
     let started = systemd
         .user(&["daemon-reload"])
-        .and_then(|()| systemd.user(&["enable", TIMER]))
+        .and_then(|()| systemd.user(enable))
         // Restarting makes a running timer take the new times.
-        .and_then(|()| systemd.user(&["restart", TIMER]));
+        .and_then(|()| systemd.user(&["restart", trigger]));
     if let Err(why) = started {
         if before.is_none() {
             remove_files(host, &setup);
@@ -517,7 +631,7 @@ fn remove_dirs(host: &Host<'_>, dirs: &[String]) {
 fn remove_files(host: &Host<'_>, setup: &Setup) -> Vec<PathBuf> {
     let dir = unit_dir(host);
     let mut kept = Vec::new();
-    for (name, written) in [(SERVICE, &setup.service), (TIMER, &setup.timer)] {
+    for (name, written) in [(SERVICE, &setup.service), (setup.trigger(), &setup.timer)] {
         let path = dir.join(name);
         match hash_at(host, &path) {
             None => {}
@@ -546,8 +660,16 @@ pub fn disable(host: &Host<'_>, systemd: &dyn Systemd) -> Result<Option<Vec<Path
         return Err(Refused::Busy);
     };
     // A timer whose file is already gone has nothing left to turn off.
-    let present = matches!(host.fs.kind(&unit_dir(host).join(TIMER)), Ok(Some(_)));
-    if let Err(why) = systemd.user(&["disable", "--now", TIMER])
+    let present = matches!(
+        host.fs.kind(&unit_dir(host).join(setup.trigger())),
+        Ok(Some(_))
+    );
+    let off: &[&str] = if setup.follow {
+        &["disable", "--now", WATCH, SERVICE]
+    } else {
+        &["disable", "--now", TIMER]
+    };
+    if let Err(why) = systemd.user(off)
         && present
     {
         return Err(Refused::Systemd(why));
@@ -575,6 +697,12 @@ pub enum Auto {
     },
 }
 
+/// True while the themes follow the desktop's dark style. Applying a
+/// theme then leaves the style setting alone.
+pub fn follows_style(host: &Host<'_>) -> bool {
+    Setup::load(host).is_some_and(|s| s.follow)
+}
+
 /// A reason for leaving something out that needs nobody's attention.
 fn expected(why: &Skip) -> bool {
     matches!(
@@ -589,11 +717,25 @@ fn expected(why: &Skip) -> bool {
 /// in minutes after midnight. `again` acts even if this period was seen to.
 pub fn run_auto(host: &Host<'_>, env: Env<'_>, minute: u16, again: bool) -> Result<Auto, Error> {
     let times = Times::load(host);
-    let period = times.period(minute);
-    // An hour of slack absorbs a clock change between then and now.
-    let started = (host.now / 60).saturating_sub(u64::from(times.since_start(minute))) * 60;
     let (handled, _) = load_auto(host);
-    let due = handled.is_none_or(|(p, at)| p != period || at + 3600 < started);
+    let (period, due) = if follows_style(host) {
+        // The style leads: dark is the nighttime theme. Acts once per
+        // change of style, so a theme picked by hand since then stays.
+        let dark = matches!(
+            host.settings.read(targets::INTERFACE_SCHEMA, "color-scheme"),
+            Ok(Some(s)) if s.effective == "prefer-dark"
+        );
+        let period = if dark { Period::Night } else { Period::Day };
+        (period, handled.is_none_or(|(p, _)| p != period))
+    } else {
+        let period = times.period(minute);
+        // An hour of slack absorbs a clock change between then and now.
+        let started = (host.now / 60).saturating_sub(u64::from(times.since_start(minute))) * 60;
+        (
+            period,
+            handled.is_none_or(|(p, at)| p != period || at + 3600 < started),
+        )
+    };
     if !due && !again {
         return Ok(Auto::NotDue(period));
     }

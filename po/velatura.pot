@@ -382,6 +382,14 @@ msgstr ""
 msgid "_Change on a Schedule"
 msgstr ""
 
+msgid "_Follow the Dark Style"
+msgstr ""
+
+msgid ""
+"The daytime theme with the light style, the nighttime theme with the dark "
+"style. Needs a light and a dark theme"
+msgstr ""
+
 msgid "Daytime Theme _Begins"
 msgstr ""
 
@@ -598,6 +606,32 @@ msgid "Unofficial: may stop working after a GNOME update"
 msgstr ""
 
 msgid "_Remove Everything Velatura Added"
+msgstr ""
+
+msgid "Shell Extension"
+msgstr ""
+
+msgid ""
+"Velatura's own extension themes the top bar and overview where other "
+"extensions bring their own colors"
+msgstr ""
+
+msgid "Velatura Extension"
+msgstr ""
+
+msgid "_Install"
+msgstr ""
+
+msgid "_Update"
+msgstr ""
+
+msgid "_Remove"
+msgstr ""
+
+msgid "Extension installed. It can be turned on after signing out and in"
+msgstr ""
+
+msgid "Extension removed"
 msgstr ""
 
 msgid "Icons, Wallpaper and Fonts"
@@ -893,9 +927,9 @@ msgid "Left out: High Contrast is on, and recoloring would lower contrast"
 msgstr ""
 
 msgid ""
-"Left out: the top bar and overview can only be recolored through the User "
-"Themes extension, which is not installed. It is in the gnome-shell-extension-"
-"user-theme package and on extensions.gnome.org"
+"Left out: the top bar and overview are recolored through an extension, and "
+"none is turned on. Velatura's own can be installed with: velatura extension "
+"install. The User Themes extension works too"
 msgstr ""
 
 msgid ""
@@ -987,6 +1021,11 @@ msgstr ""
 msgid "Scheduled switching is off"
 msgstr ""
 
+msgid ""
+"The themes follow the dark style: the daytime theme with the light style, "
+"the nighttime theme with the dark style"
+msgstr ""
+
 #, rust-format
 msgid ""
 "Scheduled switching is on: the daytime theme from {1}, the nighttime theme "
@@ -1012,7 +1051,30 @@ msgid ""
 "The last scheduled switch left out: {1}. Applying the theme by hand shows why"
 msgstr ""
 
+msgid "Velatura's extension is not installed"
+msgstr ""
+
+msgid ""
+"Velatura's extension is on. A newer copy comes with this version: install it "
+"again, then sign out and in"
+msgstr ""
+
+msgid ""
+"Velatura's extension is on: the top bar and overview are themed through it"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Velatura's extension is installed and turned off. After signing out and in "
+"once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
+msgstr ""
+
 msgid "The two themes cannot start at the same time"
+msgstr ""
+
+msgid ""
+"Following the dark style needs a light theme for the day and a dark theme "
+"for the night"
 msgstr ""
 
 #, rust-format
