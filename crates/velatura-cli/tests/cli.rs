@@ -15,13 +15,18 @@ struct Sandbox {
 
 impl Sandbox {
     fn new() -> Self {
-        let root = std::env::temp_dir().join(format!("velatura-cli-{}", std::process::id()));
+        Self::named("main")
+    }
+
+    fn named(tag: &str) -> Self {
+        let root = std::env::temp_dir().join(format!("velatura-cli-{tag}-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
         for dir in [
             "home/.config/kitty",
             "home/.local/share",
             "home/.local/state",
             "run",
+            "bin",
         ] {
             fs::create_dir_all(root.join(dir)).unwrap();
         }
@@ -33,6 +38,15 @@ impl Sandbox {
         self.root.join("home")
     }
 
+    /// The machine's programs, after the sandbox's own stand-ins.
+    fn path_var(&self) -> std::ffi::OsString {
+        let rest = std::env::var_os("PATH").unwrap_or_default();
+        std::env::join_paths(
+            std::iter::once(self.root.join("bin")).chain(std::env::split_paths(&rest)),
+        )
+        .unwrap()
+    }
+
     fn run(&self, program: &Path, args: &[&str]) -> Output {
         Command::new("dbus-run-session")
             .arg("--")
@@ -40,7 +54,7 @@ impl Sandbox {
             .args(args)
             .env_clear()
             .env("HOME", self.home())
-            .env("PATH", std::env::var_os("PATH").unwrap_or_default())
+            .env("PATH", self.path_var())
             .env("XDG_RUNTIME_DIR", self.root.join("run"))
             .env("GSETTINGS_BACKEND", "dconf")
             .env("LC_ALL", "C.UTF-8")
@@ -236,4 +250,144 @@ fn apply_and_undo_against_a_private_settings_store() {
         out.contains("From a text console") || out.contains("from a text console"),
         "{out}"
     );
+}
+
+/// The schedule from the command: set up, run as the timer runs it, and
+/// taken away again. systemctl is a stand-in that writes down its orders.
+#[test]
+fn schedule_and_the_switch_with_no_one_present() {
+    if !(have("dbus-run-session") && have("gsettings")) {
+        assert!(
+            std::env::var_os("VELATURA_CI").is_none(),
+            "dbus-run-session and gsettings are required in CI"
+        );
+        eprintln!("SKIPPED: dbus-run-session or gsettings is not installed");
+        return;
+    }
+    let sb = Sandbox::named("schedule");
+    let conf = sb.home().join(".config/kitty/kitty.conf");
+    fs::write(&conf, "font_size 12\n").unwrap();
+    let log = sb.root.join("systemctl.log");
+    let fake = sb.root.join("bin/systemctl");
+    fs::write(
+        &fake,
+        format!("#!/bin/sh\necho \"$@\" >> '{}'\n", log.display()),
+    )
+    .unwrap();
+    fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+    let units = sb.home().join(".config/systemd/user");
+
+    assert_eq!(sb.velatura(&["switch", "set", "day", "ember"]).0, 0);
+    assert_eq!(sb.velatura(&["switch", "set", "night", "aetherius"]).0, 0);
+    let (code, out, _) = sb.velatura(&["schedule"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("Scheduled switching is off."), "{out}");
+
+    // A copy in a build folder is no place for a timer to look.
+    let (code, _, err) = sb.velatura(&["schedule", "set"]);
+    assert_eq!(code, 2, "{err}");
+    assert!(err.contains("installed where it stays"), "{err}");
+    assert!(!units.exists() && !log.exists());
+
+    // Installed, the way scripts/install-local.sh does it.
+    let installed = sb.home().join(".local/bin/velatura");
+    fs::create_dir_all(installed.parent().unwrap()).unwrap();
+    fs::copy(env!("CARGO_BIN_EXE_velatura"), &installed).unwrap();
+    let run = |args: &[&str]| {
+        let out = sb.run(&installed, args);
+        (
+            out.status.code().unwrap_or(-1),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+            String::from_utf8_lossy(&out.stderr).into_owned(),
+        )
+    };
+    let (code, _, err) = run(&["schedule", "set", "--day", "25:00"]);
+    assert_eq!(code, 2);
+    assert!(err.contains("is not a time"), "{err}");
+    let (code, out, _) = run(&["schedule", "set", "--preview"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("Would write") && !units.exists(), "{out}");
+
+    let (code, out, err) = run(&["schedule", "set", "--day", "06:30", "--night", "21:30"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(
+        out.contains("the daytime theme from 06:30, the nighttime theme from 21:30"),
+        "{out}"
+    );
+    let service = fs::read_to_string(units.join("velatura-switch.service")).unwrap();
+    assert!(
+        service.contains(&format!(
+            "ExecStart=\"{}\" switch auto",
+            installed.display()
+        )),
+        "{service}"
+    );
+    assert!(
+        fs::read_to_string(units.join("velatura-switch.timer"))
+            .unwrap()
+            .contains("OnCalendar=*-*-* 21:30:00")
+    );
+    assert_eq!(
+        fs::read_to_string(&log).unwrap(),
+        "--user daemon-reload\n--user enable velatura-switch.timer\n--user restart velatura-switch.timer\n"
+    );
+    let (_, out, _) = run(&["status"]);
+    assert!(out.contains("Scheduled switching is on"), "{out}");
+    let (_, out, _) = run(&["schedule", "--json"]);
+    assert!(
+        out.contains("\"on\": true") && out.contains("\"night_at\": \"21:30\""),
+        "{out}"
+    );
+
+    // As the timer runs it. Which theme depends on the time of the test;
+    // either way Kitty's file is not touched, because nobody agreed to it.
+    let (code, out, err) = run(&["switch", "auto"]);
+    assert_eq!(code, 5, "{out}{err}");
+    assert!(out.contains("Applied ember/default.") || out.contains("Applied aetherius/default."));
+    assert!(
+        out.contains("The last scheduled switch left out: Kitty."),
+        "{out}"
+    );
+    assert_eq!(fs::read_to_string(&conf).unwrap(), "font_size 12\n");
+    assert_eq!(sb.gsetting("color-scheme"), "'prefer-dark'");
+    let (_, out, _) = run(&["status"]);
+    assert!(
+        out.contains("The last scheduled switch left out: Kitty."),
+        "{out}"
+    );
+    let (_, out, _) = run(&["history"]);
+    assert!(out.contains("scheduled"), "{out}");
+
+    // Once per part of the day.
+    let (code, out, _) = run(&["switch", "auto"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("Nothing to do"), "{out}");
+    let (code, out, _) = run(&["switch", "auto", "--again"]);
+    assert_eq!(code, 5, "{out}");
+    assert!(out.contains("is already applied"), "{out}");
+
+    // Undo reverses the schedule's switch too: nothing is left applied.
+    let (code, out, err) = run(&["undo"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert_eq!(sb.gsetting("color-scheme"), "'default'");
+    assert!(run(&["status"]).1.contains("No theme applied."));
+
+    // Removing everything takes the timer with it.
+    assert_eq!(run(&["apply", "ember", "--yes"]).0, 0);
+    let (code, out, err) = run(&["restore", "--original"]);
+    assert_eq!(code, 0, "{out}{err}");
+    assert!(out.contains("Scheduled switching is off."), "{out}");
+    assert!(
+        !units.exists(),
+        "the folders made for the timer are gone too"
+    );
+    assert!(
+        fs::read_to_string(&log)
+            .unwrap()
+            .contains("--user disable --now velatura-switch.timer\n")
+    );
+    assert_eq!(fs::read_to_string(&conf).unwrap(), "font_size 12\n");
+    let (code, out, _) = run(&["schedule", "off"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("was not on"), "{out}");
 }

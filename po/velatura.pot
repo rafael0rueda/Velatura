@@ -116,6 +116,57 @@ msgstr ""
 msgid "That theme is no longer available"
 msgstr ""
 
+msgid "Schedule"
+msgstr ""
+
+msgid ""
+"Changes between the two themes by the clock. Apps that are already open keep "
+"their colors until reopened"
+msgstr ""
+
+msgid ""
+"The timer was changed outside Velatura. Turn this off and on to repair it"
+msgstr ""
+
+msgid "Needs the velatura command installed, for example in ~/.local/bin"
+msgstr ""
+
+msgid "Choose a daytime and a nighttime theme first"
+msgstr ""
+
+msgid "_Change on a Schedule"
+msgstr ""
+
+msgid "Daytime Theme _Begins"
+msgstr ""
+
+msgid "Nighttime Theme B_egins"
+msgstr ""
+
+msgid "Schedule turned on"
+msgstr ""
+
+msgid "Schedule turned off"
+msgstr ""
+
+msgid "Turn the Schedule On?"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Another timer that may change the theme is turned on: {units}. Two schedules "
+"would work against each other."
+msgstr ""
+
+msgid "_Cancel"
+msgstr ""
+
+msgid "_Turn On"
+msgstr ""
+
+msgid "The change could not be started"
+msgstr ""
+
 msgid "Style"
 msgstr ""
 
@@ -165,9 +216,6 @@ msgstr ""
 msgid "Nothing to change"
 msgstr ""
 
-msgid "The change could not be started"
-msgstr ""
-
 msgid "Text in this theme has low contrast and may be hard to read."
 msgstr ""
 
@@ -179,9 +227,6 @@ msgid "Show _Details"
 msgstr ""
 
 msgid "Apply _Anyway"
-msgstr ""
-
-msgid "_Cancel"
 msgstr ""
 
 msgid "Nothing Was Changed"
@@ -266,6 +311,10 @@ msgstr ""
 
 #, rust-format
 msgid "Applied {theme}"
+msgstr ""
+
+#, rust-format
+msgid "Switched to {theme} on schedule"
 msgstr ""
 
 msgid "Removed everything Velatura added"
@@ -591,6 +640,64 @@ msgstr ""
 msgid ""
 "Settings files may be managed by {1} ({2}). It can overwrite changes made "
 "here"
+msgstr ""
+
+msgid "Scheduled switching is off"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Scheduled switching is on: the daytime theme from {1}, the nighttime theme "
+"from {2}"
+msgstr ""
+
+msgid ""
+"Its timer was changed or removed outside Velatura. To repair it: velatura "
+"schedule set"
+msgstr ""
+
+msgid "The last scheduled switch did nothing: no daytime theme is chosen"
+msgstr ""
+
+msgid "The last scheduled switch did nothing: no nighttime theme is chosen"
+msgstr ""
+
+msgid "The last scheduled switch failed. Applying the theme by hand shows why"
+msgstr ""
+
+#, rust-format
+msgid ""
+"The last scheduled switch left out: {1}. Applying the theme by hand shows why"
+msgstr ""
+
+msgid "The two themes cannot start at the same time"
+msgstr ""
+
+#, rust-format
+msgid ""
+"A schedule needs the velatura command installed where it stays, such as "
+"~/.local/bin. This copy is at {1}"
+msgstr ""
+
+#, rust-format
+msgid ""
+"Another timer that may change the theme is turned on: {1}. Two schedules "
+"would work against each other"
+msgstr ""
+
+#, rust-format
+msgid "{1} already exists and was not created by Velatura"
+msgstr ""
+
+#, rust-format
+msgid "{1} leads outside the home folder"
+msgstr ""
+
+msgid "Another Velatura is making changes. Try again in a moment"
+msgstr ""
+
+#, rust-format
+msgid "The timer could not be turned on or off ({1})"
 msgstr ""
 
 #, rust-format

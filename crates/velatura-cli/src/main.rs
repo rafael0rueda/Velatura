@@ -10,9 +10,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 use velatura_engine::engine::{self, ApplyOpts, Error, Health, PartState, Report};
-use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs};
+use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs, StdSystemd, self_command};
 use velatura_engine::library;
 use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
+use velatura_engine::schedule::{self, Auto, Period, Refused, Times};
 use velatura_engine::store::DayNight;
 use velatura_engine::targets;
 use velatura_text as text;
@@ -38,6 +39,9 @@ struct Args {
     strict: bool,
     json: bool,
     original: bool,
+    again: bool,
+    day: Option<String>,
+    night: Option<String>,
     only: Vec<String>,
     except: Vec<String>,
 }
@@ -53,6 +57,15 @@ fn parse_args() -> Result<Args, String> {
             "--strict" => a.strict = true,
             "--json" => a.json = true,
             "--original" => a.original = true,
+            "--again" => a.again = true,
+            "--day" | "--night" => {
+                let value = it.next().ok_or(format!("{arg} needs a time, as HH:MM"))?;
+                if arg == "--day" {
+                    a.day = Some(value);
+                } else {
+                    a.night = Some(value);
+                }
+            }
             "--only" | "--except" => {
                 let value = it.next().ok_or(format!("{arg} needs a target name"))?;
                 if arg == "--only" {
@@ -133,6 +146,10 @@ fn main() -> ExitCode {
         ["switch"] => cx.switch_show(),
         ["switch", "set", which @ ("day" | "night"), theme] => cx.switch_set(which, theme),
         ["switch", which @ ("day" | "night" | "toggle")] => cx.switch(which),
+        ["switch", "auto"] => cx.switch_auto(),
+        ["schedule"] | ["schedule", "status"] => cx.schedule_show(),
+        ["schedule", "set"] => cx.schedule_set(),
+        ["schedule", "off"] => cx.schedule_off(),
         ["undo"] | ["revert"] => cx.undo(None),
         ["history"] => cx.history(),
         ["restore"] if args.original => cx.restore_original(),
@@ -275,6 +292,31 @@ fn note_code(n: &Note) -> &'static str {
         Note::KeptFile { .. } => "kept-file",
         Note::KeptSetting { .. } => "kept-setting",
         Note::LowContrast => "low-contrast",
+    }
+}
+
+/// The time of day where this machine is, in minutes after midnight.
+#[cfg(feature = "gio")]
+fn local_minute(now: u64) -> u16 {
+    velatura_engine::gio_settings::local_minute(now).unwrap_or((now / 60 % 1440) as u16)
+}
+
+/// Without the desktop libraries there is no time zone to ask: UTC.
+#[cfg(not(feature = "gio"))]
+fn local_minute(now: u64) -> u16 {
+    (now / 60 % 1440) as u16
+}
+
+impl From<Refused> for Exit {
+    fn from(why: Refused) -> Self {
+        Self {
+            code: match why {
+                Refused::Busy => BUSY,
+                Refused::Io(_) | Refused::Systemd(_) => FAILED,
+                _ => USAGE,
+            },
+            message: String::new(),
+        }
     }
 }
 
@@ -461,6 +503,7 @@ impl Cx<'_> {
                 "files": s.files.iter().map(|(p, h)| json!({"path": p, "state": health(h)})).collect::<Vec<_>>(),
                 "blocks": s.blocks.iter().map(|(p, h)| json!({"path": p, "state": health(h)})).collect::<Vec<_>>(),
                 "settings": s.settings.iter().map(|(k, v, h)| json!({"key": k, "written": v, "state": health(h)})).collect::<Vec<_>>(),
+                "schedule": self.schedule_json(&schedule::status(&self.host)),
             }));
             return Ok(OK);
         }
@@ -508,10 +551,174 @@ impl Cx<'_> {
             };
             println!("{}: {state}", text::instance(part.instance));
         }
+        let sched = schedule::status(&self.host);
+        if sched.on {
+            println!("\n{}.", text::schedule(&sched));
+        }
+        if let Some(line) = sched.last.as_ref().and_then(text::last_run) {
+            println!("{line}.");
+        }
         if with_hint {
             println!("\nTo see the commands: velatura --help");
         }
         Ok(OK)
+    }
+
+    fn schedule_json(&self, s: &schedule::Status) -> Value {
+        json!({
+            "on": s.on,
+            "damaged": s.damaged,
+            "day_at": schedule::format_time(s.times.day),
+            "night_at": schedule::format_time(s.times.night),
+            "last": s.last.as_ref().map(|l| json!({
+                "time": l.at, "period": l.period.as_str(), "theme": l.theme,
+                "left_out": l.left_out, "failed": l.problem.is_some(),
+            })),
+        })
+    }
+
+    fn refuse(&self, why: Refused) -> Exit {
+        let message = text::refused(&why, self.home);
+        Exit {
+            message: match why {
+                Refused::OtherTimers(_) => {
+                    format!("{message}. To turn it on all the same, add --yes")
+                }
+                _ => message,
+            },
+            ..Exit::from(why)
+        }
+    }
+
+    fn schedule_show(&self) -> Outcome {
+        let s = schedule::status(&self.host);
+        if self.args.json {
+            self.emit(json!({"schedule": self.schedule_json(&s)}));
+            return Ok(OK);
+        }
+        println!("{}.", text::schedule(&s));
+        let chosen = DayNight::load(&self.host);
+        let show = |v: &Option<String>| v.clone().unwrap_or_else(|| "not chosen".to_owned());
+        println!(
+            "Daytime theme:   {} from {}",
+            show(&chosen.day),
+            schedule::format_time(s.times.day)
+        );
+        println!(
+            "Nighttime theme: {} from {}",
+            show(&chosen.night),
+            schedule::format_time(s.times.night)
+        );
+        if let Some(line) = s.last.as_ref().and_then(text::last_run) {
+            println!("{line}.");
+        }
+        if !s.on {
+            println!("\nTo turn it on: velatura schedule set --day 07:00 --night 20:00");
+        }
+        Ok(OK)
+    }
+
+    /// Turn the schedule on, or change its times. A time not given keeps
+    /// its present value.
+    fn schedule_set(&self) -> Outcome {
+        let mut times = Times::load(&self.host);
+        for (given, slot) in [
+            (&self.args.day, &mut times.day),
+            (&self.args.night, &mut times.night),
+        ] {
+            if let Some(text) = given {
+                *slot = schedule::parse_time(text).ok_or_else(|| {
+                    usage(&format!(
+                        "\"{}\" is not a time. Write it as HH:MM, for example 07:00",
+                        clean_text(text, 20)
+                    ))
+                })?;
+            }
+        }
+        let Some(exe) = self_command(None) else {
+            return Err(Exit {
+                code: FAILED,
+                message: "Velatura cannot tell where its own command is.".to_owned(),
+            });
+        };
+        if self.args.preview {
+            println!(
+                "Would write {} and {} in {}, and turn the timer on with systemctl --user.",
+                schedule::SERVICE,
+                schedule::TIMER,
+                text::path(&self.host.dirs.config.join("systemd/user"), self.home)
+            );
+            return Ok(OK);
+        }
+        schedule::enable(&self.host, &StdSystemd, &exe, times, self.args.yes)
+            .map_err(|why| self.refuse(why))?;
+        println!("{}.", text::schedule(&schedule::status(&self.host)));
+        println!(
+            "Apps that are already open keep their colors until reopened.\nTo switch now: velatura switch auto\nTo turn it off: velatura schedule off"
+        );
+        Ok(OK)
+    }
+
+    fn schedule_off(&self) -> Outcome {
+        match schedule::disable(&self.host, &StdSystemd).map_err(|why| self.refuse(why))? {
+            None => println!("Scheduled switching was not on."),
+            Some(kept) => {
+                println!("Scheduled switching is off. Its timer was removed.");
+                for p in &kept {
+                    println!(
+                        "Note: {}",
+                        text::note(&Note::KeptFile { path: p.clone() }, self.home)
+                    );
+                }
+            }
+        }
+        Ok(OK)
+    }
+
+    /// What the timer runs: the theme for the present time of day, with no
+    /// one there to answer a question.
+    fn switch_auto(&self) -> Outcome {
+        let minute = local_minute(self.host.now);
+        let done = schedule::run_auto(&self.host, &env, minute, self.args.again)?;
+        let word = |p: Period| match p {
+            Period::Day => "daytime",
+            Period::Night => "nighttime",
+        };
+        match done {
+            Auto::NotDue(period) => {
+                println!(
+                    "Nothing to do: the {} theme was already seen to. To apply it again: velatura switch auto --again",
+                    word(period)
+                );
+                Ok(OK)
+            }
+            Auto::NoTheme(period) => Err(Exit {
+                code: FAILED,
+                message: format!(
+                    "No {0} theme is chosen, or it no longer exists. To choose one: velatura switch set {1} <theme>",
+                    word(period),
+                    period.as_str()
+                ),
+            }),
+            Auto::Done { theme, report, .. } => {
+                if report.changes.is_empty() {
+                    println!("The {theme} theme is already applied.");
+                } else {
+                    println!("Applied {theme}.");
+                    for c in &report.changes {
+                        println!("  {}", text::change(c, self.home));
+                    }
+                }
+                let last = schedule::status(&self.host).last;
+                match last.as_ref().and_then(text::last_run) {
+                    Some(line) => {
+                        println!("{line}.");
+                        Ok(PARTIAL)
+                    }
+                    None => Ok(OK),
+                }
+            }
+        }
     }
 
     fn plan_json(&self, plan: &Plan, report: Option<&Report>) -> Value {
@@ -660,7 +867,9 @@ impl Cx<'_> {
                 println!("Nothing to change.");
             } else {
                 match (plan.cause, &plan.theme) {
-                    (Cause::Apply, Some((label, _))) => println!("Applied {label}."),
+                    (Cause::Apply | Cause::Scheduled, Some((label, _))) => {
+                        println!("Applied {label}.");
+                    }
                     (Cause::Undo, _) => println!("Undone."),
                     _ => println!("Everything Velatura added was removed."),
                 }
@@ -694,6 +903,7 @@ impl Cx<'_> {
             only: self.args.only.clone(),
             except: self.args.except.clone(),
             replace_changed: self.args.replace_changed,
+            unattended: false,
         };
         let plan =
             self.with_theme(spec, |r, _| engine::plan_apply(&self.host, &env, r, &opts))??;
@@ -781,7 +991,9 @@ impl Cx<'_> {
             }
             worst = worst.max(self.run(&plan, false)?);
             any = true;
-            if until.is_none() || self.args.preview {
+            // A switch the schedule made is not what the user means by the
+            // last change: the one before it goes too.
+            if self.args.preview || (until.is_none() && !plan.scheduled) {
                 return Ok(worst);
             }
         }
@@ -789,6 +1001,18 @@ impl Cx<'_> {
 
     fn restore_original(&self) -> Outcome {
         let plan = engine::plan_restore_original(&self.host)?;
+        // The timer first, or it would bring a theme back.
+        if !self.args.preview {
+            match schedule::disable(&self.host, &StdSystemd) {
+                Ok(Some(_)) if !self.args.json => {
+                    println!("Scheduled switching is off. Its timer was removed.");
+                }
+                Ok(_) => {}
+                Err(why) => return Err(self.refuse(why)),
+            }
+        } else if schedule::status(&self.host).on && !self.args.json {
+            println!("Scheduled switching would be turned off and its timer removed.");
+        }
         self.run(&plan, true)
     }
 
@@ -873,6 +1097,14 @@ impl Cx<'_> {
         }
         for tool in targets::other_tools(&self.host) {
             println!("{}", text::other_tool(&tool, self.home));
+        }
+        let sched = schedule::status(&self.host);
+        println!("{}", text::schedule(&sched));
+        if sched.damaged {
+            code = PARTIAL;
+        }
+        if let Some(line) = sched.last.as_ref().and_then(text::last_run) {
+            println!("{line}");
         }
         // What applying would run into, using a bundled theme as the probe.
         let themes = velatura_theme::bundled::themes();

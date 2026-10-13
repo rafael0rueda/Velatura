@@ -50,6 +50,9 @@ pub struct ApplyOpts {
     pub except: Vec<String>,
     /// Overwrite files Velatura made that were changed outside it.
     pub replace_changed: bool,
+    /// No one is there to answer: the plan is for the schedule. It removes
+    /// nothing, not even folders Velatura generated itself.
+    pub unattended: bool,
 }
 
 fn matches(instance: &str, names: &[String]) -> bool {
@@ -76,7 +79,7 @@ pub fn plan_apply(
             matches(instance, &opts.only)
         } && !matches(instance, &opts.except);
         plans.push(if selected {
-            targets::plan(instance, host, env, theme, &state, opts.replace_changed)
+            targets::plan(instance, host, env, theme, &state, opts)
         } else {
             TargetPlan::skip(instance, Skip::NotSelected)
         });
@@ -86,9 +89,14 @@ pub fn plan_apply(
         first.notes.push(Note::LowContrast);
     }
     Ok(Plan {
-        cause: Cause::Apply,
+        cause: if opts.unattended {
+            Cause::Scheduled
+        } else {
+            Cause::Apply
+        },
         theme: Some((theme.label(), theme.fingerprint())),
         undo_of: None,
+        scheduled: false,
         targets: plans,
     })
 }
@@ -242,6 +250,7 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
         cause: Cause::Undo,
         theme: last.theme.clone().map(|t| (t, String::new())),
         undo_of: Some(last.id),
+        scheduled: store::is_scheduled(last),
         targets: vec![out],
     })
 }
@@ -299,6 +308,7 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
         cause: Cause::RestoreOriginal,
         theme: None,
         undo_of: None,
+        scheduled: false,
         targets: vec![out],
     })
 }
@@ -416,39 +426,64 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
     let mut steps = Vec::new();
     let mut new_state;
     match plan.cause {
-        Cause::Apply | Cause::RestoreOriginal => {
-            let id = next_id(host)?;
-            let manifest = Manifest {
-                id,
-                time: host.now,
-                cause: plan.cause.as_str().to_owned(),
-                theme: plan.theme.as_ref().map(|(label, _)| label.clone()),
-                undone: false,
-                state_before: Some(io(put_blob(host, &state.to_bytes()))?),
-                records: changes.iter().map(Record::of).collect(),
+        Cause::Apply | Cause::Scheduled | Cause::RestoreOriginal => {
+            let records: Vec<Record> = changes.iter().map(Record::of).collect();
+            // A scheduled switch on top of a scheduled switch becomes one
+            // backup with it, so the schedule never takes more than one
+            // place between two changes of the user's.
+            let earlier = if plan.cause == Cause::Scheduled {
+                let (all, _) = io(store::manifests(host))?;
+                all.into_iter()
+                    .rev()
+                    .find(|m| !m.undone)
+                    .filter(store::is_scheduled)
+            } else {
+                None
             };
-            steps.push(internal(
-                host,
-                Manifest::path(host, id),
-                manifest.to_bytes(),
-            )?);
+            let manifest = match earlier {
+                Some(earlier) => Manifest {
+                    time: host.now,
+                    theme: plan.theme.as_ref().map(|(label, _)| label.clone()),
+                    records: store::compose(&earlier.records, &records),
+                    ..earlier
+                },
+                None => Manifest {
+                    id: next_id(host)?,
+                    time: host.now,
+                    cause: plan.cause.as_str().to_owned(),
+                    theme: plan.theme.as_ref().map(|(label, _)| label.clone()),
+                    undone: false,
+                    state_before: Some(io(put_blob(host, &state.to_bytes()))?),
+                    records,
+                },
+            };
+            let path = Manifest::path(host, manifest.id);
+            if manifest.records.is_empty() {
+                // The switches cancelled out: back where the earlier one
+                // started, and nothing left to undo.
+                if let Some(pre) = hash_opt(io(read_opt(host, &path))?.as_deref()) {
+                    steps.push(Step::Remove { path, pre });
+                }
+            } else {
+                steps.push(internal(host, path, manifest.to_bytes())?);
+                report.backup = Some(manifest.id);
+            }
             let ledger = Ledger::load(host)?;
             let added = ledger.with(&changes, host.now);
             if added != ledger {
                 steps.push(internal(host, Ledger::path(host), added.to_bytes())?);
             }
             steps.extend(lower(&changes));
-            if plan.cause == Cause::Apply {
-                new_state = state.after(&changes);
-                new_state.applied = plan.theme.clone();
-                new_state.consents.extend(agreed);
-            } else {
+            if plan.cause == Cause::RestoreOriginal {
                 new_state = State {
                     consents: state.consents.clone(),
                     ..State::default()
                 };
+            } else {
+                new_state = state.after(&changes);
+                new_state.applied = plan.theme.clone();
+                new_state.consents.extend(agreed);
             }
-            report.backup = Some(id);
         }
         Cause::Undo => {
             let (all, _) = io(store::manifests(host))?;
@@ -476,6 +511,8 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
     if plan.cause == Cause::Apply {
         // Housekeeping; a failure here loses nothing.
         let _ = store::prune(host);
+        // Whatever the schedule left out, the user has now seen to.
+        crate::schedule::clear_left_out(host);
     }
     report.changes = changes;
     Ok(report)
@@ -544,6 +581,23 @@ pub fn restore_to(host: &Host<'_>, id: u64) -> Result<Vec<Report>, Error> {
             };
         }
         reports.push(execute(host, &plan, &[])?);
+    }
+}
+
+/// Undo the last change the user made. A switch the schedule made after it
+/// is not what anyone means by "the last change", so it is undone on the
+/// way. One report per backup undone.
+pub fn undo_last(host: &Host<'_>) -> Result<Vec<Report>, Error> {
+    let mut reports = Vec::new();
+    loop {
+        let plan = match plan_undo(host) {
+            Err(Error::NothingToUndo) if !reports.is_empty() => return Ok(reports),
+            other => other?,
+        };
+        reports.push(execute(host, &plan, &[])?);
+        if !plan.scheduled {
+            return Ok(reports);
+        }
     }
 }
 

@@ -109,3 +109,10 @@ impl Settings for GioSettings {
         gio::Settings::sync();
     }
 }
+
+/// The local time of day at `now` (seconds since the Unix epoch), in minutes
+/// after midnight. `None` if the time zone cannot be worked out.
+pub fn local_minute(now: u64) -> Option<u16> {
+    let local = gio::glib::DateTime::from_unix_local(i64::try_from(now).ok()?).ok()?;
+    u16::try_from(local.hour() * 60 + local.minute()).ok()
+}

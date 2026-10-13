@@ -37,7 +37,7 @@ pub const INTERFACE_SCHEMA: &str = "org.gnome.desktop.interface";
 const A11Y_SCHEMA: &str = "org.gnome.desktop.a11y.interface";
 
 /// True if `path`, after following links, is inside the home folder.
-fn inside_home(host: &Host<'_>, path: &Path) -> bool {
+pub(crate) fn inside_home(host: &Host<'_>, path: &Path) -> bool {
     match (
         host.fs.canonicalize(path),
         host.fs.canonicalize(&host.dirs.home),
@@ -499,6 +499,7 @@ pub fn plan_shell(
     env: Env<'_>,
     theme: &Resolved<'_>,
     state: &State,
+    clear_old: bool,
 ) -> TargetPlan {
     if high_contrast(host) {
         return TargetPlan::skip(SHELL, Skip::HighContrast);
@@ -552,8 +553,9 @@ pub fn plan_shell(
         });
     }
     // Folders of earlier applies are Velatura's own and are cleared away.
-    // They stay restorable: undo puts them back from the backup.
-    for (old, written) in &state.owned {
+    // They stay restorable: undo puts them back from the backup. A run with
+    // no one present leaves them for the next apply the user makes.
+    for (old, written) in state.owned.iter().filter(|_| clear_old) {
         let old = PathBuf::from(old);
         let generated = old.strip_prefix(&themes).is_ok_and(|rest| {
             rest.to_string_lossy().starts_with("Velatura-")
@@ -697,14 +699,15 @@ pub fn plan(
     env: Env<'_>,
     theme: &Resolved<'_>,
     state: &State,
-    replace_changed: bool,
+    opts: &crate::engine::ApplyOpts,
 ) -> TargetPlan {
+    let replace_changed = opts.replace_changed;
     match instance {
         KITTY => plan_kitty(host, env, theme, state, replace_changed),
         GHOSTTY => plan_ghostty(host, env, theme, state, replace_changed),
         GTK4 => plan_gtk4(host, env, theme, state, replace_changed),
         GTK3 => plan_gtk3(host, env, theme, state, replace_changed),
-        SHELL => plan_shell(host, env, theme, state),
+        SHELL => plan_shell(host, env, theme, state, !opts.unattended),
         _ => plan_appearance(host, theme),
     }
 }

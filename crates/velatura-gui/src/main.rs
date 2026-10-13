@@ -17,8 +17,10 @@ use std::rc::Rc;
 use adw::prelude::*;
 use gtk::{gio, glib};
 use velatura_engine::engine::{self, ApplyOpts, Error, Report};
+use velatura_engine::host::StdSystemd;
 use velatura_engine::library::Entry;
 use velatura_engine::plan::{Note, Plan, Skip};
+use velatura_engine::schedule::{self, Refused, Times};
 use velatura_engine::store::DayNight;
 use velatura_engine::targets;
 use velatura_theme::{Resolved, nearest_accent};
@@ -45,6 +47,8 @@ struct Ui {
     snap: RefCell<Snapshot>,
     /// True while an engine call that changes things is running.
     busy: Cell<bool>,
+    /// True while the banner's button rolls an interrupted change back.
+    banner_rolls_back: Cell<bool>,
 }
 
 type U = Rc<Ui>;
@@ -196,13 +200,14 @@ fn build(app: &adw::Application) -> U {
         preview_css,
         snap: RefCell::new(Snapshot::default()),
         busy: Cell::new(false),
+        banner_rolls_back: Cell::new(false),
     });
     add_actions(&ui);
     ui.window.set_help_overlay(Some(&shortcuts_window()));
 
     let weak = Rc::downgrade(&ui);
     ui.banner.connect_button_clicked(move |_| {
-        if let Some(ui) = weak.upgrade() {
+        if let Some(ui) = weak.upgrade().filter(|ui| ui.banner_rolls_back.get()) {
             glib::spawn_future_local(async move { roll_back(&ui).await });
         }
     });
@@ -349,6 +354,12 @@ async fn refresh(ui: &U) {
     ui.history.set_child(Some(&history_view(ui, &snap)));
 
     // A lasting state gets a banner; single events get toasts.
+    ui.banner_rolls_back.set(snap.unfinished);
+    let left = snap
+        .schedule
+        .last
+        .as_ref()
+        .and_then(velatura_text::last_run);
     if snap.unfinished {
         ui.banner
             .set_title(&tr("An earlier change was interrupted"));
@@ -357,6 +368,11 @@ async fn refresh(ui: &U) {
     } else if adw::StyleManager::default().is_high_contrast() {
         ui.banner
             .set_title(&tr("High Contrast is on ‒ apps are not recolored"));
+        ui.banner.set_button_label(None);
+        ui.banner.set_revealed(true);
+    } else if let Some(left) = left {
+        // What a switch made with no one present could not do by itself.
+        ui.banner.set_title(&left);
         ui.banner.set_button_label(None);
         ui.banner.set_revealed(true);
     } else {
@@ -418,6 +434,7 @@ fn themes_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     }
     page.add(&group);
     page.add(&day_night_group(ui, snap));
+    page.add(&schedule_group(ui, snap));
     page.upcast()
 }
 
@@ -536,6 +553,145 @@ fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
     });
     group.add(&switch);
     group
+}
+
+/// Changing between the two themes by the clock: one switch and two times.
+fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(tr("Schedule"))
+        .description(tr(
+            "Changes between the two themes by the clock. Apps that are already open keep their colors until reopened",
+        ))
+        .build();
+    let status = &snap.schedule;
+    let chosen = snap.day_night.day.is_some() && snap.day_night.night.is_some();
+    // A switch that cannot work is insensitive and says why.
+    let reason = if status.on && status.damaged {
+        Some(tr(
+            "The timer was changed outside Velatura. Turn this off and on to repair it",
+        ))
+    } else if status.on {
+        None
+    } else if !snap.can_schedule {
+        Some(tr(
+            "Needs the velatura command installed, for example in ~/.local/bin",
+        ))
+    } else if !chosen {
+        Some(tr("Choose a daytime and a nighttime theme first"))
+    } else {
+        None
+    };
+    let switch = adw::SwitchRow::builder()
+        .title(tr("_Change on a Schedule"))
+        .use_underline(true)
+        .subtitle(reason.unwrap_or_default())
+        .subtitle_lines(0)
+        .active(status.on)
+        .sensitive(status.on || (snap.can_schedule && chosen))
+        .build();
+    let weak = Rc::downgrade(ui);
+    switch.connect_active_notify(move |switch| {
+        let on = switch.is_active();
+        if let Some(ui) = weak.upgrade() {
+            glib::spawn_future_local(async move { set_schedule(&ui, on, None).await });
+        }
+    });
+    group.add(&switch);
+
+    for (is_day, title, minutes) in [
+        (true, tr("Daytime Theme _Begins"), status.times.day),
+        (false, tr("Nighttime Theme B_egins"), status.times.night),
+    ] {
+        let row = adw::EntryRow::builder()
+            .title(title)
+            .use_underline(true)
+            .text(schedule::format_time(minutes))
+            .input_purpose(gtk::InputPurpose::Digits)
+            .show_apply_button(true)
+            .build();
+        // Feedback while typing: an entry that is not a time is marked.
+        row.connect_changed(|row| {
+            if schedule::parse_time(&row.text()).is_some() {
+                row.remove_css_class("error");
+            } else {
+                row.add_css_class("error");
+            }
+        });
+        let weak = Rc::downgrade(ui);
+        row.connect_apply(move |row| {
+            let (Some(ui), Some(minutes)) = (weak.upgrade(), schedule::parse_time(&row.text()))
+            else {
+                return;
+            };
+            glib::spawn_future_local(async move {
+                let mut times = ui.snap.borrow().schedule.times;
+                if is_day {
+                    times.day = minutes;
+                } else {
+                    times.night = minutes;
+                }
+                let on = ui.snap.borrow().schedule.on;
+                if on {
+                    set_schedule(&ui, true, Some(times)).await;
+                } else {
+                    let saved = data::run(move |host| times.save(host)).await;
+                    if !matches!(saved, Some(Ok(()))) {
+                        toast(&ui, &tr("The choice could not be saved"));
+                    }
+                    refresh(&ui).await;
+                }
+            });
+        });
+        group.add(&row);
+    }
+    group
+}
+
+/// Turn the schedule on or off, or give a running one new times.
+async fn set_schedule(ui: &U, on: bool, times: Option<Times>) {
+    let home = ui.snap.borrow().home.clone();
+    let times = times.unwrap_or(ui.snap.borrow().schedule.times);
+    let command = ui.snap.borrow().command.clone();
+    let mut anyway = false;
+    loop {
+        let command = command.clone();
+        let done = data::run(move |host| match (on, command) {
+            (true, Some(command)) => schedule::enable(host, &StdSystemd, &command, times, anyway),
+            (true, None) => Err(Refused::NotInstalled("velatura".into())),
+            (false, _) => schedule::disable(host, &StdSystemd).map(|_| ()),
+        })
+        .await;
+        match done {
+            Some(Ok(())) => toast(
+                ui,
+                &if on {
+                    tr("Schedule turned on")
+                } else {
+                    tr("Schedule turned off")
+                },
+            ),
+            // Two schedules would undo each other's work: ask first.
+            Some(Err(Refused::OtherTimers(units))) => {
+                let dialog = adw::AlertDialog::new(
+                    Some(&tr("Turn the Schedule On?")),
+                    Some(
+                        &tr("Another timer that may change the theme is turned on: {units}. Two schedules would work against each other.")
+                            .replace("{units}", &units.join(", ")),
+                    ),
+                );
+                dialog.add_responses(&[("cancel", &tr("_Cancel")), ("on", &tr("_Turn On"))]);
+                dialog.set_close_response("cancel");
+                if dialog.choose_future(Some(&ui.window)).await == "on" {
+                    anyway = true;
+                    continue;
+                }
+            }
+            Some(Err(why)) => toast(ui, &velatura_text::refused(&why, &home)),
+            None => toast(ui, &tr("The change could not be started")),
+        }
+        break;
+    }
+    refresh(ui).await;
 }
 
 /// The page for one theme: preview, a few facts, and the one button.
@@ -906,19 +1062,15 @@ async fn undo(ui: &U) {
     }
     ui.busy.set(true);
     let home = ui.snap.borrow().home.clone();
-    let done = data::run(|host| {
-        let plan = engine::plan_undo(host)?;
-        engine::execute(host, &plan, &[])
-    })
-    .await;
+    let done = data::run(engine::undo_last).await;
     ui.busy.set(false);
     refresh(ui).await;
     ui.nav.pop_to_tag("main");
     match done {
-        Some(Ok(report)) => {
-            let kept: Vec<String> = report
-                .notes
+        Some(Ok(reports)) => {
+            let kept: Vec<String> = reports
                 .iter()
+                .flat_map(|report| &report.notes)
                 .filter(|(_, n)| {
                     matches!(
                         n,
@@ -1058,17 +1210,27 @@ async fn remove_all(ui: &U) {
         return;
     }
     ui.busy.set(true);
-    let done = data::run(|host| {
-        let plan = engine::plan_restore_original(host)?;
-        engine::execute(host, &plan, &[])
+    let home = ui.snap.borrow().home.clone();
+    let done = data::run(move |host| {
+        // The timer first, or it would bring a theme back.
+        let timer = match schedule::disable(host, &StdSystemd) {
+            Ok(was_on) => was_on.is_some(),
+            Err(why) => return Err(velatura_text::refused(&why, &home)),
+        };
+        engine::plan_restore_original(host)
+            .and_then(|plan| engine::execute(host, &plan, &[]))
+            .map(|report| (report, timer))
+            .map_err(|e| error_text(&e))
     })
     .await;
     ui.busy.set(false);
     refresh(ui).await;
     match done {
-        Some(Ok(report)) if report.changes.is_empty() => toast(ui, &tr("Nothing to remove")),
+        Some(Ok((report, false))) if report.changes.is_empty() => {
+            toast(ui, &tr("Nothing to remove"));
+        }
         Some(Ok(_)) => toast_with_undo(ui, &tr("Everything Velatura added was removed")),
-        Some(Err(e)) => result_page(ui, &tr("Not Removed"), false, &[error_text(&e)], false),
+        Some(Err(why)) => result_page(ui, &tr("Not Removed"), false, &[why], false),
         None => toast(ui, &tr("The change could not be started")),
     }
 }
@@ -1103,6 +1265,9 @@ fn history_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         let what = match (m.cause.as_str(), &m.theme) {
             ("apply", Some(label)) => {
                 tr("Applied {theme}").replace("{theme}", &theme_name(snap, label))
+            }
+            ("scheduled", Some(label)) => {
+                tr("Switched to {theme} on schedule").replace("{theme}", &theme_name(snap, label))
             }
             ("restore-original", _) => tr("Removed everything Velatura added"),
             _ => tr("Change"),

@@ -125,7 +125,7 @@ enum Change {
 <li><strong>Original setup:</strong> an append-only ledger. The first time any path or setting is touched, its state is added. It is labelled "state before Velatura" with its date, because on a machine that was already themed it is not a pristine state.</li>
 <li><strong>Undo is the inverse operation, not a file copy.</strong> For a managed block: remove or replace the block in the file as it is now. For a structured edit: put the keys or list members back. For a setting: restore only if the current value is still the one the app wrote; otherwise report a conflict. The stored full copy is the last resort.</li>
 <li><strong>Generated trees</strong> are recorded as a recipe and a hash, not as content.</li>
-<li><strong>Retention:</strong> the ledger for ever; 20 user-initiated backups; three slots for scheduled switches. Undo targets the last user-initiated change.</li>
+<li><strong>Retention:</strong> the ledger for ever; 20 user-initiated backups; one backup shared by the scheduled switches made since the last of those (<a href="decisions.html#d48">D48</a>). Undo targets the last user-initiated change, and takes the scheduled switches after it along.</li>
 <li><strong>Formats are versioned.</strong> Every persisted file carries a version; a newer version makes the app read-only; a test restores a first-version backup on every future build.</li>
 <li><strong>Recoverable by hand.</strong> Manifests are JSON and the store is plain files. An emergency card (first run, <code>--help</code>, docs) gives the exact commands for a text console.</li>
 </ul>
@@ -160,7 +160,7 @@ enum Change {
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 
 <h2 id="cli">7. Command line</h2>
-<div class="note"><strong>Built so far (Phases 1a to 1d):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
+<div class="note"><strong>Built so far (Phases 1a to 2a):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code> (with <code>auto</code>), <code>schedule</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
 <pre>velatura                               status and short help
 velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
 velatura targets                       apps and desktop parts: instances, support, prerequisites

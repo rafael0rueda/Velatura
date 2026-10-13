@@ -414,6 +414,63 @@ impl Settings for Faults<'_> {
     }
 }
 
+/// The one program Velatura runs: the user's own systemd, to load and turn
+/// on the timer it writes. Never the system's, never with elevated rights.
+pub trait Systemd {
+    /// Run `systemctl --user` with `args`. The error is what it printed.
+    fn user(&self, args: &[&str]) -> Result<(), String>;
+}
+
+/// [`Systemd`] through the `systemctl` on the path.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct StdSystemd;
+
+impl Systemd for StdSystemd {
+    fn user(&self, args: &[&str]) -> Result<(), String> {
+        let out = std::process::Command::new("systemctl")
+            .arg("--user")
+            .args(args)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .map_err(|e| e.to_string())?;
+        if out.status.success() {
+            Ok(())
+        } else {
+            let said = String::from_utf8_lossy(&out.stderr);
+            Err(said.lines().next().unwrap_or("systemctl failed").to_owned())
+        }
+    }
+}
+
+/// A systemd that only remembers what it was asked, for tests. With `fail`
+/// set, a call whose first word is that fails.
+#[derive(Debug, Default)]
+pub struct MemSystemd {
+    pub calls: RefCell<Vec<String>>,
+    pub fail: Cell<Option<&'static str>>,
+}
+
+impl Systemd for MemSystemd {
+    fn user(&self, args: &[&str]) -> Result<(), String> {
+        self.calls.borrow_mut().push(args.join(" "));
+        if self.fail.get().is_some_and(|f| args.first() == Some(&f)) {
+            Err("injected failure".to_owned())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Where the running program is, for a timer to start it again later.
+/// With `sibling`, the program of that name in the same folder instead.
+pub fn self_command(sibling: Option<&str>) -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    match sibling {
+        Some(name) => Some(exe.parent()?.join(name)),
+        None => Some(exe),
+    }
+}
+
 /// Take the lock that serialises every change Velatura makes. Waits up to
 /// `wait` for another holder; `Ok(None)` means it is still busy. The lock is
 /// released when the returned file is dropped, or when the process dies.

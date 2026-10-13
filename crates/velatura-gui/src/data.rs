@@ -8,8 +8,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use gtk::gio;
 use velatura_engine::engine;
 use velatura_engine::gio_settings::GioSettings;
-use velatura_engine::host::{Dirs, Host, StdFs};
+use velatura_engine::host::{Dirs, Host, StdFs, self_command};
 use velatura_engine::library::{self, Entry};
+use velatura_engine::schedule;
 use velatura_engine::store::{DayNight, Manifest};
 
 pub fn env(key: &str) -> Option<OsString> {
@@ -62,6 +63,11 @@ pub struct Snapshot {
     pub rows: Vec<AppRow>,
     pub window: Option<(i32, i32)>,
     pub day_night: DayNight,
+    pub schedule: schedule::Status,
+    /// The `velatura` command beside this app, for a timer to start.
+    pub command: Option<PathBuf>,
+    /// True if that command is installed where a timer can count on it.
+    pub can_schedule: bool,
     /// Set when Velatura's own records could not be read.
     pub problem: Option<String>,
 }
@@ -72,6 +78,8 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         home: host.dirs.home.clone(),
         window: engine::window_size(host),
         day_night: DayNight::load(host),
+        schedule: schedule::status(host),
+        command: self_command(Some("velatura")),
         ..Snapshot::default()
     };
     match engine::status(host) {
@@ -85,6 +93,10 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         snap.history = history;
     }
 
+    snap.can_schedule = snap
+        .command
+        .as_ref()
+        .is_some_and(|c| schedule::lasting(host, c));
     snap.rows = engine::parts(host, &env, &themes);
     snap.themes = themes;
     snap

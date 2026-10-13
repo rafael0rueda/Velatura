@@ -109,6 +109,16 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
     case "$own" in
         "SHOTS own window_bg_color=#191316" | "") echo "the app's window took the theme's colours"; exit 1 ;;
     esac
+    # With the schedule on and one switch made with no one present, the
+    # window shows the schedule and says what the switch left out.
+    shots=$(mktemp -d)
+    sched=$(scripts/gui-shots.sh "$shots" --scheduled 2>/dev/null | grep -E '^(SHOTS schedule|SANDBOX Scheduled)' || true)
+    rm -rf "$shots"
+    echo "$sched"
+    for want in 'SHOTS schedule on=true banner=Some("The last scheduled switch left out: Kitty, Ghostty' \
+        'SANDBOX Scheduled switching is on: the daytime theme from 07:00'; do
+        grep -qF "$want" <<<"$sched" || { echo "schedule check failed, missing: $want"; exit 1; }
+    done
 else
     echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
 fi

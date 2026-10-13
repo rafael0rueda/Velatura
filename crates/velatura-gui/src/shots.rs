@@ -57,6 +57,14 @@ pub async fn run_if_asked(ui: &U) {
             byte(c.blue())
         );
     }
+    // The schedule as the window knows it, and what its banner says.
+    println!(
+        "SHOTS schedule on={} banner={:?}",
+        ui.snap.borrow().schedule.on,
+        ui.banner
+            .is_revealed()
+            .then(|| ui.banner.title().to_string())
+    );
     for view in ["themes", "apps", "history"] {
         ui.stack.set_visible_child_name(view);
         pause(500).await;

@@ -12,6 +12,7 @@ pub mod gio_settings;
 pub mod host;
 pub mod library;
 pub mod plan;
+pub mod schedule;
 pub mod store;
 pub mod targets;
 pub mod txn;
