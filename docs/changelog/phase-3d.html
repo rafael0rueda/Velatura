@@ -55,7 +55,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 
 <h2>Changed from the plan</h2>
 <ul>
-<li><strong>A set is ordinary files, not a tree with a recipe</strong> (<a href="../decisions.html#d58">D58</a>, proposed). The architecture had generated sets staged in <code>~/.cache</code>, moved into place in one rename, and recorded in backups as a recipe to rebuild from. A set turned out to be a few hundred icons and a few megabytes, not thousands. Written as files of Velatura's own, it uses the transactions, crash recovery and undo that every other target has been tested with, and backups keep its files once each.</li>
+<li><strong>A set is ordinary files, not a tree with a recipe</strong> (<a href="../decisions.html#d58">D58</a>, accepted by the owner on 2026-10-14). The architecture had generated sets staged in <code>~/.cache</code>, moved into place in one rename, and recorded in backups as a recipe to rebuild from. A set turned out to be a few hundred icons and a few megabytes, not thousands. Written as files of Velatura's own, it uses the transactions, crash recovery and undo that every other target has been tested with, and backups keep its files once each.</li>
 <li><strong>Off until turned on</strong>, like Flatpak Apps: the plan did not say. The icon theme is the user's choice (<a href="../decisions.html#d50">D50</a>).</li>
 </ul>
 
