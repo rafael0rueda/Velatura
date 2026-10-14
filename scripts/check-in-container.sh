@@ -23,6 +23,8 @@ done
 image=${VELATURA_IMAGE:-fedora:44}
 packages=$(tr '\n' ' ' < scripts/ci-packages.txt)
 [ -n "$desktop" ] && packages+=" $(tr '\n' ' ' < scripts/ci-packages-desktop.txt)"
+# Firefox as CI has it: on the releases that are built with their own Rust.
+[ -n "$desktop" ] && [ -z "${VELATURA_RUSTUP:-}" ] && packages+=" firefox"
 exec podman run --rm --security-opt label=disable -v "$PWD":/src -w /src \
     -e CARGO_TARGET_DIR=/tmp/target -e VELATURA_CI=1 ${desktop:+-e VELATURA_DESKTOP=1} "$image" bash -ec "
     dnf install -y -q --setopt=install_weak_deps=False $packages >/dev/null

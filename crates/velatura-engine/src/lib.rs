@@ -8,6 +8,7 @@
 pub mod block;
 pub mod companion;
 pub mod engine;
+pub mod firefox;
 #[cfg(feature = "gio")]
 pub mod gio_settings;
 pub mod host;

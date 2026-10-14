@@ -156,6 +156,7 @@ pub fn instance(id: &str) -> String {
         "starship:default" => t("Starship"),
         "ptyxis:default" => t("Ptyxis"),
         "texteditor:default" => t("Text Editor"),
+        "firefox:default" => t("Firefox"),
         "gtk4:default" => t("Apps (GTK 4 and libadwaita)"),
         "gtk3:default" => t("Older Apps (GTK 3)"),
         "gnome:shell" => t("Top Bar and Overview"),
@@ -347,6 +348,7 @@ pub fn change(c: &Change, home: &Path) -> String {
         },
         Change::Block {
             path: p,
+            target,
             content,
             body_before,
             body_after,
@@ -358,6 +360,10 @@ pub fn change(c: &Change, home: &Path) -> String {
             ),
             (_, None, Some(body)) if body.lines().count() > 1 => tf!(
                 "Add a marked block with Velatura's palette at the top of {1}",
+                path(p, home)
+            ),
+            (_, None, Some(_)) if velatura_engine::block::at_top(target) => tf!(
+                "Add a marked block with one line at the top of {1}",
                 path(p, home)
             ),
             (_, None, Some(_)) => tf!(
@@ -438,6 +444,9 @@ pub fn skip(why: &Skip, home: &Path) -> String {
             "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone",
             path(p, home)
         ),
+        Skip::FirefoxNoProfile => {
+            t("Left out: Firefox has no profile yet. Start Firefox once, then apply again")
+        }
         Skip::NeedsAdwGtk3 => t(
             "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
         ),
@@ -482,6 +491,13 @@ pub fn note(n: &Note, home: &Path) -> String {
             t("If open Ptyxis windows keep the old colors, close and reopen them")
         }
         Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
+        Note::FirefoxRestart => t("Firefox shows the change after it is restarted"),
+        Note::FirefoxOtherProfiles => t(
+            "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are",
+        ),
+        Note::FirefoxPrefStays => t(
+            "Firefox goes on reading the userChrome.css file of the profile. To turn that off, set toolkit.legacyUserProfileCustomizations.stylesheets to false in about:config",
+        ),
         Note::LinkedFile { path: p, real } => tf!(
             "{1} is a link. The change is written to {2}",
             path(p, home),
@@ -870,6 +886,7 @@ mod tests {
                 "Neovim",
                 "Starship",
                 "Ptyxis",
+                "Firefox",
                 "General",
                 "Cursor",
                 "Error",

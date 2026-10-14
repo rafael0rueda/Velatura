@@ -8,6 +8,7 @@ mod accent;
 pub mod bundled;
 mod color;
 pub mod editor;
+pub mod firefox;
 pub mod ghostty;
 pub mod gtk;
 pub mod icons;

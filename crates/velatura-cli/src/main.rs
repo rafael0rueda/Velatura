@@ -10,6 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 use velatura_engine::engine::{self, ApplyOpts, Error, Health, PartState, Report};
+use velatura_engine::firefox;
 use velatura_engine::host::{Dirs, Fs, Host, Settings, StdFs, StdSystemd, self_command};
 use velatura_engine::library;
 use velatura_engine::look;
@@ -323,6 +324,7 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::IconsTooMany(_) => "icons-too-many",
         Skip::Invalid(_) => "invalid-file",
         Skip::OwnPalette(_) => "own-palette",
+        Skip::FirefoxNoProfile => "firefox-no-profile",
     }
 }
 
@@ -336,6 +338,9 @@ fn note_code(n: &Note) -> &'static str {
         Note::PtyxisChoose => "ptyxis-choose",
         Note::PtyxisReopen => "ptyxis-reopen",
         Note::GtkRestart => "gtk-restart",
+        Note::FirefoxRestart => "firefox-restart",
+        Note::FirefoxOtherProfiles => "firefox-other-profiles",
+        Note::FirefoxPrefStays => "firefox-pref-stays",
         Note::LinkedFile { .. } => "linked-file",
         Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
         Note::SettingNeedsSession { .. } => "setting-needs-session",
@@ -552,6 +557,18 @@ impl Cx<'_> {
                 "Text Editor",
                 "official",
                 p(h.dirs.data.join("gtksourceview-5/styles/velatura.xml")),
+            ),
+            (
+                "firefox",
+                "Firefox (off until turned on)",
+                "unofficial",
+                firefox::roots(h)
+                    .into_iter()
+                    .find_map(|root| firefox::default_profile(h, &root))
+                    .map_or_else(
+                        || "its default profile".to_owned(),
+                        |(profile, _)| p(profile.join("chrome/userChrome.css")),
+                    ),
             ),
             (
                 "icons:recolor",
@@ -1281,6 +1298,10 @@ impl Cx<'_> {
                 for instance in asking {
                     if instance == targets::NVIM {
                         print!("\nAdd Velatura's two files to the Neovim settings folder? [y/N] ");
+                    } else if instance == targets::FIREFOX {
+                        print!(
+                            "\nAdd Velatura's stylesheet to the Firefox profile, with a line in its userChrome.css and one in its user.js? [y/N] "
+                        );
                     } else if matches!(instance, targets::PTYXIS | targets::TEXT_EDITOR) {
                         print!(
                             "\nGive {} the theme's colors, as a file of Velatura's and one setting? [y/N] ",

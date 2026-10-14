@@ -591,6 +591,9 @@ msgstr ""
 msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
 msgstr ""
 
+msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
+msgstr ""
+
 msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr ""
 
@@ -601,6 +604,9 @@ msgid "Set up, but not taking effect"
 msgstr ""
 
 msgid "Unofficial: may stop working after a GNOME update"
+msgstr ""
+
+msgid "Unofficial: may stop working after a Firefox update"
 msgstr ""
 
 msgid "_Remove Everything Velatura Added"
@@ -840,6 +846,9 @@ msgstr ""
 msgid "Text Editor"
 msgstr ""
 
+msgid "Firefox"
+msgstr ""
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr ""
 
@@ -954,6 +963,10 @@ msgid "Add a marked block with Velatura's palette at the top of {1}"
 msgstr ""
 
 #, rust-format
+msgid "Add a marked block with one line at the top of {1}"
+msgstr ""
+
+#, rust-format
 msgid "Add a marked block with one line at the end of {1}"
 msgstr ""
 
@@ -1034,6 +1047,9 @@ msgstr ""
 msgid "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone"
 msgstr ""
 
+msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
+msgstr ""
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr ""
 
@@ -1068,6 +1084,15 @@ msgid "If open Ptyxis windows keep the old colors, close and reopen them"
 msgstr ""
 
 msgid "Apps that are already open keep their colors until reopened"
+msgstr ""
+
+msgid "Firefox shows the change after it is restarted"
+msgstr ""
+
+msgid "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are"
+msgstr ""
+
+msgid "Firefox goes on reading the userChrome.css file of the profile. To turn that off, set toolkit.legacyUserProfileCustomizations.stylesheets to false in about:config"
 msgstr ""
 
 #, rust-format

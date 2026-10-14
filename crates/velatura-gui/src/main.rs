@@ -1544,6 +1544,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 targets::GTK4,
                 targets::GTK3,
                 targets::TEXT_EDITOR,
+                targets::FIREFOX,
                 targets::FLATPAK,
             ],
         ),
@@ -1559,6 +1560,12 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 RowState::Ready if row.instance == targets::ICONS => (
                     tr(
                         "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
+                    ),
+                    true,
+                ),
+                RowState::Ready if row.instance == targets::FIREFOX => (
+                    tr(
+                        "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
                     ),
                     true,
                 ),
@@ -1581,16 +1588,18 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                     (words::reason(&velatura_text::skip(why, &snap.home)), false)
                 }
             };
-            let unofficial = matches!(row.instance, targets::GTK4 | targets::GTK3 | targets::SHELL);
+            let unofficial = match row.instance {
+                targets::GTK4 | targets::GTK3 | targets::SHELL => {
+                    Some(tr("Unofficial: may stop working after a GNOME update"))
+                }
+                targets::FIREFOX => Some(tr("Unofficial: may stop working after a Firefox update")),
+                _ => None,
+            };
             let switch = adw::SwitchRow::builder()
                 .title(velatura_text::instance(row.instance))
-                .subtitle(if unofficial && available {
-                    format!(
-                        "{subtitle} · {}",
-                        tr("Unofficial: may stop working after a GNOME update")
-                    )
-                } else {
-                    subtitle
+                .subtitle(match unofficial.filter(|_| available) {
+                    Some(unofficial) => format!("{subtitle} · {unofficial}"),
+                    None => subtitle,
                 })
                 .subtitle_lines(0)
                 .active(row.included && available)
