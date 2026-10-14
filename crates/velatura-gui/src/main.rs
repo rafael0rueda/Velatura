@@ -1316,9 +1316,9 @@ async fn confirm(
         }
         lines.push(velatura_text::instance(&t.instance).to_owned());
         lines.extend(
-            t.changes
-                .iter()
-                .map(|c| format!("  {}", velatura_text::change(c, home))),
+            velatura_text::changes(&t.changes, home)
+                .into_iter()
+                .map(|line| format!("  {line}")),
         );
     }
     let details = gtk::Label::builder()
@@ -1520,7 +1520,10 @@ async fn roll_back(ui: &U) {
 fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     let page = adw::PreferencesPage::new();
     let groups = [
-        (tr("Desktop"), vec![targets::APPEARANCE, targets::SHELL]),
+        (
+            tr("Desktop"),
+            vec![targets::APPEARANCE, targets::SHELL, targets::ICONS],
+        ),
         (
             tr("Terminals"),
             vec![targets::KITTY, targets::GHOSTTY, targets::PTYXIS],
@@ -1547,6 +1550,12 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 RowState::Themed => (tr("Themed, and left out of the next apply"), true),
                 RowState::Ready if row.included => (tr("Included in the next apply"), true),
                 // Off until turned on, so the row says what turning on does.
+                RowState::Ready if row.instance == targets::ICONS => (
+                    tr(
+                        "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
+                    ),
+                    true,
+                ),
                 RowState::Ready if row.instance == targets::FLATPAK => (
                     tr(
                         "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",

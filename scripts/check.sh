@@ -86,6 +86,16 @@ if [ -n "${VELATURA_CI:-}" ]; then
     done
 fi
 scripts/apps-accept.sh "$golden"
+# A set of recolored icons made from the system's Adwaita: GTK must take
+# the folder from it and the rest from Adwaita, and undo must put it back.
+if command -v dbus-run-session >/dev/null 2>&1 && command -v gsettings >/dev/null 2>&1; then
+    if [ -n "${VELATURA_CI:-}" ] && [ ! -f /usr/share/icons/Adwaita/index.theme ]; then
+        echo "the Adwaita icon theme is required in CI"; exit 1
+    fi
+    scripts/icons-accept.sh
+else
+    echo "NOT RUN: the icon check needs dbus-run-session and gsettings"
+fi
 
 step "app"
 # The window, driven for real in a throw-away session: first apply through

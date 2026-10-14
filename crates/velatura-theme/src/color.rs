@@ -6,7 +6,7 @@ use std::fmt;
 /// exactly `#RRGGBB` and `#RRGGBBAA`. The only ways to turn one back into text
 /// are the formatters below, none of which can emit anything but hex digits,
 /// decimal digits and fixed punctuation.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Color {
     pub r: u8,
     pub g: u8,

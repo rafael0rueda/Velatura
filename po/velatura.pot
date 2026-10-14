@@ -588,6 +588,9 @@ msgstr ""
 msgid "Included in the next apply"
 msgstr ""
 
+msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
+msgstr ""
+
 msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr ""
 
@@ -790,6 +793,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, rust-format
+msgid "Recolors {n} icon in a set of Velatura's own."
+msgid_plural "Recolors {n} icons in a set of Velatura's own."
+msgstr[0] ""
+msgstr[1] ""
+
+#, rust-format
 msgid "Updates {n} file made by Velatura."
 msgid_plural "Updates {n} files made by Velatura."
 msgstr[0] ""
@@ -849,6 +858,9 @@ msgstr ""
 msgid "Icons, Cursor, Wallpaper and Fonts"
 msgstr ""
 
+msgid "Recolored Icons"
+msgstr ""
+
 msgid "Changes"
 msgstr ""
 
@@ -895,6 +907,14 @@ msgid "No installed theme has that name"
 msgstr ""
 
 msgid "A font is written as its name and a size, for example Adwaita Sans 11"
+msgstr ""
+
+#, rust-format
+msgid "Create the icon set {1} with {2} recolored icons"
+msgstr ""
+
+#, rust-format
+msgid "Remove the icon set {1}, made by Velatura for other colors ({2} icons)"
 msgstr ""
 
 #, rust-format
@@ -992,6 +1012,14 @@ msgstr ""
 
 #, rust-format
 msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
+msgstr ""
+
+#, rust-format
+msgid "Left out: the icons of {1} cannot be recolored. They have no color of their own to replace, or are pictures, not drawings"
+msgstr ""
+
+#, rust-format
+msgid "Left out: the icon theme {1} has more marked icons than a recolored set may hold"
 msgstr ""
 
 #, rust-format

@@ -298,6 +298,8 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::NeedsUserThemes => "needs-user-themes",
         Skip::UntestedShell(_) => "untested-shell",
         Skip::UnusualPath(_) => "unusual-path",
+        Skip::IconsNotRecolorable(_) => "icons-not-recolorable",
+        Skip::IconsTooMany(_) => "icons-too-many",
         Skip::Invalid(_) => "invalid-file",
         Skip::OwnPalette(_) => "own-palette",
     }
@@ -529,6 +531,12 @@ impl Cx<'_> {
                 "Text Editor",
                 "official",
                 p(h.dirs.data.join("gtksourceview-5/styles/velatura.xml")),
+            ),
+            (
+                "icons:recolor",
+                "Recolored Icons (off until turned on)",
+                "official",
+                p(h.dirs.data.join("icons")),
             ),
             (
                 "flatpak:global",
@@ -1141,8 +1149,8 @@ impl Cx<'_> {
                     println!("The {theme} theme is already applied.");
                 } else {
                     println!("Applied {theme}.");
-                    for c in &report.changes {
-                        println!("  {}", text::change(c, self.home));
+                    for line in text::changes(&report.changes, self.home) {
+                        println!("  {line}");
                     }
                 }
                 let last = schedule::status(&self.host).last;
@@ -1191,8 +1199,8 @@ impl Cx<'_> {
                 println!("  {}", text::skip(why, self.home));
                 continue;
             }
-            for c in &t.changes {
-                println!("  {}", text::change(c, self.home));
+            for line in text::changes(&t.changes, self.home) {
+                println!("  {line}");
             }
             for n in &t.notes {
                 println!("  Note: {}", text::note(n, self.home));
@@ -1319,8 +1327,8 @@ impl Cx<'_> {
                     (Cause::Select, _) => println!("Changed."),
                     _ => println!("Everything Velatura added was removed."),
                 }
-                for c in &report.changes {
-                    println!("  {}", text::change(c, self.home));
+                for line in text::changes(&report.changes, self.home) {
+                    println!("  {line}");
                 }
             }
             for (_, n) in &report.notes {

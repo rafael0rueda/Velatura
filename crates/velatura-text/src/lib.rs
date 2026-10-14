@@ -162,6 +162,7 @@ pub fn instance(id: &str) -> String {
         "gnome:appearance" => t("Style and Accent Color"),
         "flatpak:global" => t("Flatpak Apps"),
         "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),
+        "icons:recolor" => t("Recolored Icons"),
         "" => t("Changes"),
         other => other.to_owned(),
     }
@@ -263,6 +264,50 @@ pub fn rejected_choice(kind: Kind, why: &Rejected) -> Option<String> {
 /// The display name of a system accent, from its settings value.
 pub fn accent_name(value: &str) -> String {
     setting_value("accent-color", Some(value))
+}
+
+/// Every change as a line, with the icons of a recolored set said in one
+/// line for the set instead of one line each.
+pub fn changes(list: &[Change], home: &Path) -> Vec<String> {
+    use velatura_engine::icon_set::{set_of, sets_in};
+    let sets = sets_in(list);
+    let mut said = Vec::new();
+    let mut out = Vec::new();
+    for c in list {
+        let path = match c {
+            Change::CreateDir { path }
+            | Change::RemoveDir { path }
+            | Change::Owned { path, .. } => Some(path),
+            _ => None,
+        };
+        let Some(set) = path.and_then(|p| set_of(p)) else {
+            out.push(change(c, home));
+            continue;
+        };
+        let written = !matches!(
+            c,
+            Change::Owned { content: None, .. } | Change::RemoveDir { .. }
+        );
+        if said.contains(&(set.clone(), written)) {
+            continue;
+        }
+        said.push((set.clone(), written));
+        let n = sets
+            .iter()
+            .find(|(s, _, w)| *s == set && *w == written)
+            .map_or(0, |(_, n, _)| *n);
+        let name = clean_text(&set.file_name().unwrap_or_default().to_string_lossy(), 80);
+        out.push(if written {
+            tf!("Create the icon set {1} with {2} recolored icons", name, n)
+        } else {
+            tf!(
+                "Remove the icon set {1}, made by Velatura for other colors ({2} icons)",
+                name,
+                n
+            )
+        });
+    }
+    out
 }
 
 pub fn change(c: &Change, home: &Path) -> String {
@@ -372,6 +417,14 @@ pub fn skip(why: &Skip, home: &Path) -> String {
         Skip::UntestedShell(version) => tf!(
             "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell",
             clean_text(version, 20)
+        ),
+        Skip::IconsNotRecolorable(name) => tf!(
+            "Left out: the icons of {1} cannot be recolored. They have no color of their own to replace, or are pictures, not drawings",
+            clean_text(name, 64)
+        ),
+        Skip::IconsTooMany(name) => tf!(
+            "Left out: the icon theme {1} has more marked icons than a recolored set may hold",
+            clean_text(name, 64)
         ),
         Skip::UnusualPath(p) => tf!(
             "Left out: {1} has characters in its name that cannot be written into a settings file",

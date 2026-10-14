@@ -4,3 +4,5 @@ mutter
 mesa-dri-drivers
 ptyxis
 gnome-text-editor
+adwaita-icon-theme
+librsvg2

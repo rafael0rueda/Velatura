@@ -79,7 +79,7 @@ enum Change {
     ManagedBlock    { path, marker, content, placement, comment_style },
     StructuredEdit  { path, format, edits },     // key-level and list-member-level edits
     SetSetting      { schema, schema_source, path, key, value },
-    InstallTree     { dest, staged, recipe_hash } // generated icon sets, by directory rename
+    // generated icon sets are WriteOwnedFile and CreateDir changes (D58)
 }</pre>
 <ul>
 <li><strong>Nothing happens that is not a Change.</strong> Creating a directory, enabling a timer or granting a Flatpak permission are all Changes, so they appear in the preview and in the backup. The Flatpak override is an edit of Flatpak's own key file, not a call to the <code>flatpak</code> program.</li>
@@ -124,7 +124,7 @@ enum Change {
 <li><strong>Store:</strong> <code>~/.local/share/velatura/backups/</code>, content-addressed, owner-only, marked as a cache directory for backup tools to skip. Blobs are verified on read; pruning runs under the lock and never removes anything referenced by the original-setup ledger or an unfinished apply.</li>
 <li><strong>Original setup:</strong> an append-only ledger. The first time any path or setting is touched, its state is added. It is labelled "state before Velatura" with its date, because on a machine that was already themed it is not a pristine state.</li>
 <li><strong>Undo is the inverse operation, not a file copy.</strong> For a managed block: remove or replace the block in the file as it is now. For a structured edit: put the keys or list members back. For a setting: restore only if the current value is still the one the app wrote; otherwise report a conflict. The stored full copy is the last resort.</li>
-<li><strong>Generated trees</strong> are recorded as a recipe and a hash, not as content.</li>
+<li><strong>Generated trees</strong> (recoloured icon sets) are recorded like any other files of Velatura's, by content; the store keeps each file once, so switching between two themes adds nothing. The first plan had a recipe and a hash; measured sets were small enough not to need it (<a href="decisions.html#d58">D58</a>).</li>
 <li><strong>Retention:</strong> the ledger for ever; 20 user-initiated backups; one backup shared by the scheduled switches made since the last of those (<a href="decisions.html#d48">D48</a>). Undo targets the last user-initiated change, and takes the scheduled switches after it along.</li>
 <li><strong>Formats are versioned.</strong> Every persisted file carries a version; a newer version makes the app read-only; a test restores a first-version backup on every future build.</li>
 <li><strong>Recoverable by hand.</strong> Manifests are JSON and the store is plain files. An emergency card (first run, <code>--help</code>, docs) gives the exact commands for a text console.</li>
@@ -155,7 +155,7 @@ enum Change {
 <tr><td><code>~/.local/state/velatura/</code></td><td>Machine facts: consents, selected instances, accepted suggestions, what is applied, last-written hashes, lock, journal, results of unattended runs, the install channel.</td></tr>
 <tr><td><code>~/.local/share/velatura/themes/</code></td><td>User themes.</td></tr>
 <tr><td><code>~/.local/share/velatura/backups/</code></td><td>Backups and the original-setup ledger.</td></tr>
-<tr><td><code>~/.cache/velatura/</code></td><td>Staged icon sets; safe to delete.</td></tr>
+<tr><td><code>~/.local/share/icons/Velatura-…/</code></td><td>Recoloured icon sets, files of Velatura's own, made again from the icon theme in use.</td></tr>
 </table></div>
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 

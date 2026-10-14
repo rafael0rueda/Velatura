@@ -84,6 +84,12 @@ pub enum Skip {
     UnusualPath(PathBuf),
     /// The file is not valid as it stands, so nothing is added to it.
     Invalid(PathBuf),
+    /// The icon theme in use has no colour of its own to replace: it is
+    /// all grey, or made of pictures, not drawings, or cannot be found.
+    IconsNotRecolorable(String),
+    /// The icon theme in use would need more recoloured icons than a set
+    /// of Velatura's may hold.
+    IconsTooMany(String),
     /// Starship's settings already choose a palette, or define the one
     /// Velatura would add. That choice is the user's.
     OwnPalette(PathBuf),
