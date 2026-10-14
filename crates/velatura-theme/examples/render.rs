@@ -2,6 +2,9 @@
 //! files after a deliberate renderer change:
 //!
 //!   cargo run -p velatura-theme --example render -- kitty aetherius
+//!
+//! `shell-restated` takes a third argument, the Shell's own stylesheet,
+//! as `gresource extract` gives it.
 
 use velatura_theme::{
     Resolved, bundled, firefox, ghostty, gtk, kitty, nvim, ptyxis, shell, sourceview, starship,
@@ -17,7 +20,7 @@ fn main() {
             .and_then(|id| themes.iter().find(|t| &t.id == id)),
     ) else {
         eprintln!(
-            "usage: render kitty|ghostty|gtk|shell|tmux|nvim|nvim-palette|starship|ptyxis|sourceview|firefox <bundled theme id>"
+            "usage: render kitty|ghostty|gtk|shell|tmux|nvim|nvim-palette|starship|ptyxis|sourceview|firefox <bundled theme id>, or shell-restated <bundled theme id> <stock stylesheet>"
         );
         std::process::exit(2);
     };
@@ -36,6 +39,16 @@ fn main() {
         "ptyxis" => print!("{}", ptyxis::render(&resolved)),
         "sourceview" => print!("{}", sourceview::render(&resolved)),
         "firefox" => print!("{}", firefox::render(&resolved)),
+        "shell-restated" => {
+            let stock = args
+                .get(2)
+                .and_then(|path| std::fs::read_to_string(path).ok())
+                .unwrap_or_else(|| std::process::exit(2));
+            match shell::restate(&resolved, &stock, false) {
+                Some(css) => print!("{css}"),
+                None => std::process::exit(1),
+            }
+        }
         _ => std::process::exit(2),
     }
 }

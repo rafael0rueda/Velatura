@@ -1101,6 +1101,9 @@ msgstr "{1} es un enlace. El cambio se escribe en {2}"
 msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
 msgstr "{1} no se pudo reponer sin una sesión de escritorio. Tras iniciar sesión, ejecute: {2}"
 
+msgid "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent"
+msgstr "No se pudo leer la hoja de estilo propia de la barra superior, así que solo se recolorean sus superficies principales, y conserva el acento del sistema más cercano"
+
 msgid "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app"
 msgstr "La extensión User Themes está desactivada, así que la barra superior conserva sus colores. Actívela en la aplicación Extensiones"
 

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4b – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 4b – the Shell's exact accent</h1>
+<p class="lead">Branch <code>phase-4b-shell</code>. Completed 2026-10-14. The second of five slices of Phase 4 (<a href="../decisions.html#d59">D59</a>). Its exit condition, that the Shell shows the theme's own accent, holds: in a headless GNOME Shell 50, a checked quick settings toggle is drawn in Ember's <code>#e0914f</code> and Aetherius's <code>#8493d8</code>, not in the nearest of GNOME's nine accents. The rest of the Shell follows the theme much further than before.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The Shell's own stylesheets were read from its installed bundle; every Shell that ran was a headless one in a throw-away session.</div>
+
+<h2>What looking at the Shell showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>Does the exact accent need GNOME's style sources compiled again?</td><td>No. GNOME Shell 47 to 51 keep the accent as a name in their compiled stylesheet, <code>-st-accent-color</code> (and <code>-st-accent-fg-color</code> for text on it), about 190 times, and work out every shade of it while they run with four functions: <code>st-mix</code>, <code>st-lighten</code>, <code>st-darken</code>, <code>st-transparentize</code>. Those functions take any colour, so a stylesheet that writes the theme's accent where the Shell writes the name gets the exact accent and every shade of it.</td></tr>
+<tr><td>What colours does the Shell's stylesheet write?</td><td>Few: a ramp of greys from its background (<code>#222226</code>, <code>#282828</code> in 47) to its text (white in the dark form, <code>#222226</code> in the light one), black, a red, a yellow, a green and an orange. GNOME 47 also writes a few greys by name (<code>whitesmoke</code>, <code>gainsboro</code>). The same in all five versions, checked from their Fedora packages.</td></tr>
+<tr><td>Where is the stylesheet?</td><td>In <code>/usr/share/gnome-shell/gnome-shell-theme.gresource</code>, a GLib resource bundle, uncompressed. A reader of 70 lines reads it; no library is needed.</td></tr>
+<tr><td>Does a restated stylesheet load?</td><td>Yes. A prototype for Ember, about 560 rules and 127 KB, loaded in a headless Shell 50 with no stylesheet error; the quick settings menu, the overview and a dialog took the theme's colours, and a light theme on the light stylesheet looked right too.</td></tr>
+</table></div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>The Shell's own stylesheet, restated</strong> (<a href="../decisions.html#d61">D61</a>). When the theme is applied, Velatura reads the installed Shell's stylesheet for the theme's appearance and writes every declaration that holds a colour, with the colour replaced, and nothing else: no size, shape or spacing.</li>
+<li><strong>The accent exactly,</strong> and its text colour, where the Shell names them; inside the Shell's own functions, so focus rings, hover and pressed states are the Shell's shades of the theme's accent.</li>
+<li><strong>The greys along the theme's line</strong> from background to text, by how light they are: the Shell's background becomes the theme's, its text the theme's, a grey a third of the way between becomes the colour a third of the way between. Black becomes the theme's darkest background, so the top bar is that, as before. In a light theme, white becomes a little lighter than the theme's background, for cards and menus.</li>
+<li><strong>Colours of their own:</strong> red, yellow and green become the theme's error, warning and success colours; a blue one the accent.</li>
+<li><strong>The panel's text</strong> is said outright, since the Shell's own stylesheet lets it come down from the stage and another extension could take it.</li>
+<li><strong>Through Velatura's own extension</strong> the same rules are written one step heavier, as before, so they win over other extensions where both style the same thing.</li>
+<li><strong>Where the stylesheet cannot be read</strong> (Ubuntu's own session, whose Shell draws with Yaru; no bundle; a damaged one) the short list of earlier phases is written, and the result says that only the main surfaces are recoloured and the accent is the nearest system one.</li>
+<li><strong>A new folder name,</strong> through a new format number, so a Shell that has the earlier theme loaded loads the new one.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Six tests of the renderer: only colours are restated and the Shell's functions kept; a grey between background and text lands between the theme's, in order, and each colour of its own goes to the theme's colour for the same job; a light theme on the light stylesheet, and a dark theme refused on it; what is not a compiled stylesheet is refused; selectors made heavier where they can be; named and short colours.</li>
+<li>Three tests of the bundle reader: a file found by its whole path; compressed, cut short, foreign and self-referring bundles give nothing; the bundle of the Shell installed on the machine.</li>
+<li>Four tests in <code>tests/shell_stock.rs</code>, against a bundle made by GLib's own <code>glib-compile-resources</code> from excerpts of GNOME 50's two stylesheets: the restated stylesheet with the accent; the short list and its note with no bundle, a damaged one, and in Ubuntu's session; each appearance takes its own stylesheet; and the Shell installed on the machine, both forms, restated whole with none of its own greys or accent names left. CI runs that last one on GNOME 47, 48, 49, 50 and 51.</li>
+<li>In the gate, <code>scripts/shell-accept.sh</code> now also asks a checked quick settings toggle for its colour: Ember's and Aetherius's accents through User Themes and through Velatura's own extension, the system's blue after undo.</li>
+<li><code>cargo run -p velatura-theme --example render -- shell-restated &lt;theme&gt; &lt;stylesheet&gt;</code> shows the output for any stylesheet.</li>
+<li>209 tests in all. The translation template has 393 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Restating, not compiling</strong> (<a href="../decisions.html#d61">D61</a>, accepted by the owner on 2026-10-14). The plan had the Shell's style sources compiled with changed colours. The compiled stylesheet already names the accent, so its own text is the better source: no Sass compiler, no per-version sources, no data shipped with Velatura.</li>
+<li><strong>"A short list of colour overrides only"</strong> becomes "colour declarations only": still no sizes, shapes or spacing, but every colour the stylesheet writes.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>Not looked at by a person</strong> in a real session beyond the prototype's screenshots: part of the owner's full test.</li>
+<li><strong>Ubuntu's own session</strong> keeps the short list. Its Shell draws with Yaru, a stylesheet of its own; restating that is for later.</li>
+<li><strong>Pictures</strong> in the Shell's stylesheet keep their colours: the dot under a calendar day with events, the welcome logo, the placeholder for an empty workspace.</li>
+<li><strong>Apps</strong> still get the nearest of GNOME's nine accents: that is the only accent setting GNOME has.</li>
+</ul>
+</main>
+</body>
+</html>

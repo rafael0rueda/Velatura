@@ -156,6 +156,9 @@ pub enum Note {
         key: String,
         value: Option<String>,
     },
+    /// The Shell's own stylesheet could not be read, so only its main
+    /// surfaces are recoloured, and it keeps the system accent.
+    ShellShortList,
     /// User Themes is installed but turned off, so the Shell does not load
     /// the theme until it is turned on.
     UserThemesOff,
