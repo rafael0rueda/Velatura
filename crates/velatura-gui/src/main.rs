@@ -207,6 +207,13 @@ fn build(app: &adw::Application) -> U {
         busy: Cell::new(false),
         banner_rolls_back: Cell::new(false),
     });
+    // Every handler holds the state weakly; the window holds the one strong
+    // reference, and lets go of it when it is destroyed. Without it the
+    // state goes as soon as start-up is over, and no row or button responds.
+    let owner = RefCell::new(Some(ui.clone()));
+    ui.window.connect_destroy(move |_| {
+        owner.take();
+    });
     add_actions(&ui);
     ui.window.set_help_overlay(Some(&shortcuts_window()));
 
@@ -218,11 +225,10 @@ fn build(app: &adw::Application) -> U {
     });
     ui.window.connect_close_request(|window| {
         if !window.is_maximized() {
-            let (w, h) = (window.width(), window.height());
-            // Fire and forget: the size is a convenience, not state.
-            gio::spawn_blocking(move || {
-                data::save_window_size(w, h);
-            });
+            // Written here and not on a worker thread: the app quits as the
+            // window closes, and would cut a write in progress short. One
+            // small file.
+            data::save_window_size(window.width(), window.height());
         }
         glib::Propagation::Proceed
     });
@@ -2024,4 +2030,25 @@ fn about(ui: &U) {
         .comments(tr("One color theme for the whole desktop"))
         .build()
         .present(Some(&ui.window));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stock_colors_are_valid_css() {
+        for (name, value) in stock::LIGHT.iter().chain(stock::DARK.iter()) {
+            assert!(
+                gtk::gdk::RGBA::parse(*value).is_ok(),
+                "{name}: {value} is not a colour"
+            );
+            if let Some(hex) = value.strip_prefix('#') {
+                assert!(
+                    hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()),
+                    "{name}: {value} is not #rrggbb"
+                );
+            }
+        }
+    }
 }
