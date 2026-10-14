@@ -30,7 +30,9 @@ for name in sys.argv[2:]:
     ok, c = ctx.lookup_color(name)
     if not ok:
         print(name, "-"); continue
-    r, g, b = (round(v * 255) for v in (c.red, c.green, c.blue))
+    # Colours libadwaita mixes in Oklab can fall outside sRGB; GTK clips
+    # them when drawing, so the table does too.
+    r, g, b = (min(255, max(0, round(v * 255))) for v in (c.red, c.green, c.blue))
     print(name, "#%02x%02x%02x" % (r, g, b) if c.alpha >= 0.999
           else "rgba(%d, %d, %d, %s)" % (r, g, b, ("%.3f" % c.alpha).rstrip("0").rstrip(".")))
 '''

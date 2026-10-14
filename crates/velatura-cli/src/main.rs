@@ -31,6 +31,27 @@ const PARTIAL: u8 = 5;
 /// Version of the JSON output. Keys are only ever added within a version.
 const JSON_FORMAT: u32 = 1;
 
+/// Standard output, minus the panic when the reader has gone away, as in
+/// `velatura status | head -1`: the rest of the text is dropped and the
+/// command finishes what it was doing. Any other failure panics, as the
+/// standard macros do.
+fn out(args: std::fmt::Arguments<'_>) {
+    if let Err(e) = std::io::stdout().write_fmt(args)
+        && e.kind() != std::io::ErrorKind::BrokenPipe
+    {
+        panic!("failed printing to stdout: {e}");
+    }
+}
+
+// These shadow the standard macros for the whole of this file.
+macro_rules! print {
+    ($($arg:tt)*) => { out(format_args!($($arg)*)) };
+}
+macro_rules! println {
+    () => { out(format_args!("\n")) };
+    ($($arg:tt)*) => { out(format_args!("{}\n", format_args!($($arg)*))) };
+}
+
 #[derive(Default)]
 struct Args {
     words: Vec<String>,

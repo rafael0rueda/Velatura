@@ -42,7 +42,7 @@ pub async fn run<T: Send + 'static>(f: impl FnOnce(&Host<'_>) -> T + Send + 'sta
         .flatten()
 }
 
-/// Remember the window's size. Called from a worker thread.
+/// Remember the window's size.
 pub fn save_window_size(width: i32, height: i32) {
     with_host(|host| {
         let _ = engine::save_window_size(host, width, height);
