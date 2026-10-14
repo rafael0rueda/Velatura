@@ -183,7 +183,12 @@ cursor_theme = "capitaine-cursors"
 <tr><td><strong>3b. Importers</strong></td><td>Themes from base16/base24 and Kitty files.</td><td>An imported theme applies like any other.</td></tr>
 <tr><td><strong>3c. More apps</strong></td><td>Ptyxis and GNOME Text Editor, candidates until verified in this slice.</td><td>Transaction tests pass for each.</td></tr>
 <tr><td><strong>3d. Icons</strong></td><td>Recolouring of vector icon themes, as an opt-in part.</td><td>The Phase 3 exit condition.</td></tr>
-<tr><td><strong>4. Distribution and experiments</strong></td><td>Packaged releases (see <a href="architecture.html#dist">distribution</a>). Firefox (experimental). Recolouring of bitmap icon themes and of cursors (experimental). Exact accent and full coverage in the Shell. User-supplied templates. Qt reconsidered.</td><td>Installable without building from source.</td></tr>
+<tr><td><strong>4. Distribution and experiments</strong>, in the five slices below</td><td>Packaged releases (see <a href="architecture.html#dist">distribution</a>). Firefox (experimental). Recolouring of bitmap icon themes and of cursors (experimental). Exact accent and full coverage in the Shell. User-supplied templates. Qt reconsidered.</td><td>Installable without building from source.</td></tr>
+<tr><td><strong>4a. Firefox</strong></td><td>Firefox's window, through <code>userChrome.css</code> in its default profile, as an opt-in, experimental part.</td><td>Transaction tests pass, and a real Firefox draws its window in the theme's colours.</td></tr>
+<tr><td><strong>4b. Shell</strong></td><td>The exact accent and fuller coverage in the Shell.</td><td>The Shell shows the theme's own accent.</td></tr>
+<tr><td><strong>4c. Templates</strong></td><td>User-supplied templates.</td><td>A template of the user's applies, undoes and recovers like a built-in target.</td></tr>
+<tr><td><strong>4d. Pictures</strong></td><td>Recolouring of bitmap icon themes and of cursors (experimental).</td><td>Transaction tests pass for each.</td></tr>
+<tr><td><strong>4e. Releases</strong></td><td>GitHub Releases: a tarball with vendored crates and prebuilt binaries (<a href="decisions.html#d59">D59</a>). Qt reconsidered.</td><td>The Phase 4 exit condition.</td></tr>
 </table></div>
 
 <h2 id="done">8. Definition of done for the MVP</h2>

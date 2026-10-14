@@ -162,6 +162,10 @@ fn unblock(
             block::remove(&current, target, added_eol).unwrap_or_default(),
         ),
     };
+    if target == block::FIREFOX_PREFS {
+        out.notes.push(Note::FirefoxPrefStays);
+        out.notes.push(Note::FirefoxRestart);
+    }
     out.changes.push(Change::Block {
         path: file,
         target: target.to_owned(),

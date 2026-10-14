@@ -19,7 +19,7 @@ jobs:
         run: dnf install -y --setopt=install_weak_deps=False git
       - uses: actions/checkout@v4
       - name: Install tools
-        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt)
+        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt) firefox
       - name: Gate
         run: VELATURA_CI=1 scripts/check.sh
 
@@ -32,7 +32,7 @@ jobs:
         run: dnf install -y --setopt=install_weak_deps=False git
       - uses: actions/checkout@v4
       - name: Install tools
-        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt)
+        run: dnf install -y --setopt=install_weak_deps=False $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt) firefox
       - name: Gate
         run: VELATURA_CI=1 scripts/check.sh
 

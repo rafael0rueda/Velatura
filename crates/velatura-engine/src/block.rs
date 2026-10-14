@@ -8,21 +8,29 @@
 pub const FORMAT: u32 = 1;
 
 /// How a comment is written in the file a target's block lives in: CSS for
-/// the GTK targets, a leading `#` everywhere else.
+/// the GTK targets and Firefox's stylesheet, JavaScript for Firefox's
+/// preferences, a leading `#` everywhere else.
 fn comment(target: &str) -> (&'static str, &'static str) {
-    if target.starts_with("gtk") {
-        ("/* ", " */")
-    } else {
-        ("# ", "")
+    match target {
+        FIREFOX_PREFS => ("// ", ""),
+        FIREFOX => ("/* ", " */"),
+        t if t.starts_with("gtk") => ("/* ", " */"),
+        _ => ("# ", ""),
     }
 }
+
+/// The blocks of the Firefox target: one in `userChrome.css`, one in
+/// `user.js`.
+pub const FIREFOX: &str = "firefox";
+pub const FIREFOX_PREFS: &str = "firefox-prefs";
 
 const BOM: &[u8] = b"\xef\xbb\xbf";
 
 /// True for a block that goes at the top of its file, not the end. In a
-/// TOML file, keys of the file's root have to come before its first table.
-fn at_top(target: &str) -> bool {
-    target == "starship"
+/// TOML file, keys of the file's root have to come before its first table;
+/// in a stylesheet, an `@import` has to come before every rule.
+pub fn at_top(target: &str) -> bool {
+    matches!(target, "starship" | FIREFOX)
 }
 
 fn begin(target: &str) -> String {
@@ -352,5 +360,28 @@ mod tests {
         );
         assert_eq!(remove(&up.content, "gtk4", up.added_eol).unwrap(), original);
         assert_eq!(find(&up.content, "gtk3"), Found::Absent);
+    }
+
+    #[test]
+    fn firefox_gets_an_import_at_the_top_and_a_preference_at_the_end() {
+        let sheet = b"#nav-bar { border: none; }\n";
+        let up = upsert(sheet, FIREFOX, "@import url(\"velatura.css\");").unwrap();
+        assert_eq!(
+            String::from_utf8(up.content.clone()).unwrap(),
+            "/* >>> velatura firefox 1 >>> */\n@import url(\"velatura.css\");\n/* <<< velatura firefox 1 <<< */\n#nav-bar { border: none; }\n"
+        );
+        assert_eq!(remove(&up.content, FIREFOX, up.added_eol).unwrap(), sheet);
+        let prefs = b"user_pref(\"a\", 1);";
+        let up = upsert(prefs, FIREFOX_PREFS, "user_pref(\"b\", true);").unwrap();
+        assert_eq!(
+            String::from_utf8(up.content.clone()).unwrap(),
+            "user_pref(\"a\", 1);\n// >>> velatura firefox-prefs 1 >>>\nuser_pref(\"b\", true);\n// <<< velatura firefox-prefs 1 <<<\n"
+        );
+        assert_eq!(
+            remove(&up.content, FIREFOX_PREFS, up.added_eol).unwrap(),
+            prefs
+        );
+        // The two names do not find each other's block.
+        assert_eq!(find(&up.content, FIREFOX), Found::Absent);
     }
 }

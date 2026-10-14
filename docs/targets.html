@@ -42,7 +42,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>Icons (recolour, vector themes)</td><td>A generated per-user icon theme derived from the one in use, holding its marked icons in the theme's accent</td><td><span class="tag wa">Workaround</span></td><td>Immediately for GTK 4 apps</td><td>3d</td></tr>
 <tr><td>Ptyxis</td><td>A palette file among the user's palettes, and the default profile's <code>palette</code> setting</td><td><span class="tag ok">Official</span></td><td>At once for the setting; a rewritten palette perhaps after reopening</td><td>3c</td></tr>
 <tr><td>GNOME Text Editor</td><td>A GtkSourceView style scheme among the user's, and the <code>style-scheme</code> setting</td><td><span class="tag ok">Official</span></td><td>When the app is reopened</td><td>3c</td></tr>
-<tr><td>Firefox</td><td><code>userChrome.css</code> in each chosen profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4</td></tr>
+<tr><td>Firefox</td><td><code>userChrome.css</code> in the default profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4a</td></tr>
 <tr><td>Icons (recolour, bitmap themes); cursor (recolour)</td><td>Pixel processing of bitmaps</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>—</td><td>4</td></tr>
 <tr><td>Exact accent and full coverage in the Shell</td><td>Compiling the Shell's own style sources with changed colours</td><td><span class="tag wa">Workaround</span></td><td>—</td><td>4</td></tr>
 <tr><td>Qt apps</td><td>Would need extra system packages and a session variable</td><td>Deferred</td><td>—</td><td>4+</td></tr>
@@ -182,12 +182,15 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>Text Editor's own light or dark look follows the desktop's style and is not changed.</li>
 <li>An open Text Editor shows a rewritten scheme once reopened.</li>
 </ul>
-<h3>Firefox (Phase 4, experimental)</h3>
+<h3>Firefox (Phase 4a, experimental)</h3>
 <ul>
-<li>For each chosen profile: a stylesheet the app creates, one import line in <code>chrome/userChrome.css</code> placed according to CSS rules, and one line in <code>user.js</code> turning on the preference that makes Firefox load user stylesheets.</li>
-<li>Mozilla does not support this mechanism and Firefox releases every four weeks, so it is the most fragile target.</li>
-<li><strong>Not fully reversible:</strong> once Firefox has read the preference it keeps it in its own settings; removing the line does not turn it off. Undo for this target ends with a step for the user.</li>
-<li>Nothing is written while Firefox is running. Firefox must be restarted.</li>
+<li>In the profile Firefox opens by default, as <code>installs.ini</code> names it (the one marked <code>Default=1</code> for an older Firefox): a stylesheet the app creates, <code>chrome/velatura.css</code>; a marked block with its import at the top of <code>chrome/userChrome.css</code>, since an <code>@import</code> must come before every rule; and a marked block at the end of <code>user.js</code> with the line that turns on <code>toolkit.legacyUserProfileCustomizations.stylesheets</code>, the preference that makes Firefox read <code>userChrome.css</code>. Other profiles are left as they are, and that is said (<a href="decisions.html#d60">D60</a>).</li>
+<li>Profiles are looked for in <code>~/.mozilla/firefox</code>, then <code>~/.config/mozilla/firefox</code>, where newer versions start, then the Flatpak's and the Snap's folders.</li>
+<li>The stylesheet sets 39 of Firefox's own design variables on the window's root, and its colour scheme: the tab strip, toolbar, address field and its results, menus and panels, sidebar, and the accent. Nothing else, so a variable a newer Firefox no longer reads does nothing. A user stylesheet's ordinary declarations lose to Firefox's own, so each one is <code>!important</code>. A test checks every variable against the list Firefox's own stylesheets read, taken from each version checked.</li>
+<li>Off until turned on, and the first change needs agreement, because the profile is the user's. A scheduled switch never starts theming Firefox by itself.</li>
+<li>Mozilla does not support this mechanism and Firefox releases every four weeks, so it is the most fragile target. Rules of the user's in <code>userChrome.css</code> that set the same variables, and a line after the block that turns the preference off, win and are reported.</li>
+<li>Written while Firefox runs: it reads these files only when it starts and never writes them. Its own settings file, <code>prefs.js</code>, is never touched. Firefox shows the change after it is restarted.</li>
+<li><strong>Not fully reversible:</strong> once Firefox has read the preference it keeps it in its own settings; removing the line does not turn it off. Undo and Remove Everything say so, with the setting to change in <code>about:config</code>. With the import gone it has nothing of Velatura's to read.</li>
 </ul>
 
 <h2 id="notfeasible">10. Not feasible or deferred</h2>

@@ -52,7 +52,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <ul>
 <li><strong>Theme</strong> and <strong>Variant</strong>: parsed and validated TOML.</li>
 <li><strong>ResolvedTheme</strong>: sanitised identity, appearance, every role as a typed <code>Color</code>, and per-target slot values. A <code>Color</code> can only be formatted through a closed set of functions.</li>
-<li><strong>Instance</strong>: one concrete thing to theme, identified by target and instance, for example <code>kitty:default</code>, <code>firefox:default-release</code>, <code>obsidian:&lt;vault id&gt;</code>. Preferences, consent, backups, status and <code>--only</code> are all keyed this way.</li>
+<li><strong>Instance</strong>: one concrete thing to theme, identified by target and instance, for example <code>kitty:default</code>, <code>firefox:default</code>, <code>obsidian:&lt;vault id&gt;</code>. Preferences, consent, backups, status and <code>--only</code> are all keyed this way.</li>
 <li><strong>Facts</strong>: what probing found about an instance: paths, versions, prerequisites, conflicts. Serialisable, so plans can be tested from stored facts.</li>
 <li><strong>Plan</strong>: an ordered list of Changes, each with the precondition it was computed against, plus conflicts needing an answer and hints for afterwards. Serialisable.</li>
 </ul>
@@ -83,7 +83,7 @@ enum Change {
 }</pre>
 <ul>
 <li><strong>Nothing happens that is not a Change.</strong> Creating a directory, enabling a timer or granting a Flatpak permission are all Changes, so they appear in the preview and in the backup. The Flatpak override is an edit of Flatpak's own key file, not a call to the <code>flatpak</code> program.</li>
-<li><strong>Simple renderers are embedded template files</strong> filled by an in-house substitution of the form <code>{role|format}</code> with four formats and no conditionals or loops. One named-colour renderer serves GTK4, GTK3 and Flatpak; one CSS-variable renderer serves Obsidian and Firefox. Third-party templates are a later, separate decision.</li>
+<li><strong>Simple renderers are embedded template files</strong> filled by an in-house substitution of the form <code>{role|format}</code> with four formats and no conditionals or loops. One named-colour renderer serves GTK4, GTK3 and Flatpak; one CSS-variable renderer serves Firefox. Third-party templates are a later, separate decision.</li>
 <li><strong>Version-specific data</strong> is a single list per target annotated with "since" and "removed", split only when a release makes a name harmful.</li>
 </ul>
 

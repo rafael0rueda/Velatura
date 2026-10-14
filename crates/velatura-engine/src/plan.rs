@@ -93,6 +93,9 @@ pub enum Skip {
     /// Starship's settings already choose a palette, or define the one
     /// Velatura would add. That choice is the user's.
     OwnPalette(PathBuf),
+    /// Firefox is installed but has no profile yet: it has not been
+    /// started, or its list of profiles cannot be read.
+    FirefoxNoProfile,
 }
 
 /// Something the user should know that does not stop the operation.
@@ -131,6 +134,14 @@ pub enum Note {
     PtyxisReopen,
     /// GTK reads its stylesheet once, when an app starts.
     GtkRestart,
+    /// Firefox reads its stylesheet when it starts.
+    FirefoxRestart,
+    /// Firefox has other profiles, which are left as they are.
+    FirefoxOtherProfiles,
+    /// Firefox keeps the preference that loads `userChrome.css` in its own
+    /// settings once it has read it, so taking the line out does not turn
+    /// it off.
+    FirefoxPrefStays,
     /// The settings file is a link; the change lands in `real`.
     LinkedFile {
         path: PathBuf,

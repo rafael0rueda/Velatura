@@ -36,10 +36,11 @@ pub const NVIM: &str = "nvim:default";
 pub const STARSHIP: &str = "starship:default";
 pub const PTYXIS: &str = "ptyxis:default";
 pub const TEXT_EDITOR: &str = "texteditor:default";
+pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 13] = [
+pub const INSTANCES: [&str; 14] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -49,6 +50,7 @@ pub const INSTANCES: [&str; 13] = [
     STARSHIP,
     PTYXIS,
     TEXT_EDITOR,
+    FIREFOX,
     FLATPAK,
     SHELL,
     APPEARANCE,
@@ -56,8 +58,8 @@ pub const INSTANCES: [&str; 13] = [
 ];
 
 /// Instances that are left out until the user turns them on, because they
-/// change more than colours.
-pub const OPT_IN: [&str; 2] = [FLATPAK, ICONS];
+/// change more than colours, or use a way in that is not supported.
+pub const OPT_IN: [&str; 3] = [FLATPAK, ICONS, FIREFOX];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -85,7 +87,7 @@ pub(crate) fn exists(host: &Host<'_>, path: &Path) -> bool {
     host.fs.kind(path).ok().flatten().is_some()
 }
 
-fn on_path(host: &Host<'_>, env: Env<'_>, program: &str) -> bool {
+pub(crate) fn on_path(host: &Host<'_>, env: Env<'_>, program: &str) -> bool {
     env("PATH").is_some_and(|path| {
         std::env::split_paths(&path)
             .filter(|dir| dir.is_absolute())
@@ -134,7 +136,11 @@ struct FileTarget<'a> {
 }
 
 /// 1-based numbers of the lines after the block for which `wins` is true.
-fn override_lines(content: &[u8], block: &str, wins: &dyn Fn(&str) -> bool) -> Vec<usize> {
+pub(crate) fn override_lines(
+    content: &[u8],
+    block: &str,
+    wins: &dyn Fn(&str) -> bool,
+) -> Vec<usize> {
     let block::Found::Present { end, .. } = block::find(content, block) else {
         return Vec::new();
     };
@@ -151,7 +157,7 @@ fn override_lines(content: &[u8], block: &str, wins: &dyn Fn(&str) -> bool) -> V
 /// already, inside the home folder, or is planned. Only folders under one
 /// that exists are made; a missing parent of the first means this is not
 /// a place the app has ever used.
-fn place(host: &Host<'_>, levels: &[&Path], plan: &mut TargetPlan) -> Result<(), Skip> {
+pub(crate) fn place(host: &Host<'_>, levels: &[&Path], plan: &mut TargetPlan) -> Result<(), Skip> {
     for dir in levels {
         let dir = dir.to_path_buf();
         let under_planned = plan.changes.iter().any(
@@ -174,7 +180,7 @@ fn place(host: &Host<'_>, levels: &[&Path], plan: &mut TargetPlan) -> Result<(),
 }
 
 /// A file Velatura creates and owns, with `content` in it.
-fn own(
+pub(crate) fn own(
     host: &Host<'_>,
     state: &State,
     replace_changed: bool,
@@ -211,7 +217,7 @@ fn own(
 
 /// The user's file `conf`, with Velatura's marked block holding `body`.
 /// Gives the file as it stands and as it would be after.
-fn connect(
+pub(crate) fn connect(
     host: &Host<'_>,
     state: &State,
     (instance, block): (&str, &str),
@@ -496,7 +502,7 @@ pub fn plan_tmux(
 /// Velatura's under `dir`. An app that gets no line in a file of the
 /// user's still gets its first change only when that is agreed to, so a
 /// run with no one present never starts theming an app by itself.
-fn first_time(state: &State, instance: &str, dir: &Path) -> bool {
+pub(crate) fn first_time(state: &State, instance: &str, dir: &Path) -> bool {
     let ours = state
         .owned
         .keys()
@@ -1357,6 +1363,7 @@ pub fn plan(
         STARSHIP => plan_starship(host, env, theme, state),
         PTYXIS => plan_ptyxis(host, env, theme, state, replace_changed),
         TEXT_EDITOR => plan_text_editor(host, theme, state, replace_changed),
+        FIREFOX => crate::firefox::plan_firefox(host, env, theme, state, replace_changed),
         ICONS => crate::icon_set::plan_icons(host, env, theme, state, !opts.unattended),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(

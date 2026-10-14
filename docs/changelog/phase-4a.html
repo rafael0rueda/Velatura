@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4a – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 4a – Firefox</h1>
+<p class="lead">Branch <code>phase-4a-firefox</code>. Completed 2026-10-14. The first of five slices of Phase 4 (<a href="../decisions.html#d59">D59</a>). Its exit condition: Firefox passes the same transaction tests as the other targets, and a real Firefox draws its window in the theme's colours. Both hold.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. Firefox 157 is installed there; its list of profiles was read, and the stylesheets inside the program were looked at. Nothing was written into <code>~/.mozilla</code>. Everything else ran in throw-away home folders, with a headless Firefox of their own.</div>
+
+<h2>What looking at Firefox showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>How does Firefox colour its own window?</td><td>From design variables declared on the root of the window: <code>--toolbox-background-color</code> for the tab strip, <code>--toolbar-background-color</code>, <code>--toolbar-field-background-color</code>, <code>--panel-background-color</code> and so on. On Linux their defaults come from GTK's header bar and window colours. A Firefox theme sets the same ones through a map Firefox keeps.</td></tr>
+<tr><td>Does a stylesheet in <code>userChrome.css</code> win over Firefox's own?</td><td>Only with <code>!important</code>: it is a user stylesheet, and the cascade gives Firefox's ordinary declarations the last word over a user's. With it, the variables win over Firefox's defaults and over a Firefox theme.</td></tr>
+<tr><td>Which profile does Firefox open?</td><td>The one <code>installs.ini</code> names for its installation. Here that is <code>w6hrzc8i.default-release</code>, while <code>profiles.ini</code> marks another, older one <code>Default=1</code>: going by that mark alone would have themed a profile Firefox never opens.</td></tr>
+<tr><td>Can "Firefox is running" be told reliably?</td><td>No. Its lock file here pointed at a process that had ended two days earlier. Waiting for Firefox to close would have kept the schedule from reaching it most of the time (<a href="../decisions.html#d60">D60</a>).</td></tr>
+<tr><td>Can a test ask Firefox what it drew?</td><td>Yes. Started headless with Marionette, Firefox answers questions asked in its own window's context: the colour each part is drawn in, and each variable's value.</td></tr>
+</table></div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>A part of its own, off until turned on:</strong> Firefox, on Apps &amp; Desktop under Apps, marked as unofficial; <code>firefox</code> in the command. Its first change needs agreement, as Flatpak Apps' does: the profile is the user's, and a scheduled switch never starts theming Firefox by itself. After that it follows every apply and switch.</li>
+<li><strong>Three things in the profile Firefox opens by default:</strong> a stylesheet of Velatura's own, <code>chrome/velatura.css</code>; a marked block at the top of <code>chrome/userChrome.css</code> that imports it, since an import has to come before every rule; and a marked block at the end of <code>user.js</code> that turns on <code>toolkit.legacyUserProfileCustomizations.stylesheets</code>, without which Firefox does not read <code>userChrome.css</code>. Rules and lines of the user's in both files stay where they are, through apply and undo.</li>
+<li><strong>The stylesheet</strong> sets 39 of Firefox's design variables, and the colour scheme, on the root and nothing else: the tab strip, toolbar and its buttons, the address field and its results, menus and panels, the sidebar, and the accent for buttons, focus rings and links.</li>
+<li><strong>Written while Firefox runs.</strong> It reads these files only when it starts and never writes them; its own <code>prefs.js</code> is never touched. The result says that Firefox shows the change after it is restarted.</li>
+<li><strong>Where profiles are looked for:</strong> <code>~/.mozilla/firefox</code>, then <code>~/.config/mozilla/firefox</code>, then the Flatpak's and the Snap's folders. A profile path that would lead out of Firefox's folder is not followed.</li>
+<li><strong>What is reported:</strong> that other profiles are left as they are; rules of the user's that set the same variables after the import, and a line after the block that turns the preference off, both of which win; and after Undo or Remove Everything, that Firefox keeps the preference in its own settings, with the setting to change in <code>about:config</code> to turn it off.</li>
+<li><strong>Left out, with the reason:</strong> no Firefox; a Firefox that has never been started and so has no profile; a file named <code>velatura.css</code> that is not Velatura's.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Seven transaction tests in <code>tests/firefox.rs</code>, with a profile folder as Firefox leaves it: off until turned on, and with no one present nothing is written until agreed; apply, the same again (nothing), another theme (the stylesheet only), and two undos back to the exact start; the user's rules and lines kept through undo and Restore Original Setup; rules and lines that win are reported; a crash at every step, from a clean home and an applied one; where profiles are found (none, a list that names none or one outside, an older Firefox, the Flatpak's folder, a profile by its whole path); a file of that name that is not Velatura's.</li>
+<li>Unit tests for reading Firefox's ini files, for profile paths that may only lead down, and for telling a variable from a longer one with the same start. A block test for the import at the top and the preference at the end.</li>
+<li>A golden file per bundled theme; a check that the output is only important declarations on the root; damaged theme files rendered without anything but colours reaching it.</li>
+<li>A test that every variable is one Firefox's own stylesheets read, against a list taken from Firefox 157 by <code>scripts/firefox-variables.sh</code>.</li>
+<li>In the gate, against a real Firefox: <code>scripts/firefox-accept.sh</code> has the command apply Ember in a throw-away home, starts Firefox headless on that profile, and asks it for the colour of the window, the tab strip and the toolbar, and for the value of each variable. After Undo the three files must be gone and the toolbar drawn in Firefox's own colour. Without the line in <code>user.js</code> the check fails, as it should. CI installs Firefox on the two newest Fedora releases.</li>
+<li>196 tests in all. The translation template has 392 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>The default profile only</strong>, not "each chosen profile" (<a href="../decisions.html#d60">D60</a>, accepted by the owner on 2026-10-14).</li>
+<li><strong>Written while Firefox runs</strong>, where the plan said nothing is written then (<a href="../decisions.html#d60">D60</a>, accepted by the owner on 2026-10-14).</li>
+<li><strong>Off until turned on</strong>, which the plan did not say (<a href="../decisions.html#d60">D60</a>, accepted by the owner on 2026-10-14).</li>
+<li><strong>Phase 4 is in five slices</strong>, and releases are on GitHub only (<a href="../decisions.html#d59">D59</a>).</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>Not looked at by a person.</strong> Firefox was asked what it drew, headless; how the window reads, in a real session and next to the rest of the desktop, needs a person. That is part of the owner's full test of the app.</li>
+<li><strong>Two versions checked:</strong> Firefox 157 on the owner's machine and Firefox 158 in the Fedora 44 container, which both drew their windows in the theme's colours. CI checks the Firefox of Fedora 44 and 45 from now on; the list of variables was taken from 157. Firefox renames variables now and then: a renamed one stops working without an error, and shows up as a failing test once a new list is taken.</li>
+<li><strong>Web pages keep their own colours.</strong> Only Firefox's window is themed, not pages, Firefox's own pages such as the new tab page included.</li>
+<li><strong>Several Firefox installations</strong> (release and Nightly, say) share one list of profiles; the first one listed is the one themed.</li>
+<li><strong>The Flatpak and Snap folders</strong> were tested in throw-away homes only, not with a real Flatpak or Snap Firefox.</li>
+</ul>
+</main>
+</body>
+</html>

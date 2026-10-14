@@ -589,6 +589,9 @@ msgstr "Incluido en la próxima aplicación"
 msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
 msgstr "Da a las carpetas y a otros iconos destacados del tema de iconos en uso el color de acento del tema"
 
+msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
+msgstr "Da a la ventana de Firefox los colores del tema, mediante una hoja de estilo en su perfil predeterminado"
+
 msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr "Permite que todas las aplicaciones Flatpak lean las dos carpetas de configuración de GTK, para que les lleguen los colores"
 
@@ -600,6 +603,9 @@ msgstr "Configurado, pero sin efecto"
 
 msgid "Unofficial: may stop working after a GNOME update"
 msgstr "No oficial: puede dejar de funcionar tras una actualización de GNOME"
+
+msgid "Unofficial: may stop working after a Firefox update"
+msgstr "No oficial: puede dejar de funcionar tras una actualización de Firefox"
 
 msgid "_Remove Everything Velatura Added"
 msgstr "_Quitar todo lo que añadió Velatura"
@@ -838,6 +844,9 @@ msgstr "Ptyxis"
 msgid "Text Editor"
 msgstr "Editor de textos"
 
+msgid "Firefox"
+msgstr "Firefox"
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr "Aplicaciones (GTK 4 y libadwaita)"
 
@@ -952,6 +961,10 @@ msgid "Add a marked block with Velatura's palette at the top of {1}"
 msgstr "Añadir un bloque marcado con la paleta de Velatura al principio de {1}"
 
 #, rust-format
+msgid "Add a marked block with one line at the top of {1}"
+msgstr "Añadir un bloque marcado con una línea al principio de {1}"
+
+#, rust-format
 msgid "Add a marked block with one line at the end of {1}"
 msgstr "Añadir un bloque marcado con una línea al final de {1}"
 
@@ -1032,6 +1045,9 @@ msgstr "Se omite: {1} contiene un error, así que no se le añade nada"
 msgid "Left out: {1} already chooses a palette, and its prompt is written for the names of that one. Velatura leaves that choice alone"
 msgstr "Se omite: {1} ya elige una paleta, y su indicador está escrito para los nombres de esa. Velatura no cambia esa elección"
 
+msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
+msgstr "Se omite: Firefox aún no tiene perfil. Abra Firefox una vez y vuelva a aplicar"
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr "Se omite: las aplicaciones antiguas solo se pueden recolorear con el tema adw-gtk3, que no está instalado. Se puede instalar sin permisos de administrador en ~/.local/share/themes, o con el paquete adw-gtk3-theme"
 
@@ -1067,6 +1083,15 @@ msgstr "Si las ventanas abiertas de Ptyxis conservan los colores anteriores, ci�
 
 msgid "Apps that are already open keep their colors until reopened"
 msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
+
+msgid "Firefox shows the change after it is restarted"
+msgstr "Firefox muestra el cambio después de reiniciarse"
+
+msgid "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are"
+msgstr "Solo el perfil que Firefox abre de forma predeterminada recibe el tema. Sus otros perfiles se dejan como están"
+
+msgid "Firefox goes on reading the userChrome.css file of the profile. To turn that off, set toolkit.legacyUserProfileCustomizations.stylesheets to false in about:config"
+msgstr "Firefox sigue leyendo el archivo userChrome.css del perfil. Para desactivarlo, ponga toolkit.legacyUserProfileCustomizations.stylesheets en false en about:config"
 
 #, rust-format
 msgid "{1} is a link. The change is written to {2}"

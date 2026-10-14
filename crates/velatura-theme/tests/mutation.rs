@@ -144,6 +144,19 @@ fn damaged_theme_files_never_panic_and_never_produce_bad_output() {
                         "seed {seed}: {line:?}"
                     );
                 }
+                for line in velatura_theme::firefox::render(&r).lines().skip(2) {
+                    let ok = matches!(line, ":root {" | "}")
+                        || line
+                            .strip_prefix("  ")
+                            .and_then(|l| l.strip_suffix(" !important;"))
+                            .and_then(|l| l.split_once(": "))
+                            .is_some_and(|(name, value)| {
+                                name.bytes().all(|b| b.is_ascii_lowercase() || b == b'-')
+                                    && (Color::parse(value).is_ok()
+                                        || matches!(value, "dark" | "light"))
+                            });
+                    assert!(ok, "seed {seed}: {line:?}");
+                }
                 for line in gtk::render(&r).lines().skip(2) {
                     assert!(
                         line.starts_with("@define-color ") && line.ends_with(';'),
