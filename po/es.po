@@ -586,6 +586,9 @@ msgstr "Con el tema, y fuera de la próxima aplicación"
 msgid "Included in the next apply"
 msgstr "Incluido en la próxima aplicación"
 
+msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
+msgstr "Da a las carpetas y a otros iconos destacados del tema de iconos en uso el color de acento del tema"
+
 msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr "Permite que todas las aplicaciones Flatpak lean las dos carpetas de configuración de GTK, para que les lleguen los colores"
 
@@ -788,6 +791,12 @@ msgstr[0] "Crea {n} archivo."
 msgstr[1] "Crea {n} archivos."
 
 #, rust-format
+msgid "Recolors {n} icon in a set of Velatura's own."
+msgid_plural "Recolors {n} icons in a set of Velatura's own."
+msgstr[0] "Recolorea {n} icono en un conjunto propio de Velatura."
+msgstr[1] "Recolorea {n} iconos en un conjunto propio de Velatura."
+
+#, rust-format
 msgid "Updates {n} file made by Velatura."
 msgid_plural "Updates {n} files made by Velatura."
 msgstr[0] "Actualiza {n} archivo hecho por Velatura."
@@ -847,6 +856,9 @@ msgstr "Aplicaciones Flatpak"
 msgid "Icons, Cursor, Wallpaper and Fonts"
 msgstr "Iconos, cursor, fondo de pantalla y tipografías"
 
+msgid "Recolored Icons"
+msgstr "Iconos recoloreados"
+
 msgid "Changes"
 msgstr "Cambios"
 
@@ -894,6 +906,14 @@ msgstr "Ningún tema instalado tiene ese nombre"
 
 msgid "A font is written as its name and a size, for example Adwaita Sans 11"
 msgstr "Una tipografía se escribe con su nombre y un tamaño, por ejemplo Adwaita Sans 11"
+
+#, rust-format
+msgid "Create the icon set {1} with {2} recolored icons"
+msgstr "Crear el conjunto de iconos {1} con {2} iconos recoloreados"
+
+#, rust-format
+msgid "Remove the icon set {1}, made by Velatura for other colors ({2} icons)"
+msgstr "Quitar el conjunto de iconos {1}, hecho por Velatura para otros colores ({2} iconos)"
 
 #, rust-format
 msgid "Create the folder {1}"
@@ -991,6 +1011,14 @@ msgstr "Se omite: la barra superior y la vista de actividades se recolorean medi
 #, rust-format
 msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
 msgstr "Se omite: Velatura no se ha comprobado con GNOME Shell {1}, así que la barra superior y la vista de actividades se dejan como están. Para darles el tema de todos modos: velatura apply <tema> --only gnome:shell"
+
+#, rust-format
+msgid "Left out: the icons of {1} cannot be recolored. They have no color of their own to replace, or are pictures, not drawings"
+msgstr "Se omite: los iconos de {1} no se pueden recolorear. No tienen un color propio que sustituir, o son imágenes, no dibujos"
+
+#, rust-format
+msgid "Left out: the icon theme {1} has more marked icons than a recolored set may hold"
+msgstr "Se omite: el tema de iconos {1} tiene más iconos destacados de los que puede contener un conjunto recoloreado"
 
 #, rust-format
 msgid "Left out: {1} has characters in its name that cannot be written into a settings file"

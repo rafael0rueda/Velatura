@@ -23,6 +23,8 @@ pub struct Counts {
     pub lines_added: usize,
     pub settings: usize,
     pub removed: usize,
+    /// Icons written into a recolored set of Velatura's.
+    pub icons: usize,
 }
 
 pub fn count(plan: &Plan) -> Counts {
@@ -30,6 +32,16 @@ pub fn count(plan: &Plan) -> Counts {
     for change in plan.changes() {
         match change {
             Change::CreateDir { .. } | Change::RemoveDir { .. } => {}
+            // A recolored set is said as icons, not as so many files.
+            Change::Owned {
+                path,
+                content: Some(_),
+                ..
+            } if velatura_engine::icon_set::set_of(path).is_some() => {
+                if !path.ends_with("index.theme") {
+                    c.icons += 1;
+                }
+            }
             Change::Owned { content, pre, .. } => match (content, pre) {
                 (Some(_), None) => c.created += 1,
                 (Some(_), Some(_)) => c.updated += 1,
@@ -64,6 +76,13 @@ pub fn summary(c: Counts) -> String {
     }
     if c.created > 0 {
         parts.push(plural("Creates {n} file.", "Creates {n} files.", c.created));
+    }
+    if c.icons > 0 {
+        parts.push(plural(
+            "Recolors {n} icon in a set of Velatura's own.",
+            "Recolors {n} icons in a set of Velatura's own.",
+            c.icons,
+        ));
     }
     if c.updated > 0 {
         parts.push(plural(

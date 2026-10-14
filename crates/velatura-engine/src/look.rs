@@ -117,6 +117,11 @@ fn themes(host: &Host<'_>, env: Env<'_>, cursors: bool) -> Vec<Choice> {
             if matches!(name, "default" | "hicolor" | "locolor") {
                 continue;
             }
+            // Velatura's own recoloured sets follow the theme; the icon
+            // theme they were made from is the one to pick.
+            if crate::icon_set::made_from(host, name).is_some() {
+                continue;
+            }
             let theme = dir.join(name);
             let index = theme.join("index.theme");
             let is = if cursors {

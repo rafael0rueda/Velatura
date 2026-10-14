@@ -11,6 +11,7 @@ pub mod engine;
 #[cfg(feature = "gio")]
 pub mod gio_settings;
 pub mod host;
+pub mod icon_set;
 pub mod keyfile;
 pub mod library;
 pub mod look;

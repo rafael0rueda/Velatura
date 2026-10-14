@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 3d – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 3d – recolored icons</h1>
+<p class="lead">Branch <code>phase-3d-icons</code>. Completed 2026-10-14. The last of the four slices of Phase 3 (<a href="../decisions.html#d54">D54</a>). Its exit condition is that of Phase 3: each target passes the same transaction tests. Recolored icons do, and so Phase 3 is complete.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. The two vector icon themes installed there, Tela purple and Fluent purple, were read and recolored into throw-away home folders, which point at them, to measure and look. The icon theme in use there, Frost-Aetherius, is made of pictures and is not something this slice recolors (<a href="../decisions.html#d14">D14</a>).</div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>A part of its own, off until turned on:</strong> Recolored Icons, on Apps &amp; Desktop under Desktop, and <code>icons:recolor</code> in the command. Turning it on is the agreement; it then follows every apply and every switch.</li>
+<li><strong>Only the icons that carry the icon theme's own colour.</strong> An icon theme that draws its folders in a colour of its own (the purple of Tela purple, the blue of Adwaita) uses that colour and a few shades of it wherever it marks something. Those shades are found in its folder icons, and each is moved to the theme's accent, keeping how much lighter or darker than the main one it was, so the shading of every icon stays. Every other colour in an icon, and every byte that is not a colour, stays as it was.</li>
+<li><strong>Not touched:</strong> app icons, whose colours are their makers'; symbolic icons, which already follow the text colour; and every icon without the marked colour.</li>
+<li><strong>A small icon theme of Velatura's own.</strong> The recolored icons go into <code>~/.local/share/icons/Velatura-&lt;theme&gt;-&lt;hash&gt;/</code>, whose <code>index.theme</code> names the icon theme it was made from as the one to look in for everything else, and is hidden from lists of icon themes to choose. The desktop's icon theme is set to it, last. Its name changes with what it holds, because GTK loads an icon theme again only when the name it is given changes.</li>
+<li><strong>The icon theme in use is the one recolored.</strong> When it is already a set of Velatura's, the one it was made from is. Choosing another icon theme (Icons, on the Themes page) and applying recolors that one; choosing the original again gives the icons back as they were.</li>
+<li><strong>Sets for earlier colours are taken away</strong> by an apply with someone present, like the Shell's theme folders (<a href="../decisions.html#d29">D29</a>), and come back with Undo. A scheduled switch never takes one away: switching between a daytime and a nighttime theme leaves two sets, and each is used again as it is.</li>
+<li><strong>Left out, with the reason:</strong> an icon theme with no colour of its own (all grey, or made of pictures, which is Phase 4), one that is not installed, one that would need more than 20,000 icons or 48 MB, and everything while High Contrast is on.</li>
+<li><strong>Said in one line.</strong> The preview, the result and History say "Create the icon set … with 852 recolored icons", not one line per icon; the app's confirmation says how many icons it recolors.</li>
+</ul>
+
+<h2>What measuring showed</h2>
+<div class="wrap"><table>
+<tr><th>Icon theme</th><th>Icons in it</th><th>Recolored</th><th>Size of the set</th><th>Time to make it</th></tr>
+<tr><td>Tela purple</td><td>52,072 (31,811 of them links)</td><td>852</td><td>3.7 MB</td><td>0.12 s</td></tr>
+<tr><td>Fluent purple</td><td>69,734 (42,509 links)</td><td>585</td><td>3.5 MB</td><td>0.12 s</td></tr>
+<tr><td>Adwaita</td><td>715</td><td>20</td><td>under 0.1 MB</td><td>under 0.1 s</td></tr>
+</table></div>
+<p>Times are for the release build, writing every file with the same care as any other (D58). Moving a whole set into the backup when its colours are replaced stores its files once: they are kept by content, so switching back and forth adds nothing. After two sets were made and replaced, the backup store held 3.1 MB.</p>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Four tests of the colour logic: the main colour and its shades are found in folder icons and greys are not; the main colour becomes the accent and lighter and darker shades stay lighter and darker; only those colours are replaced, upper and lower case and short forms alike; an <code>index.theme</code> is read only for what is plain, and written back.</li>
+<li>Seven transaction tests with two small fixture icon themes, one drawn and one of pictures, in <code>tests/icon_sets.rs</code>: off until turned on; the marked icons and nothing else; the same colours again change nothing; another theme makes another set and clears the first; two undos back to the exact start; a crash at every step, from a clean home and from an applied one; a switch with no one present never takes a set away; an icon edited in a set is kept with its folder; themes that cannot be recolored; a folder of that name that is not Velatura's; a set is not offered as an icon theme, and the next one is made from its original.</li>
+<li><strong>In the gate, against GTK:</strong> <code>scripts/icons-accept.sh</code> has the command recolor the system's Adwaita in a throw-away session. GTK is asked where it finds icons, the way an app asks: the folder must come from the set, other icons from Adwaita. Every icon in the set must load, and the folder must be drawn in the accent's hue. Undo must put Adwaita back and take the set away. A set whose folder was not recolored fails it.</li>
+<li>181 tests in all. The translation template has 384 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>A set is ordinary files, not a tree with a recipe</strong> (<a href="../decisions.html#d58">D58</a>, accepted by the owner on 2026-10-14). The architecture had generated sets staged in <code>~/.cache</code>, moved into place in one rename, and recorded in backups as a recipe to rebuild from. A set turned out to be a few hundred icons and a few megabytes, not thousands. Written as files of Velatura's own, it uses the transactions, crash recovery and undo that every other target has been tested with, and backups keep its files once each.</li>
+<li><strong>Off until turned on</strong>, like Flatpak Apps: the plan did not say. The icon theme is the user's choice (<a href="../decisions.html#d50">D50</a>).</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>The owner's icon theme is made of pictures</strong> and is left out: recoloring pictures is Phase 4, experimental.</li>
+<li><strong>Not looked at in apps by a person.</strong> GTK was asked where it finds icons, and the folder icons were drawn and looked at for Tela purple and Adwaita. How the icons read in Files, the Shell and other apps needs a person at a real session. GTK 4 apps load the new icon theme when the setting changes; other toolkits may need restarting.</li>
+<li><strong>Turning the part off</strong> leaves the icons as they are, like turning off any other part. To have the original icons back: choose the icon theme again under Icons, or Undo.</li>
+<li><strong>When an icon theme is updated</strong> by its package, a set made from it is made again only if its folder icons or <code>index.theme</code> changed; other icons wait for the next new colours.</li>
+<li><strong>Themes whose marked colour is not in their folder icons</strong> (some draw folders in a fixed colour and mark other things with another) are recolored in their folders' colour only.</li>
+</ul>
+
+</main>
+</body>
+</html>

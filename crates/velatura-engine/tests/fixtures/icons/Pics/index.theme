@@ -1,0 +1,8 @@
+[Icon Theme]
+Name=Pics
+Directories=48/places
+
+[48/places]
+Size=48
+Context=Places
+Type=Fixed

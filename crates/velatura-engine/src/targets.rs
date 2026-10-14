@@ -36,9 +36,10 @@ pub const NVIM: &str = "nvim:default";
 pub const STARSHIP: &str = "starship:default";
 pub const PTYXIS: &str = "ptyxis:default";
 pub const TEXT_EDITOR: &str = "texteditor:default";
+pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 12] = [
+pub const INSTANCES: [&str; 13] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -51,11 +52,12 @@ pub const INSTANCES: [&str; 12] = [
     FLATPAK,
     SHELL,
     APPEARANCE,
+    ICONS,
 ];
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours.
-pub const OPT_IN: [&str; 1] = [FLATPAK];
+pub const OPT_IN: [&str; 2] = [FLATPAK, ICONS];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -79,7 +81,7 @@ pub(crate) fn inside_home(host: &Host<'_>, path: &Path) -> bool {
     }
 }
 
-fn exists(host: &Host<'_>, path: &Path) -> bool {
+pub(crate) fn exists(host: &Host<'_>, path: &Path) -> bool {
     host.fs.kind(path).ok().flatten().is_some()
 }
 
@@ -503,7 +505,7 @@ fn first_time(state: &State, instance: &str, dir: &Path) -> bool {
 }
 
 /// One text setting brought to `wanted`, or the note that it is locked.
-fn set_text(
+pub(crate) fn set_text(
     host: &Host<'_>,
     (schema, key): (&str, &str),
     wanted: &str,
@@ -767,7 +769,7 @@ pub fn plan_starship(
     }
 }
 
-fn high_contrast(host: &Host<'_>) -> bool {
+pub(crate) fn high_contrast(host: &Host<'_>) -> bool {
     matches!(
         host.settings.read(A11Y_SCHEMA, "high-contrast"),
         Ok(Some(s)) if s.effective == "true"
@@ -1355,6 +1357,7 @@ pub fn plan(
         STARSHIP => plan_starship(host, env, theme, state),
         PTYXIS => plan_ptyxis(host, env, theme, state, replace_changed),
         TEXT_EDITOR => plan_text_editor(host, theme, state, replace_changed),
+        ICONS => crate::icon_set::plan_icons(host, env, theme, state, !opts.unattended),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(
             host,
