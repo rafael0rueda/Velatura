@@ -1051,6 +1051,71 @@ pub(crate) fn listed(printed: &str) -> Vec<&str> {
     printed.split('\'').skip(1).step_by(2).collect()
 }
 
+/// The bundle GNOME Shell keeps its own stylesheets in, under one of the
+/// system's data folders. The user's own folder is not looked in: the
+/// Shell does not load its theme from there.
+const SHELL_BUNDLE: &str = "gnome-shell/gnome-shell-theme.gresource";
+/// A bundle larger than this is not the Shell's.
+const MAX_BUNDLE_BYTES: usize = 32 * 1024 * 1024;
+
+/// The installed Shell's own stylesheet for `appearance`, as it ships it.
+/// `None` where it cannot be read, and in Ubuntu's own session, whose
+/// Shell draws with another stylesheet (Yaru).
+pub fn shell_stylesheet(host: &Host<'_>, env: Env<'_>, appearance: Appearance) -> Option<String> {
+    let desktop = env("XDG_CURRENT_DESKTOP").unwrap_or_default();
+    let desktop = desktop.to_string_lossy().to_lowercase();
+    let ubuntu_mode = data_dirs(host, env)
+        .iter()
+        .skip(1)
+        .any(|d| exists(host, &d.join("gnome-shell/modes/ubuntu.json")));
+    if desktop.contains("ubuntu") || (ubuntu_mode && desktop != "gnome") {
+        return None;
+    }
+    let bundle = data_dirs(host, env)
+        .into_iter()
+        .skip(1)
+        .map(|d| d.join(SHELL_BUNDLE))
+        .find(|p| exists(host, p))?;
+    let bytes = read_opt(host, &bundle).ok().flatten()?;
+    if bytes.len() > MAX_BUNDLE_BYTES {
+        return None;
+    }
+    let name = match appearance {
+        Appearance::Dark => "dark",
+        Appearance::Light => "light",
+    };
+    let css = crate::gresource::file(
+        &bytes,
+        &format!("/org/gnome/shell/theme/gnome-shell-{name}.css"),
+    )?;
+    String::from_utf8(css.to_vec()).ok()
+}
+
+/// What the Shell target writes: the Shell's own stylesheet restated in
+/// the theme's colours, or, where that cannot be read, a short list of
+/// its main surfaces, said in a note.
+fn shell_css(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    heavy: bool,
+    plan: &mut TargetPlan,
+) -> Vec<u8> {
+    let restated = shell_stylesheet(host, env, theme.colors.appearance)
+        .and_then(|stock| shell::restate(theme, &stock, heavy));
+    match restated {
+        Some(css) => css.into_bytes(),
+        None => {
+            plan.notes.push(Note::ShellShortList);
+            if heavy {
+                shell::render_for_extension(theme).into_bytes()
+            } else {
+                shell::render(theme).into_bytes()
+            }
+        }
+    }
+}
+
 /// The top bar, overview, menus and dialogs, through the User Themes
 /// extension. The generated theme is a folder holding one stylesheet; its
 /// name changes with the colours, because the Shell reloads a theme only
@@ -1075,7 +1140,7 @@ pub fn plan_shell(
     // Velatura's own extension, when it is on, is the better way in: its
     // stylesheet sits with those of other extensions, not under them.
     if crate::companion::status(host, env).active() {
-        return plan_shell_companion(host, theme, state, clear_old);
+        return plan_shell_companion(host, env, theme, state, clear_old);
     }
     let Some(extension) = data_dirs(host, env)
         .into_iter()
@@ -1103,7 +1168,7 @@ pub fn plan_shell(
     let folder = themes.join(&name);
     let inner = folder.join("gnome-shell");
     let css = inner.join("gnome-shell.css");
-    let wanted = shell::render(theme).into_bytes();
+    let wanted = shell_css(host, env, theme, false, &mut plan);
 
     let current = read_opt(host, &css).ok().flatten();
     let pre = current.as_deref().map(sha256_hex);
@@ -1226,12 +1291,14 @@ fn clear_generated(host: &Host<'_>, state: &State, keep: Option<&Path>, plan: &m
 /// so there is no folder per theme and no setting to flip.
 fn plan_shell_companion(
     host: &Host<'_>,
+    env: Env<'_>,
     theme: &Resolved<'_>,
     state: &State,
     clear_old: bool,
 ) -> TargetPlan {
     let css = crate::companion::stylesheet(host);
-    let wanted = shell::render_for_extension(theme).into_bytes();
+    let mut notes = TargetPlan::new(SHELL);
+    let wanted = shell_css(host, env, theme, true, &mut notes);
     let current = read_opt(host, &css).ok().flatten();
     let pre = current.as_deref().map(sha256_hex);
     if pre.is_some() && !state.owned.contains_key(&path_str(&css)) {
@@ -1240,7 +1307,7 @@ fn plan_shell_companion(
     if !inside_home(host, &host.dirs.data) {
         return TargetPlan::skip(SHELL, Skip::OutsideHome(css));
     }
-    let mut plan = TargetPlan::new(SHELL);
+    let mut plan = notes;
     // Velatura's own data folder is there by the time this runs; only the
     // folder for the stylesheet may have to be made.
     if let Some(dir) = css.parent().filter(|dir| !exists(host, dir)) {

@@ -15,9 +15,12 @@ use std::fmt::Write;
 
 use crate::{Color, Resolved};
 
+mod restate;
+pub use restate::restate;
+
 /// Bumped whenever the rules change. Part of the theme folder's name, so a
 /// new format makes the Shell load the new file.
-pub const FORMAT: u32 = 1;
+pub const FORMAT: u32 = 2;
 
 /// Every selector the overrides use. A test checks each one exists in the
 /// stock stylesheet of every supported Shell version.
@@ -288,7 +291,7 @@ mod tests {
         let a = folder(&Resolved::new(&themes[0], None).unwrap());
         let b = folder(&Resolved::new(&themes[1], None).unwrap());
         assert_ne!(a, b);
-        assert!(a.starts_with("Velatura-") && a.ends_with("-1"));
+        assert!(a.starts_with("Velatura-") && a.ends_with("-2"));
         assert!(a.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-'));
     }
 }

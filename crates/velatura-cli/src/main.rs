@@ -345,6 +345,7 @@ fn note_code(n: &Note) -> &'static str {
         Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
         Note::SettingNeedsSession { .. } => "setting-needs-session",
         Note::UserThemesOff => "user-themes-off",
+        Note::ShellShortList => "shell-short-list",
         Note::ShellExtensionStyles { .. } => "shell-extension-styles",
         Note::KittyAutoTheme { .. } => "kitty-auto-theme",
         Note::KittyReload => "kitty-reload",

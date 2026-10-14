@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Shell acceptance: the velatura command applies a theme in a throw-away
 # home, a headless GNOME Shell with the User Themes extension starts there,
-# and the panel's computed colours are compared with the theme's. A second
+# and the panel's computed colours, and the accent of a checked quick
+# settings toggle, are compared with the theme's. A second
 # theme is then applied while the Shell runs, to check that it reloads.
 #
 # Nothing of the real session is touched: private session bus, private
@@ -45,11 +46,11 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell.log" 2>&1 &
     shell=$!
     status=0
-    wait_for "#110d0f #dbc7b0" "Ember, applied before the Shell started" || status=1
+    wait_for "#110d0f #dbc7b0 #e0914f" "Ember, applied before the Shell started" || status=1
     "$BIN" apply aetherius --only gnome:shell --yes >/dev/null || status=1
-    wait_for "#0d101a #d3d9ee" "Aetherius, applied while the Shell runs" || status=1
+    wait_for "#0d101a #d3d9ee #8493d8" "Aetherius, applied while the Shell runs" || status=1
     "$BIN" undo >/dev/null && "$BIN" undo >/dev/null || status=1
-    wait_for "#000000 #ffffff" "stock colours after undoing both" || status=1
+    wait_for "#000000 #ffffff #3584e4" "stock colours after undoing both" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
     grep -i -E "velatura.*(error|warn)|error.*gnome-shell\.css" "$VEL_OUT/shell.log" && status=1
 
@@ -60,7 +61,7 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     "$BIN" apply ember --only gnome:shell --yes >/dev/null || status=1
     gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell2.log" 2>&1 &
     shell=$!
-    wait_for "#123456 #fedcba" "User Themes loses to another extension" || status=1
+    wait_for "#123456 #fedcba #e0914f" "User Themes loses to another extension" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
 
     rm -f "$VEL_OUT/panel.txt"
@@ -70,11 +71,11 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     "$BIN" apply ember --only gnome:shell --yes >/dev/null || status=1
     gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell3.log" 2>&1 &
     shell=$!
-    wait_for "#110d0f #dbc7b0" "Ember through Velatura'"'"'s extension, over the other one" || status=1
+    wait_for "#110d0f #dbc7b0 #e0914f" "Ember through Velatura'"'"'s extension, over the other one" || status=1
     "$BIN" apply aetherius --only gnome:shell --yes >/dev/null || status=1
-    wait_for "#0d101a #d3d9ee" "Aetherius, the file replaced while the Shell runs" || status=1
+    wait_for "#0d101a #d3d9ee #8493d8" "Aetherius, the file replaced while the Shell runs" || status=1
     "$BIN" undo >/dev/null && "$BIN" undo >/dev/null || status=1
-    wait_for "#123456 #fedcba" "the other extension again after undoing both" || status=1
+    wait_for "#123456 #fedcba #3584e4" "the other extension again after undoing both" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
     grep -i -E "velatura.*(error|warn|critical)" "$VEL_OUT/shell3.log" && status=1
     exit $status' 2>/dev/null

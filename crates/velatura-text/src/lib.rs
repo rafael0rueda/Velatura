@@ -519,6 +519,9 @@ pub fn note(n: &Note, home: &Path) -> String {
                 command
             )
         }
+        Note::ShellShortList => t(
+            "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent",
+        ),
         Note::UserThemesOff => t(
             "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app",
         ),

@@ -1103,6 +1103,9 @@ msgstr ""
 msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
 msgstr ""
 
+msgid "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent"
+msgstr ""
+
 msgid "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app"
 msgstr ""
 

@@ -11,6 +11,7 @@ pub mod engine;
 pub mod firefox;
 #[cfg(feature = "gio")]
 pub mod gio_settings;
+pub mod gresource;
 pub mod host;
 pub mod icon_set;
 pub mod keyfile;
