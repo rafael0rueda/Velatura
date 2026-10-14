@@ -2,3 +2,5 @@ gnome-shell
 gnome-shell-extension-user-theme
 mutter
 mesa-dri-drivers
+ptyxis
+gnome-text-editor

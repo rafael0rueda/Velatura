@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The apps themselves must accept what the renderers produce for them:
-# tmux, Neovim and Starship each load the golden files in a throw-away home.
+# tmux, Neovim, Starship, GtkSourceView and Ptyxis each load the golden files
+# in a throw-away home.
 #
 #   scripts/apps-accept.sh <golden folder>
 #
@@ -57,6 +58,41 @@ if command -v nvim >/dev/null 2>&1; then
     done
 else
     echo "NOT RUN: Neovim is not installed"
+fi
+
+# GtkSourceView, which GNOME Text Editor shows code with, reads the scheme.
+if python3 -c "import gi; gi.require_version('GtkSource', '5')" 2>/dev/null; then
+    python3 "$(dirname "$0")/sourceview_accept.py" "$golden"/*.sourceview.xml
+elif [ -n "${VELATURA_CI:-}" ]; then
+    echo "GtkSourceView 5 and PyGObject are required in CI"; exit 1
+else
+    echo "NOT RUN: GtkSourceView 5 is not available to Python"
+fi
+
+# Ptyxis cannot be asked what colours it shows, and its own import takes
+# any file in without reading it. So the palette is held against one that
+# comes inside the installed Ptyxis: the same sections, and in each set of
+# colours exactly the keys that one has.
+if command -v ptyxis >/dev/null 2>&1 && command -v gresource >/dev/null 2>&1; then
+    theirs="$root/theirs.palette"
+    inside=$(gresource list "$(command -v ptyxis)" | grep '\.palette$' | grep -v ' ' | { grep -i -m1 '/dracula\.palette$' || true; })
+    [ -n "$inside" ] || inside=$(gresource list "$(command -v ptyxis)" | grep '\.palette$' | grep -v ' ' | head -1)
+    gresource extract "$(command -v ptyxis)" "$inside" > "$theirs"
+    shape() { grep -v '^#' "$1" | sed -n 's/^\(\[.*\]\)$/\1/p; /^\[Palette\]/,/^$/d; s/^\([A-Za-z0-9]*\)=#[0-9a-fA-F]\{6\}$/\1/p' | sort; }
+    [ -s "$theirs" ] && [ "$(shape "$theirs" | wc -l)" -ge 40 ] || { echo "no palette of Ptyxis's own to compare with"; exit 1; }
+    for f in "$golden"/*.ptyxis.palette; do
+        # Compared as text: the smaller CI images have no diff.
+        if [ "$(shape "$theirs")" != "$(shape "$f")" ]; then
+            echo "$f does not have the shape of a Ptyxis palette."
+            echo "Ptyxis's own: $(shape "$theirs" | tr '\n' ' ')"
+            echo "this one:     $(shape "$f" | tr '\n' ' ')"
+            exit 1
+        fi
+        grep -q '^Name=' "$f" || { echo "$f has no name"; exit 1; }
+        echo "Ptyxis's own palettes have the shape of $f"
+    done
+else
+    echo "NOT RUN: Ptyxis is not installed"
 fi
 
 if command -v starship >/dev/null 2>&1; then

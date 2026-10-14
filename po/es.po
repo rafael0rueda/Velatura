@@ -823,6 +823,12 @@ msgstr "Neovim"
 msgid "Starship"
 msgstr "Starship"
 
+msgid "Ptyxis"
+msgstr "Ptyxis"
+
+msgid "Text Editor"
+msgstr "Editor de textos"
+
 msgid "Apps (GTK 4 and libadwaita)"
 msgstr "Aplicaciones (GTK 4 y libadwaita)"
 
@@ -849,6 +855,12 @@ msgstr "Tema de aplicaciones antiguas"
 
 msgid "Shell Theme"
 msgstr "Tema de Shell"
+
+msgid "Ptyxis Palette"
+msgstr "Paleta de Ptyxis"
+
+msgid "Text Editor Style"
+msgstr "Estilo del Editor de textos"
 
 msgid "Icons"
 msgstr "Iconos"
@@ -1018,6 +1030,12 @@ msgstr "Neovim muestra el tema cuando su configuración selecciona el esquema de
 
 msgid "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory"
 msgstr "El indicador muestra los colores del tema donde la configuración de Starship los nombra, como accent, surface o directory"
+
+msgid "Only the default profile of Ptyxis is given the palette. For another, choose Velatura under Preferences in Ptyxis"
+msgstr "Solo el perfil predeterminado de Ptyxis recibe la paleta. Para otro, elija Velatura en las Preferencias de Ptyxis"
+
+msgid "If open Ptyxis windows keep the old colors, close and reopen them"
+msgstr "Si las ventanas abiertas de Ptyxis conservan los colores anteriores, ciérrelas y vuelva a abrirlas"
 
 msgid "Apps that are already open keep their colors until reopened"
 msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"

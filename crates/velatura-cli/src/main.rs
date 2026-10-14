@@ -310,6 +310,8 @@ fn note_code(n: &Note) -> &'static str {
         Note::TmuxReload { .. } => "tmux-reload",
         Note::NeovimSelect => "neovim-select",
         Note::StarshipNames => "starship-names",
+        Note::PtyxisChoose => "ptyxis-choose",
+        Note::PtyxisReopen => "ptyxis-reopen",
         Note::GtkRestart => "gtk-restart",
         Note::LinkedFile { .. } => "linked-file",
         Note::Gtk3DarkForced { .. } => "gtk3-dark-forced",
@@ -513,6 +515,20 @@ impl Cx<'_> {
                 "Starship",
                 "official",
                 p(targets::starship_conf(h, &env)),
+            ),
+            (
+                "ptyxis",
+                "Ptyxis",
+                "official",
+                p(h.dirs
+                    .data
+                    .join("org.gnome.Ptyxis/palettes/velatura.palette")),
+            ),
+            (
+                "texteditor",
+                "Text Editor",
+                "official",
+                p(h.dirs.data.join("gtksourceview-5/styles/velatura.xml")),
             ),
             (
                 "flatpak:global",
@@ -1236,6 +1252,11 @@ impl Cx<'_> {
                 for instance in asking {
                     if instance == targets::NVIM {
                         print!("\nAdd Velatura's two files to the Neovim settings folder? [y/N] ");
+                    } else if matches!(instance, targets::PTYXIS | targets::TEXT_EDITOR) {
+                        print!(
+                            "\nGive {} the theme's colors, as a file of Velatura's and one setting? [y/N] ",
+                            text::instance(instance)
+                        );
                     } else {
                         print!(
                             "\nAdd the line to the {} settings file? [y/N] ",

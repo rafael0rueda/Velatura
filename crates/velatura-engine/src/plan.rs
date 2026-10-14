@@ -117,6 +117,12 @@ pub enum Note {
     /// The prompt shows the palette's colours only where its settings name
     /// them.
     StarshipNames,
+    /// Ptyxis has no default profile yet, or has several: the palette is
+    /// there to choose in its preferences for any profile it was not
+    /// given to.
+    PtyxisChoose,
+    /// Ptyxis windows that are open may keep the colours they have.
+    PtyxisReopen,
     /// GTK reads its stylesheet once, when an app starts.
     GtkRestart,
     /// The settings file is a link; the change lands in `real`.

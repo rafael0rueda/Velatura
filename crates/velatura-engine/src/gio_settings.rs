@@ -45,9 +45,20 @@ impl GioSettings {
     ///
     /// `schema` may be `id@/folder`: the schema is then taken from the
     /// compiled schemas in that folder, which is where an extension
-    /// installed for one user keeps its own.
+    /// installed for one user keeps its own. Or `id:/path/`, for a schema
+    /// that has no place of its own in the store and is given one, as each
+    /// profile of a terminal is; the same form `gsettings` takes.
     fn open(schema: &str, key: &str) -> Option<gio::Settings> {
         let default = gio::SettingsSchemaSource::default()?;
+        if let Some((id, path)) = schema.split_once(':') {
+            let found = default.lookup(id, true)?;
+            // GIO aborts on a path that is not one, and on a schema that
+            // has a place of its own being given another.
+            let well_formed = path.starts_with('/') && path.ends_with('/') && !path.contains("//");
+            return (well_formed && found.path().is_none() && found.has_key(key)).then(|| {
+                gio::Settings::new_full(&found, None::<&gio::SettingsBackend>, Some(path))
+            });
+        }
         let found = match schema.split_once('@') {
             Some((id, dir)) => {
                 gio::SettingsSchemaSource::from_directory(dir, Some(&default), false)

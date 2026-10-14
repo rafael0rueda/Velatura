@@ -154,6 +154,8 @@ pub fn instance(id: &str) -> String {
         "tmux:default" => t("tmux"),
         "nvim:default" => t("Neovim"),
         "starship:default" => t("Starship"),
+        "ptyxis:default" => t("Ptyxis"),
+        "texteditor:default" => t("Text Editor"),
         "gtk4:default" => t("Apps (GTK 4 and libadwaita)"),
         "gtk3:default" => t("Older Apps (GTK 3)"),
         "gnome:shell" => t("Top Bar and Overview"),
@@ -171,6 +173,8 @@ fn setting_name(key: &str) -> String {
         "accent-color" => t("Accent Color"),
         "gtk-theme" => t("Legacy Application Theme"),
         "name" => t("Shell Theme"),
+        "palette" => t("Ptyxis Palette"),
+        "style-scheme" => t("Text Editor Style"),
         "icon-theme" => t("Icons"),
         "cursor-theme" => t("Cursor"),
         "picture-uri" => t("Wallpaper"),
@@ -418,6 +422,12 @@ pub fn note(n: &Note, home: &Path) -> String {
         Note::StarshipNames => t(
             "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory",
         ),
+        Note::PtyxisChoose => t(
+            "Only the default profile of Ptyxis is given the palette. For another, choose Velatura under Preferences in Ptyxis",
+        ),
+        Note::PtyxisReopen => {
+            t("If open Ptyxis windows keep the old colors, close and reopen them")
+        }
         Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
         Note::LinkedFile { path: p, real } => tf!(
             "{1} is a link. The change is written to {2}",
@@ -806,6 +816,7 @@ mod tests {
                 "tmux",
                 "Neovim",
                 "Starship",
+                "Ptyxis",
                 "General",
                 "Cursor",
                 "Error",
