@@ -1226,12 +1226,12 @@ pub fn plan_shell(
             .filter(|uuid| **uuid != USER_THEMES)
             .filter(|uuid| {
                 data_dirs(host, env).iter().any(|d| {
-                    exists(
-                        host,
-                        &d.join("gnome-shell/extensions")
-                            .join(uuid)
-                            .join("stylesheet.css"),
-                    )
+                    let sheet = d
+                        .join("gnome-shell/extensions")
+                        .join(uuid)
+                        .join("stylesheet.css");
+                    crate::icon_set::read_capped(host, &sheet, 1024 * 1024)
+                        .is_some_and(|css| colors_shell(&String::from_utf8_lossy(&css)))
                 })
             })
             .map(|uuid| (*uuid).to_owned())
@@ -1242,6 +1242,71 @@ pub fn plan_shell(
         }
     }
     plan
+}
+
+/// True if an extension's stylesheet colours the Shell's own surfaces: a
+/// rule that starts with the top bar, a menu, quick settings, the
+/// calendar, a notification, the overview's parts or a pop-up, and sets a
+/// colour. Rules for the extension's own widgets, or that apply only under
+/// a class of its own (an option switched on), do not count: they leave
+/// the theme alone.
+pub fn colors_shell(css: &str) -> bool {
+    const SURFACES: [&str; 15] = [
+        "#panel",
+        ".panel-button",
+        ".popup-menu",
+        ".quick-settings",
+        ".quick-toggle",
+        ".calendar",
+        ".message",
+        "#overviewGroup",
+        "#dash",
+        ".dash-background",
+        ".osd-window",
+        ".switcher-list",
+        ".modal-dialog",
+        ".search-entry",
+        ".candidate-popup",
+    ];
+    let mut text = String::with_capacity(css.len());
+    let mut rest = css;
+    while let Some(at) = rest.find("/*") {
+        text.push_str(&rest[..at]);
+        rest = rest[at + 2..]
+            .find("*/")
+            .map_or("", |end| &rest[at + 2 + end + 2..]);
+    }
+    text.push_str(rest);
+    let colours = |body: &str| {
+        body.split(';').any(|d| {
+            d.split_once(':').is_some_and(|(p, _)| {
+                matches!(
+                    p.trim(),
+                    "color" | "background" | "background-color" | "border" | "border-color"
+                )
+            })
+        })
+    };
+    let mut rest = text.as_str();
+    while let Some(open) = rest.find('{') {
+        let Some(close) = rest[open..].find('}').map(|c| open + c) else {
+            break;
+        };
+        let (selectors, body) = (&rest[..open], &rest[open + 1..close]);
+        let starts_on_surface = selectors.split(',').any(|s| {
+            let s = s.trim();
+            SURFACES.iter().any(|m| {
+                s.strip_prefix(m).is_some_and(|after| {
+                    !after.starts_with(|c: char| c.is_alphanumeric() || c == '-' || c == '_')
+                })
+            })
+        });
+        if starts_on_surface && colours(body) {
+            return true;
+        }
+        rest = &rest[close + 1..];
+    }
+    false
 }
 
 /// Shell stylesheets Velatura wrote for an earlier theme, or for the other
@@ -1505,4 +1570,29 @@ pub fn other_tools(host: &Host<'_>) -> Vec<OtherTool> {
         }
     }
     found
+}
+
+#[cfg(test)]
+mod tests {
+    use super::colors_shell;
+
+    #[test]
+    fn only_rules_that_start_on_a_shell_surface_and_set_a_colour_count() {
+        assert!(colors_shell(
+            "#panel.kanagawa-panel { background-color: #0d101a; }"
+        ));
+        assert!(colors_shell(
+            ".quick-settings .icon-button:hover, .x { color: red }"
+        ));
+        assert!(colors_shell("a{}\n.calendar { border: 1px solid #fff; }"));
+        assert!(!colors_shell("#panel { height: 2em; }"), "no colour");
+        assert!(!colors_shell(
+            ".my-option #panel { background-color: red; }"
+        ));
+        assert!(!colors_shell("#panelish, .popup-menu-x { color: red; }"));
+        assert!(!colors_shell(
+            "/* #panel { color: red; } */ .widget { color: red; }"
+        ));
+        assert!(!colors_shell("#panel { color: red; "), "not closed");
+    }
 }

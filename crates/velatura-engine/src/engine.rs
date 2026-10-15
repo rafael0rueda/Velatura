@@ -773,7 +773,10 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
         let shadow = t.notes.iter().find(|n| {
             matches!(
                 n,
-                Note::Override { .. } | Note::KittyAutoTheme { .. } | Note::UserThemesOff
+                Note::Override { .. }
+                    | Note::KittyAutoTheme { .. }
+                    | Note::UserThemesOff
+                    | Note::ShellExtensionStyles { .. }
             )
         });
         let state = match (&t.skipped, shadow) {

@@ -593,7 +593,7 @@ pub fn note(n: &Note, home: &Path) -> String {
             "The User Themes extension is turned off, so the top bar keeps its colors. Turn it on in the Extensions app",
         ),
         Note::ShellExtensionStyles { names } => tf!(
-            "These extensions bring their own colors, which win over the theme where they apply: {1}",
+            "These extensions color the top bar or its menus themselves, which wins over the theme there: {1}. Velatura's own extension wins over them: velatura extension install",
             clean_text(&names.join(", "), 400)
         ),
         Note::Gtk3DarkForced { path: p } => tf!(
