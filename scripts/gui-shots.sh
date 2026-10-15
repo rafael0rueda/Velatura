@@ -5,7 +5,7 @@
 #
 #   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--flow]
 #                        [--large-text] [--high-contrast] [--scheduled] [--editor] [--lang es]
-#                        [--import <file>]
+#                        [--import <file>] [--template <file>]
 #
 # --applied applies a theme in the sandbox first, so the views show a
 # themed state and a backup. --flow then drives a real apply through the
@@ -17,16 +17,18 @@
 # it, and saves it.
 # --import <file> imports a base16, base24 or Kitty file through the app's
 # question, choosing another accent than the usual one.
+# --template <file> puts a template of the user's in the sandbox first.
 # --lang es runs the app in Spanish.
 # Needs mutter and dbus-run-session.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$(realpath -m "${1:?output folder}"); shift
-size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""; import=""; want_import=""
+size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""; import=""; want_import=""; template=""; want_template=""
 for a in "$@"; do
     [ -n "$want_lang" ] && { lang=$a; want_lang=""; continue; }
     [ -n "$want_import" ] && { import=$(realpath "$a"); want_import=""; continue; }
-    case "$a" in --import) want_import=1 ;; --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
+    [ -n "$want_template" ] && { template=$(realpath "$a"); want_template=""; continue; }
+    case "$a" in --template) want_template=1 ;; --import) want_import=1 ;; --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
 done
 cargo build -q -p velatura-gui -p velatura-cli
 root=$(mktemp -d)
@@ -38,6 +40,10 @@ chmod 700 "$root/run"
 printf 'font_size 12\n' > "$root/home/.config/kitty/kitty.conf"
 printf 'font-size = 12\n' > "$root/home/.config/ghostty/config"
 printf '/* mine */\n' > "$root/home/.config/gtk-4.0/gtk.css"
+if [ -n "$template" ]; then
+    mkdir -p "$root/home/.local/share/velatura/templates"
+    cp "$template" "$root/home/.local/share/velatura/templates/"
+fi
 bin=$PWD/target/debug
 if [ -n "$scheduled" ]; then
     mkdir -p "$root/home/.local/bin" "$root/bin"

@@ -567,18 +567,6 @@ msgstr ""
 msgid "Not Fully Rolled Back"
 msgstr ""
 
-msgid "Desktop"
-msgstr ""
-
-msgid "Terminals"
-msgstr ""
-
-msgid "Command-Line Apps"
-msgstr ""
-
-msgid "Apps"
-msgstr ""
-
 msgid "Themed"
 msgstr ""
 
@@ -607,6 +595,24 @@ msgid "Unofficial: may stop working after a GNOME update"
 msgstr ""
 
 msgid "Unofficial: may stop working after a Firefox update"
+msgstr ""
+
+msgid "Desktop"
+msgstr ""
+
+msgid "Terminals"
+msgstr ""
+
+msgid "Command-Line Apps"
+msgstr ""
+
+msgid "Apps"
+msgstr ""
+
+msgid "Templates"
+msgstr ""
+
+msgid "Files written from the templates in ~/.local/share/velatura/templates. Added and removed with: velatura template"
 msgstr ""
 
 msgid "_Remove Everything Velatura Added"
@@ -873,6 +879,10 @@ msgstr ""
 msgid "Changes"
 msgstr ""
 
+#, rust-format
+msgid "{1} (template)"
+msgstr ""
+
 msgid "Legacy Application Theme"
 msgstr ""
 
@@ -1050,7 +1060,52 @@ msgstr ""
 msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
 msgstr ""
 
+#, rust-format
+msgid "Left out: the template cannot be used: {1}"
+msgstr ""
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
+msgstr ""
+
+msgid "the file is too large for a template"
+msgstr ""
+
+#, rust-format
+msgid "it is not a template file ({1})"
+msgstr ""
+
+msgid "it was written for a newer Velatura"
+msgstr ""
+
+#, rust-format
+msgid "it has no {1}"
+msgstr ""
+
+#, rust-format
+msgid "its output, {1}, is not a file under ~/.config/ or ~/.local/share/"
+msgstr ""
+
+#, rust-format
+msgid "its output, {1}, is in a folder that programs are started from, or is named like a file of Velatura's own"
+msgstr ""
+
+#, rust-format
+msgid "another template already writes {1}"
+msgstr ""
+
+#, rust-format
+msgid "line {1}: no color is called {2}"
+msgstr ""
+
+#, rust-format
+msgid "line {1}: no format is called {2}. The formats are hex, bare, rgb and float"
+msgstr ""
+
+#, rust-format
+msgid "line {1}: appearance is a word, dark or light, and takes no format"
+msgstr ""
+
+msgid "it names no color"
 msgstr ""
 
 #, rust-format

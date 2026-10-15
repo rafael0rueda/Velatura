@@ -20,6 +20,7 @@ pub mod ptyxis;
 pub mod shell;
 pub mod sourceview;
 pub mod starship;
+pub mod template;
 pub mod tmux;
 
 pub use accent::{Accent, nearest_accent};

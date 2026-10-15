@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4c – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 4c – templates</h1>
+<p class="lead">Branch <code>phase-4c-templates</code>. Completed 2026-10-14. The third of five slices of Phase 4 (<a href="../decisions.html#d59">D59</a>). Its exit condition, that a template of the user's applies, undoes and recovers like a built-in target, holds: it passes the same transaction tests, a crash at every step included.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. Everything ran in throw-away home folders.</div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>Templates for apps Velatura does not know</strong> (<a href="../decisions.html#d62">D62</a>). A template is a TOML file in <code>~/.local/share/velatura/templates/</code> with a name, the file its output goes to, and its text. At every apply and switch the text is written out with the theme's colours put in. See <a href="../targets.html#templates">Theming targets</a> for the whole of it, with an example.</li>
+<li><strong>Placeholders from a closed set:</strong> <code>{{name}}</code> or <code>{{name|format}}</code>, for the interface roles, the sixteen terminal colours, the code, diff and diagnostic roles, and the word <code>dark</code> or <code>light</code>; in four formats, <code>hex</code>, <code>bare</code>, <code>rgb</code> and <code>float</code>. No conditions or loops, and a substitution of Velatura's own, as the architecture asked: no template engine.</li>
+<li><strong>Mistakes are caught before anything is written:</strong> a misspelt name or format, with its line; a template that names no colour; an output that cannot be used; a newer format; two templates that would write one file. The command says why when adding one, the app and <code>velatura template</code> say why for one already there, and an apply leaves it out with the reason.</li>
+<li><strong>Where outputs may go,</strong> as the owner chose: a file under <code>~/.config/</code> or <code>~/.local/share/</code>, outside the folders programs are started from (autostart entries, systemd and environment settings, app launchers, session bus services, Shell extensions, file manager scripts, Flatpak overrides), outside Velatura's own, and never named like a file of Velatura's. Velatura creates and owns the file, makes the folders it needs, and never writes over a file it did not make.</li>
+<li><strong>Like any part:</strong> a template takes part once added, and its first write is made only when agreed to, so a scheduled switch never starts one by itself. It has its switch on Apps &amp; Desktop, under Templates, with where it writes; <code>--only template</code> or <code>--except template:&lt;id&gt;</code> in the command. Backups, Undo, History and Remove Everything treat its file as any other of Velatura's.</li>
+<li><strong>In the command:</strong> <code>velatura template add &lt;file&gt;</code> checks a template and copies it in, with <code>--as</code>, <code>--replace</code> and <code>--preview</code>; <code>velatura template</code> lists them (also as JSON); <code>velatura template remove &lt;id&gt;</code> takes one out, keeping a copy to add again.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Five tests of the template language: every placeholder in every format; every name can be used; what is not a placeholder is text (<code>{{1, 2}}</code> in Lua, a brace across a line); mistakes refused with their line; nothing of a theme file but colours reaches the output.</li>
+<li>Six transaction tests in <code>tests/templates.rs</code>: a template takes part, is agreed to the first time and not after, applies, applies again with nothing to do, takes another theme, and undoes to the exact start; a crash at every step, from a clean home and from an applied one; turned off, removed and kept, and its file taken away by Remove Everything; a file that is not Velatura's is never written over; twenty-one outputs, allowed and refused; templates that cannot be used are left out with their reason, and adding refuses the same.</li>
+<li>In the app, the Templates group was looked at in a throw-away session with a template in it. <code>scripts/gui-shots.sh</code> takes <code>--template &lt;file&gt;</code> for that.</li>
+<li>220 tests in all. The translation template has 408 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>Placeholders are <code>{{name|format}}</code></strong>, not the architecture's <code>{role|format}</code>: a single brace is too common in the files templates are for (CSS, Lua, JSON), and a double one of a placeholder's shape is rare.</li>
+<li><strong>The parts are no longer a fixed list.</strong> Templates come and go, so the engine's parts are the built-in ones and then one per template.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>No templates come with Velatura,</strong> and none from other projects (base16 or pywal templates) are read: their placeholders are of other kinds.</li>
+<li><strong>Adding and removing in the app</strong>, and a preview of a template's output there, were left out by the owner's choice: the command does both.</li>
+<li><strong>Connecting the output</strong> to its app, by an include line in its settings, is the user's to do, and Velatura does not reload the app.</li>
+<li><strong>A template's text is trusted as the user trusts its source:</strong> Velatura decides where it may go, not what it says.</li>
+</ul>
+</main>
+</body>
+</html>

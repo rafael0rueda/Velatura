@@ -45,6 +45,9 @@ Usage:
   velatura theme export <theme> [<file>]   write a theme's file, or print it
   velatura theme resolve <theme>   print a theme with every color written out
   velatura theme remove <theme>    take one of your themes out of the library
+  velatura template                your templates, and where each one writes
+  velatura template add <file>     check a template and add it
+  velatura template remove <id>    take a template out (a copy is kept)
   velatura look                    icons, cursor, wallpaper and fonts in use
   velatura look list <what>        what is installed: icons, cursor or wallpaper
   velatura look set <what> <name>  choose one; also font, document-font, monospace-font
@@ -65,10 +68,10 @@ Options:
   --strict              with validate: treat warnings as errors
   --day <HH:MM>         with schedule set: when the daytime theme starts
   --night <HH:MM>       with schedule set: when the nighttime theme starts
-  --as <id>             with theme import: store it under another id
+  --as <id>             with theme import or template add: store it under another id
   --accent <color>      with theme import of a base16, base24 or Kitty file:
                         which of its colors is the accent, by name or #rrggbb
-  --replace             with theme import or export: replace what is there
+  --replace             with theme import or export, or template add: replace what is there
   --again               with switch auto: act even if this part of the day was done
   --json                machine-readable output
   -h, --help            this text
@@ -165,7 +168,10 @@ pub fn instance(id: &str) -> String {
         "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),
         "icons:recolor" => t("Recolored Icons"),
         "" => t("Changes"),
-        other => other.to_owned(),
+        other => match other.strip_prefix(velatura_engine::templates::PREFIX) {
+            Some(id) => tf!("{1} (template)", clean_text(id, 64)),
+            None => other.to_owned(),
+        },
     }
 }
 
@@ -447,9 +453,55 @@ pub fn skip(why: &Skip, home: &Path) -> String {
         Skip::FirefoxNoProfile => {
             t("Left out: Firefox has no profile yet. Start Firefox once, then apply again")
         }
+        Skip::TemplateInvalid(why) => tf!(
+            "Left out: the template cannot be used: {1}",
+            template_problem(why, home)
+        ),
         Skip::NeedsAdwGtk3 => t(
             "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package",
         ),
+    }
+}
+
+/// Why a template of the user's cannot be used, after "cannot be used:".
+pub fn template_problem(why: &velatura_engine::templates::Invalid, home: &Path) -> String {
+    use velatura_engine::templates::Invalid;
+    use velatura_theme::template::Problem;
+    let _ = home;
+    match why {
+        Invalid::TooLarge | Invalid::Template(Problem::TooLarge) => {
+            t("the file is too large for a template")
+        }
+        Invalid::NotToml(why) => tf!("it is not a template file ({1})", clean_text(why, 200)),
+        Invalid::NewerSchema => t("it was written for a newer Velatura"),
+        Invalid::MissingKey(key) => tf!("it has no {1}", key),
+        Invalid::OutputPlace(output) => tf!(
+            "its output, {1}, is not a file under ~/.config/ or ~/.local/share/",
+            clean_text(output, 120)
+        ),
+        Invalid::OutputForbidden(output) => tf!(
+            "its output, {1}, is in a folder that programs are started from, or is named like a file of Velatura's own",
+            clean_text(output, 120)
+        ),
+        Invalid::OutputTaken(output) => tf!(
+            "another template already writes {1}",
+            clean_text(output, 120)
+        ),
+        Invalid::Template(Problem::UnknownName { line, name }) => tf!(
+            "line {1}: no color is called {2}",
+            line,
+            clean_text(name, 60)
+        ),
+        Invalid::Template(Problem::UnknownFormat { line, format }) => tf!(
+            "line {1}: no format is called {2}. The formats are hex, bare, rgb and float",
+            line,
+            clean_text(format, 60)
+        ),
+        Invalid::Template(Problem::FormatOnWord { line }) => tf!(
+            "line {1}: appearance is a word, dark or light, and takes no format",
+            line
+        ),
+        Invalid::Template(Problem::NoPlaceholder) => t("it names no color"),
     }
 }
 

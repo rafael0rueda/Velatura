@@ -21,4 +21,5 @@ pub mod plan;
 pub mod schedule;
 pub mod store;
 pub mod targets;
+pub mod templates;
 pub mod txn;

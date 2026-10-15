@@ -1523,6 +1523,84 @@ async fn roll_back(ui: &U) {
     }
 }
 
+/// One app or desktop part, or template, with its switch.
+/// `place` is where a template's output goes, said under its name.
+fn part_row(
+    ui: &U,
+    snap: &Snapshot,
+    row: &data::AppRow,
+    title: String,
+    place: Option<&str>,
+) -> adw::SwitchRow {
+    let (subtitle, available) = match &row.state {
+        RowState::Themed if row.included => (tr("Themed"), true),
+        RowState::Themed => (tr("Themed, and left out of the next apply"), true),
+        RowState::Ready if row.included => (tr("Included in the next apply"), true),
+        // Off until turned on, so the row says what turning on does.
+        RowState::Ready if row.instance == targets::ICONS => (
+            tr(
+                "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
+            ),
+            true,
+        ),
+        RowState::Ready if row.instance == targets::FIREFOX => (
+            tr(
+                "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
+            ),
+            true,
+        ),
+        RowState::Ready if row.instance == targets::FLATPAK => (
+            tr(
+                "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",
+            ),
+            true,
+        ),
+        RowState::Ready => (tr("Left out"), true),
+        RowState::Shadowed(note) => (
+            format!(
+                "{}. {}",
+                tr("Set up, but not taking effect"),
+                velatura_text::note(note, &snap.home)
+            ),
+            true,
+        ),
+        RowState::Unavailable(why) => (words::reason(&velatura_text::skip(why, &snap.home)), false),
+    };
+    let unofficial = match row.instance.as_str() {
+        targets::GTK4 | targets::GTK3 | targets::SHELL => {
+            Some(tr("Unofficial: may stop working after a GNOME update"))
+        }
+        targets::FIREFOX => Some(tr("Unofficial: may stop working after a Firefox update")),
+        _ => place.filter(|p| !p.is_empty()).map(str::to_owned),
+    };
+    let switch = adw::SwitchRow::builder()
+        .title(title)
+        .subtitle(match unofficial.filter(|_| available) {
+            Some(unofficial) => format!("{subtitle} · {unofficial}"),
+            None => subtitle,
+        })
+        .subtitle_lines(0)
+        .active(row.included && available)
+        .sensitive(available)
+        .build();
+    let weak = Rc::downgrade(ui);
+    let instance = row.instance.clone();
+    switch.connect_active_notify(move |switch| {
+        let on = switch.is_active();
+        if let Some(ui) = weak.upgrade() {
+            let instance = instance.clone();
+            glib::spawn_future_local(async move {
+                let saved = data::run(move |host| engine::set_included(host, &instance, on)).await;
+                if !matches!(saved, Some(Ok(()))) {
+                    toast(&ui, &tr("The choice could not be saved"));
+                }
+                refresh(&ui).await;
+            });
+        }
+    });
+    switch
+}
+
 fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     let page = adw::PreferencesPage::new();
     let groups = [
@@ -1551,76 +1629,34 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     ];
     for (title, members) in groups {
         let group = adw::PreferencesGroup::builder().title(title).build();
-        for row in snap.rows.iter().filter(|r| members.contains(&r.instance)) {
-            let (subtitle, available) = match &row.state {
-                RowState::Themed if row.included => (tr("Themed"), true),
-                RowState::Themed => (tr("Themed, and left out of the next apply"), true),
-                RowState::Ready if row.included => (tr("Included in the next apply"), true),
-                // Off until turned on, so the row says what turning on does.
-                RowState::Ready if row.instance == targets::ICONS => (
-                    tr(
-                        "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
-                    ),
-                    true,
-                ),
-                RowState::Ready if row.instance == targets::FIREFOX => (
-                    tr(
-                        "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
-                    ),
-                    true,
-                ),
-                RowState::Ready if row.instance == targets::FLATPAK => (
-                    tr(
-                        "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",
-                    ),
-                    true,
-                ),
-                RowState::Ready => (tr("Left out"), true),
-                RowState::Shadowed(note) => (
-                    format!(
-                        "{}. {}",
-                        tr("Set up, but not taking effect"),
-                        velatura_text::note(note, &snap.home)
-                    ),
-                    true,
-                ),
-                RowState::Unavailable(why) => {
-                    (words::reason(&velatura_text::skip(why, &snap.home)), false)
-                }
-            };
-            let unofficial = match row.instance {
-                targets::GTK4 | targets::GTK3 | targets::SHELL => {
-                    Some(tr("Unofficial: may stop working after a GNOME update"))
-                }
-                targets::FIREFOX => Some(tr("Unofficial: may stop working after a Firefox update")),
-                _ => None,
-            };
-            let switch = adw::SwitchRow::builder()
-                .title(velatura_text::instance(row.instance))
-                .subtitle(match unofficial.filter(|_| available) {
-                    Some(unofficial) => format!("{subtitle} · {unofficial}"),
-                    None => subtitle,
-                })
-                .subtitle_lines(0)
-                .active(row.included && available)
-                .sensitive(available)
-                .build();
-            let weak = Rc::downgrade(ui);
-            let instance = row.instance;
-            switch.connect_active_notify(move |switch| {
-                let on = switch.is_active();
-                if let Some(ui) = weak.upgrade() {
-                    glib::spawn_future_local(async move {
-                        let saved =
-                            data::run(move |host| engine::set_included(host, instance, on)).await;
-                        if !matches!(saved, Some(Ok(()))) {
-                            toast(&ui, &tr("The choice could not be saved"));
-                        }
-                        refresh(&ui).await;
-                    });
-                }
-            });
-            group.add(&switch);
+        for row in snap
+            .rows
+            .iter()
+            .filter(|r| members.contains(&r.instance.as_str()))
+        {
+            group.add(&part_row(
+                ui,
+                snap,
+                row,
+                velatura_text::instance(&row.instance),
+                None,
+            ));
+        }
+        page.add(&group);
+    }
+
+    // The user's own templates, shown only when there are some.
+    if !snap.templates.is_empty() {
+        let group = adw::PreferencesGroup::builder()
+            .title(tr("Templates"))
+            .description(tr(
+                "Files written from the templates in ~/.local/share/velatura/templates. Added and removed with: velatura template",
+            ))
+            .build();
+        for (instance, name, place) in &snap.templates {
+            if let Some(row) = snap.rows.iter().find(|r| &r.instance == instance) {
+                group.add(&part_row(ui, snap, row, name.clone(), Some(place)));
+            }
         }
         page.add(&group);
     }
@@ -1963,7 +1999,7 @@ async fn troubleshooting(ui: &U) {
         };
         parts.add(
             &adw::ActionRow::builder()
-                .title(velatura_text::instance(row.instance))
+                .title(velatura_text::instance(&row.instance))
                 .subtitle(state)
                 .subtitle_lines(0)
                 .build(),

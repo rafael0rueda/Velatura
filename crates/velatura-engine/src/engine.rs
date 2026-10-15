@@ -18,6 +18,7 @@ use crate::store::{
     put_blob, read_opt, setting_id,
 };
 use crate::targets::{self, Env};
+use crate::templates;
 use crate::txn::{self, Failure, Rollback, Step};
 
 #[derive(Debug)]
@@ -83,17 +84,31 @@ pub fn plan_apply(
         ..opts.clone()
     };
     let mut plans = Vec::new();
-    for instance in targets::INSTANCES {
-        // Naming a target outright overrides having turned it off.
-        let selected = if opts.only.is_empty() {
+    // Naming a target outright overrides having turned it off.
+    let selected = |instance: &str| {
+        let wanted = if opts.only.is_empty() {
             prefs.takes_part(instance)
         } else {
             matches(instance, &opts.only)
-        } && !matches(instance, &opts.except);
-        plans.push(if selected {
+        };
+        wanted && !matches(instance, &opts.except)
+    };
+    for instance in targets::INSTANCES {
+        plans.push(if selected(instance) {
             targets::plan(instance, host, env, theme, &state, opts)
         } else {
             TargetPlan::skip(instance, Skip::NotSelected)
+        });
+    }
+    // The user's templates come after every built-in part.
+    for (id, entry) in templates::load(host) {
+        let instance = format!("{}{id}", templates::PREFIX);
+        plans.push(match entry {
+            _ if !selected(&instance) => TargetPlan::skip(&instance, Skip::NotSelected),
+            Ok(entry) => {
+                templates::plan_template(host, theme, &state, opts.replace_changed, &entry)
+            }
+            Err(why) => templates::invalid(&id, why),
         });
     }
     let low = theme.colors.ui.fg.contrast(theme.colors.ui.bg) < CONTRAST_FLOOR;
@@ -617,14 +632,25 @@ pub fn window_size(host: &Host<'_>) -> Option<(i32, i32)> {
     Prefs::load(host).ok().and_then(|p| p.window)
 }
 
+/// Every instance there is on this machine: the built-in ones, then one
+/// per template of the user's.
+pub fn instances(host: &Host<'_>) -> Vec<String> {
+    let mut all: Vec<String> = targets::INSTANCES.iter().map(|s| (*s).to_owned()).collect();
+    all.extend(
+        templates::load(host)
+            .into_iter()
+            .map(|(id, _)| format!("{}{id}", templates::PREFIX)),
+    );
+    all
+}
+
 /// Instances left out of future applies: the ones turned off, and the
 /// ones that are off until turned on.
 pub fn excluded(host: &Host<'_>) -> Result<Vec<String>, Error> {
     let prefs = Prefs::load(host)?;
-    Ok(targets::INSTANCES
-        .iter()
+    Ok(instances(host)
+        .into_iter()
         .filter(|i| !prefs.takes_part(i))
-        .map(|i| (*i).to_owned())
         .collect())
 }
 
@@ -703,7 +729,7 @@ pub enum PartState {
 
 #[derive(Clone, Debug)]
 pub struct Part {
-    pub instance: &'static str,
+    pub instance: String,
     pub state: PartState,
     /// False if the user turned it off for future applies.
     pub included: bool,
@@ -728,7 +754,7 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
     };
     // Naming every instance looks past the ones that are turned off.
     let all = ApplyOpts {
-        only: targets::INSTANCES.iter().map(|s| (*s).to_owned()).collect(),
+        only: instances(host),
         ..ApplyOpts::default()
     };
     let Ok(plan) = plan_apply(host, env, &resolved, &all) else {
@@ -736,10 +762,9 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
     };
     let off = excluded(host).unwrap_or_default();
     let mut out = Vec::new();
-    for instance in targets::INSTANCES {
-        let Some(t) = plan.targets.iter().find(|t| t.instance == instance) else {
-            continue;
-        };
+    for t in &plan.targets {
+        let instance = t.instance.clone();
+        let included = !off.contains(&instance);
         let shadow = t.notes.iter().find(|n| {
             matches!(
                 n,
@@ -755,7 +780,7 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
         out.push(Part {
             instance,
             state,
-            included: !off.iter().any(|e| e == instance),
+            included,
         });
     }
     out
