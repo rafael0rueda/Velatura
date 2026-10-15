@@ -345,6 +345,8 @@ fn note_code(n: &Note) -> &'static str {
         Note::PtyxisReopen => "ptyxis-reopen",
         Note::GtkRestart => "gtk-restart",
         Note::FirefoxRestart => "firefox-restart",
+        Note::IconsReopen => "icons-reopen",
+        Note::CursorReopen => "cursor-reopen",
         Note::FirefoxOtherProfiles => "firefox-other-profiles",
         Note::FirefoxPrefStays => "firefox-pref-stays",
         Note::LinkedFile { .. } => "linked-file",

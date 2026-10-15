@@ -198,10 +198,22 @@ pub fn plan_cursors(
         _ => return skip(Skip::ForeignFile(set)),
     }
     if clear_old {
-        clear_other_sets(host, state, &set, &is_cursor_set, &mut plan);
+        clear_other_sets(
+            host,
+            state,
+            &set,
+            &crate::icon_set::recent_sets(host, "cursor-theme"),
+            &is_cursor_set,
+            &mut plan,
+        );
     }
     match crate::targets::set_text(host, (INTERFACE_SCHEMA, "cursor-theme"), &name, &mut plan) {
-        Ok(()) => plan,
+        Ok(()) => {
+            if !plan.changes.is_empty() {
+                plan.notes.push(crate::plan::Note::CursorReopen);
+            }
+            plan
+        }
         Err(why) => skip(why),
     }
 }

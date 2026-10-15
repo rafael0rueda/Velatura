@@ -192,12 +192,19 @@ fn the_marked_icons_are_recolored_in_a_set_of_their_own_and_undone() {
     // The same colours again: nothing.
     assert!(plan(&host, &t[1]).is_empty());
 
-    // Another theme: a set of its own, and the first one taken away.
+    // Another theme: a set of its own, and the first one kept, to be used
+    // again as it is when its colours come back.
     apply(&host, &t[0]);
     let second = icon_theme(&s);
     assert_ne!(second, name);
     assert!(home.icons().join(&second).join("index.theme").exists());
-    assert!(!set.exists(), "the earlier set is cleared");
+    assert!(set.exists(), "the earlier set is kept");
+    let back = plan(&host, &t[1]);
+    let changes: Vec<&Change> = back.changes().collect();
+    assert!(
+        matches!(changes.as_slice(), [Change::Setting { key, .. }] if key == "icon-theme"),
+        "{changes:?}"
+    );
 
     undo(&host);
     assert_eq!(icon_theme(&s), name);
@@ -286,9 +293,38 @@ fn a_switch_with_no_one_present_never_takes_a_set_away() {
         matches!(changes.as_slice(), [Change::Setting { key, .. }] if key == "icon-theme"),
         "{changes:?}"
     );
-    // The next apply with someone present clears what is not in use.
+    // An apply with someone present keeps recent sets too.
     apply(&host, &t[0]);
-    assert!(first.exists() && !second.exists());
+    assert!(first.exists() && second.exists());
+}
+
+/// A bundled theme with another accent: other colours for a set.
+fn tinted(accent: &str) -> Theme {
+    let mut theme = bundled::themes().remove(1);
+    let variant = theme.variants.values_mut().next().unwrap();
+    variant.ui.accent = velatura_theme::Color::parse(accent).unwrap();
+    theme
+}
+
+const ACCENTS: [&str; 5] = ["#e0914f", "#4fa0e0", "#7fc46a", "#c46ab8", "#d4c24a"];
+
+#[test]
+fn the_sets_used_last_are_kept_and_older_ones_cleared() {
+    let home = Home::new();
+    let s = settings("Mini");
+    let host = home.host(&StdFs, &s);
+    let mut names = Vec::new();
+    for accent in ACCENTS {
+        apply(&host, &tinted(accent));
+        names.push(icon_theme(&s));
+    }
+    // The one in use and the three before it; the first is gone.
+    let left: Vec<bool> = names
+        .iter()
+        .map(|n| home.icons().join(n).exists())
+        .collect();
+    assert_eq!(left, [false, true, true, true, true]);
+    assert_eq!(velatura_engine::icon_set::KEPT_SETS, 3);
 }
 
 #[test]
@@ -300,6 +336,10 @@ fn an_icon_edited_in_a_set_is_kept_and_its_folder_with_it() {
     apply(&host, &t[0]);
     let set = home.icons().join(icon_theme(&s));
     fs::write(set.join("16/places/folder.svg"), "<svg/>").unwrap();
+    // Enough other colours after it that its set is no longer a recent one.
+    for accent in &ACCENTS[1..4] {
+        apply(&host, &tinted(accent));
+    }
     let report = apply(&host, &t[1]);
     assert!(
         report
@@ -415,7 +455,8 @@ fn pictures_are_recolored_pixel_by_pixel_and_undone() {
             "index.theme"
         ]
     );
-    assert!(report.notes.is_empty(), "{:?}", report.notes);
+    // Said once: when the recolored icons show.
+    assert_eq!(report.notes, [(ICONS.to_owned(), Note::IconsReopen)]);
     // GTK reads what was written; the folder's body is Ember's accent.
     let folder = png::decode(&fs::read(set.join("48/places/folder.png")).unwrap()).unwrap();
     let original =

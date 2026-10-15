@@ -1212,6 +1212,75 @@ fn error_text(e: &Error) -> String {
     }
 }
 
+/// A page that says Velatura is at work, put up only once the work has
+/// taken long enough to be noticed, so a quick change does not flash it.
+struct Working {
+    ui: U,
+    page: adw::NavigationPage,
+    timer: RefCell<Option<glib::SourceId>>,
+    shown: Rc<Cell<bool>>,
+}
+
+impl Working {
+    fn new(ui: &U, title: &str, detail: Option<String>) -> Self {
+        let spinner = adw::Spinner::builder()
+            .width_request(48)
+            .height_request(48)
+            .halign(gtk::Align::Center)
+            .build();
+        let status = adw::StatusPage::builder()
+            .title(glib::markup_escape_text(title))
+            .child(&spinner)
+            .build();
+        status.set_description(detail.as_deref());
+        let view = adw::ToolbarView::new();
+        view.add_top_bar(&adw::HeaderBar::builder().show_back_button(false).build());
+        view.set_content(Some(&status));
+        let page = adw::NavigationPage::builder()
+            .title(title)
+            .tag("working")
+            .can_pop(false)
+            .child(&view)
+            .build();
+        let shown = Rc::new(Cell::new(false));
+        let timer = {
+            let (nav, page, shown) = (ui.nav.clone(), page.clone(), shown.clone());
+            glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
+                shown.set(true);
+                nav.push(&page);
+            })
+        };
+        Self {
+            ui: ui.clone(),
+            page,
+            timer: RefCell::new(Some(timer)),
+            shown,
+        }
+    }
+
+    /// Take the page away, or keep it from coming up.
+    fn done(&self) {
+        if let Some(timer) = self.timer.borrow_mut().take()
+            && !self.shown.get()
+        {
+            timer.remove();
+        }
+        if self.shown.replace(false) {
+            self.ui.nav.remove(&self.page);
+        }
+    }
+}
+
+/// True if applying may recolour icons or cursors: either part is
+/// included and can be themed. Making a set the first time takes seconds.
+fn recolors(snap: &Snapshot) -> bool {
+    snap.rows.iter().any(|r| {
+        matches!(r.instance.as_str(), targets::ICONS | targets::CURSORS)
+            && r.included
+            && !matches!(r.state, RowState::Unavailable(_))
+    })
+}
+
 /// Apply a theme: plan, confirm when the guidelines call for it, execute,
 /// and say what happened.
 async fn apply_theme(ui: &U, id: String, variant: String) {
@@ -1220,6 +1289,23 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     }
     let first = ui.snap.borrow().applied.is_none();
     let home = ui.snap.borrow().home.clone();
+    let detail = recolors(&ui.snap.borrow()).then(|| {
+        tr("Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick")
+    });
+    let shown_name = ui
+        .snap
+        .borrow()
+        .themes
+        .iter()
+        .find(|e| e.theme.id == id)
+        .map(|e| e.theme.name.clone())
+        .unwrap_or_default();
+    let work = Working::new(
+        ui,
+        &tr("Applying {name}…").replace("{name}", &shown_name),
+        detail,
+    );
+    ui.busy.set(true);
     let (plan_id, plan_variant) = (id.clone(), variant.clone());
     let planned = data::run(move |host| {
         let (themes, _) = velatura_engine::library::load(host);
@@ -1232,13 +1318,16 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     })
     .await
     .flatten();
+    ui.busy.set(false);
     let Some((name, plan)) = planned else {
+        work.done();
         toast(ui, &tr("That theme is no longer available"));
         return;
     };
     let plan = match plan {
         Ok(plan) => plan,
         Err(e) => {
+            work.done();
             result_page(
                 ui,
                 &tr("Theme Not Applied"),
@@ -1250,6 +1339,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
         }
     };
     if plan.is_empty() {
+        work.done();
         toast(ui, &tr("Nothing to change"));
         return;
     }
@@ -1273,6 +1363,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     };
     if (first || !asking.is_empty() || low) && !confirm(ui, &name, &plan, &home, low, &tools).await
     {
+        work.done();
         return;
     }
 
@@ -1280,6 +1371,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     let executed = data::run(move |host| engine::execute(host, &plan, &asking)).await;
     ui.busy.set(false);
     refresh(ui).await;
+    work.done();
     match executed {
         Some(Ok(report)) => applied(ui, &name, &report, &home),
         Some(Err(e)) => result_page(
@@ -1539,7 +1631,7 @@ fn part_row(
         // Off until turned on, so the row says what turning on does.
         RowState::Ready if row.instance == targets::ICONS => (
             tr(
-                "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
+                "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in",
             ),
             true,
         ),

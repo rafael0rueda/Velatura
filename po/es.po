@@ -514,6 +514,13 @@ msgstr "Un cambio anterior interrumpido no se pudo revertir del todo, así que n
 msgid "Velatura's own records cannot be read. Nothing was changed."
 msgstr "No se pueden leer los registros de Velatura. No se cambió nada."
 
+msgid "Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick"
+msgstr "Recolorear los iconos tarda unos segundos la primera vez. Velatura guarda el resultado, así que volver a estos colores es rápido"
+
+#, rust-format
+msgid "Applying {name}…"
+msgstr "Aplicando {name}…"
+
 msgid "Theme Not Applied"
 msgstr "Tema no aplicado"
 
@@ -574,8 +581,8 @@ msgstr "Con el tema, y fuera de la próxima aplicación"
 msgid "Included in the next apply"
 msgstr "Incluido en la próxima aplicación"
 
-msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
-msgstr "Da a las carpetas y a otros iconos destacados del tema de iconos en uso el color de acento del tema"
+msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in"
+msgstr "Da a las carpetas y demás iconos marcados del tema de iconos en uso el color de acento del tema. Hacerlos tarda unos segundos la primera vez; las aplicaciones abiertas los muestran al volver a abrirse, y todo después de cerrar sesión y volver a entrar"
 
 msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
 msgstr "Da al cursor en uso los colores del tema: su cuerpo y su contorno, y su acento"
@@ -1160,6 +1167,12 @@ msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven 
 msgid "Firefox shows the change after it is restarted"
 msgstr "Firefox muestra el cambio después de reiniciarse"
 
+msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere"
+msgstr "Las aplicaciones abiertas muestran los iconos recoloreados al volver a abrirse. Cerrar sesión y volver a entrar los muestra en todas partes"
+
+msgid "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere"
+msgstr "Las aplicaciones abiertas pueden conservar el cursor anterior hasta volver a abrirse. Cerrar sesión y volver a entrar muestra el nuevo en todas partes"
+
 msgid "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are"
 msgstr "Solo el perfil que Firefox abre de forma predeterminada recibe el tema. Sus otros perfiles se dejan como están"
 
@@ -1369,4 +1382,3 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
 
-#, rust-format

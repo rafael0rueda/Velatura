@@ -516,6 +516,13 @@ msgstr ""
 msgid "Velatura's own records cannot be read. Nothing was changed."
 msgstr ""
 
+msgid "Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick"
+msgstr ""
+
+#, rust-format
+msgid "Applying {name}…"
+msgstr ""
+
 msgid "Theme Not Applied"
 msgstr ""
 
@@ -576,7 +583,7 @@ msgstr ""
 msgid "Included in the next apply"
 msgstr ""
 
-msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
+msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in"
 msgstr ""
 
 msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
@@ -1160,6 +1167,12 @@ msgid "Apps that are already open keep their colors until reopened"
 msgstr ""
 
 msgid "Firefox shows the change after it is restarted"
+msgstr ""
+
+msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere"
+msgstr ""
+
+msgid "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere"
 msgstr ""
 
 msgid "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are"
