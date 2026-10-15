@@ -29,7 +29,7 @@ cargo test --workspace --locked
 
 step "dependencies"
 # A cap on third-party crates per binary, so growth is a decision.
-cap=45
+cap=47
 count=$(cargo tree -p velatura-cli -e normal --prefix none --locked | sed 's/ (.*//' | sort -u | grep -vc '^velatura-')
 echo "third-party crates in the velatura binary: $count (cap $cap)"
 [ "$count" -le "$cap" ] || { echo "crate count is over the cap"; exit 1; }

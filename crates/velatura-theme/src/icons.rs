@@ -302,6 +302,151 @@ pub fn index_theme(base: &str, folders: &[&Folder]) -> String {
     out
 }
 
+/// The same for icons that are pictures. A picture's colours are not a
+/// few written values but every pixel, smoothed at the edges, so the
+/// family is a hue: the one most of the folders' coloured pixels share.
+/// Each pixel near that hue moves to the accent the way a shade does in a
+/// drawing; one near the edge of the family moves part of the way, so
+/// edges stay smooth.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PixelRecolor {
+    /// Lightness, chroma and hue of the family's main colour.
+    main: (f64, f64, f64),
+    accent: (f64, f64, f64),
+}
+
+/// How much of the way a value between `from` and `to` is, eased.
+fn smoothstep(from: f64, to: f64, x: f64) -> f64 {
+    let t = ((x - from) / (to - from)).clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+impl PixelRecolor {
+    /// The family of `folders`, the icon theme's folder pictures, moved to
+    /// `accent`. `None` when too few of their pixels are coloured to say.
+    pub fn new(folders: &[&crate::png::Image], accent: Color) -> Option<Self> {
+        // Coloured pixels, by hue in steps of ten degrees.
+        let mut bins = [0usize; 36];
+        let mut colored = Vec::new();
+        let mut opaque = 0usize;
+        for image in folders {
+            for px in image.rgba.as_chunks::<4>().0 {
+                if px[3] < 128 {
+                    continue;
+                }
+                opaque += 1;
+                let (l, ch, h) = lch(Color::rgb(px[0], px[1], px[2]));
+                if ch >= GREY {
+                    bins[(h.rem_euclid(360.0) / 10.0) as usize % 36] += 1;
+                    colored.push((l, ch, h));
+                }
+            }
+        }
+        let (peak, count) = bins.iter().enumerate().max_by_key(|(_, n)| **n)?;
+        if *count == 0 || colored.len() * 20 < opaque {
+            return None;
+        }
+        let centre = peak as f64 * 10.0 + 5.0;
+        let family: Vec<&(f64, f64, f64)> = colored
+            .iter()
+            .filter(|(_, _, h)| hue_gap(*h, centre) <= SAME_HUE)
+            .collect();
+        // The colour the folders are filled with: the most used one, as in
+        // a drawing, where one is used for a good part of them; otherwise,
+        // in a picture that is all gradient, the family's average.
+        let mut uses: BTreeMap<Color, usize> = BTreeMap::new();
+        for image in folders {
+            for px in image
+                .rgba
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .filter(|px| px[3] >= 128)
+            {
+                let c = Color::rgb(px[0], px[1], px[2]);
+                let (_, ch, h) = lch(c);
+                if ch >= GREY && hue_gap(h, centre) <= SAME_HUE {
+                    *uses.entry(c).or_default() += 1;
+                }
+            }
+        }
+        if let Some((fill, n)) = uses.iter().max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))
+            && *n * 10 >= family.len()
+        {
+            return Some(Self {
+                main: lch(*fill),
+                accent: lch(accent),
+            });
+        }
+        let n = family.len() as f64;
+        let l = family.iter().map(|p| p.0).sum::<f64>() / n;
+        let ch = family.iter().map(|p| p.1).sum::<f64>() / n;
+        let (sin, cos) = family.iter().fold((0.0, 0.0), |(s, c), p| {
+            let (ps, pc) = p.2.to_radians().sin_cos();
+            (s + ps, c + pc)
+        });
+        let h = sin.atan2(cos).to_degrees();
+        Some(Self {
+            main: (l, ch, h),
+            accent: lch(accent),
+        })
+    }
+
+    /// Where one pixel's colour goes: `None` if it is not of the family.
+    fn moved(&self, c: Color) -> Option<Color> {
+        let (l, ch, h) = lch(c);
+        let (ml, mc, mh) = self.main;
+        let (al, ac, ah) = self.accent;
+        let gap = hue_gap(h, mh);
+        let weight =
+            smoothstep(GREY * 0.5, GREY, ch) * (1.0 - smoothstep(SAME_HUE, SAME_HUE + 10.0, gap));
+        if weight <= 0.0 {
+            return None;
+        }
+        let to = Color::from_oklch(
+            (al + (l - ml)).clamp(0.05, 0.98),
+            (ch * ac / mc).min(0.37),
+            ah + (h - mh),
+        );
+        // Part of the family even where it lands on itself, as when the
+        // accent is the icon theme's own colour.
+        Some(c.mix(to, weight))
+    }
+
+    /// Move the family's pixels in `image`. False if it has none.
+    /// Transparency stays as it was.
+    pub fn apply(&self, image: &mut crate::png::Image) -> bool {
+        let mut seen: BTreeMap<Color, Option<Color>> = BTreeMap::new();
+        let mut moved = false;
+        for px in image.rgba.as_chunks_mut::<4>().0 {
+            if px[3] == 0 {
+                continue;
+            }
+            let c = Color::rgb(px[0], px[1], px[2]);
+            let to = *seen.entry(c).or_insert_with(|| self.moved(c));
+            if let Some(to) = to {
+                px[..3].copy_from_slice(&[to.r, to.g, to.b]);
+                moved = true;
+            }
+        }
+        moved
+    }
+
+    /// What decides the result, as text.
+    pub fn recipe(&self) -> String {
+        let r = |v: f64| (v * 1000.0).round() / 1000.0;
+        format!(
+            "format {FORMAT} pictures\nmain {} {} {}\naccent {} {} {}\n",
+            r(self.main.0),
+            r(self.main.1),
+            r(self.main.2),
+            r(self.accent.0),
+            r(self.accent.1),
+            r(self.accent.2)
+        )
+    }
+}
+
 /// The icon theme a set was made from, from the set's `index.theme`.
 pub fn base_of(index: &str) -> Option<String> {
     index
@@ -382,6 +527,58 @@ mod tests {
                 .unwrap(),
             b"<a fill=\"#00ff00\"/><b id=\"#f00ba\"/>"
         );
+    }
+
+    /// A folder picture: a body in one colour, darker and lighter bands
+    /// of it, a grey label, and soft edges.
+    fn folder_picture(main: Color) -> crate::png::Image {
+        let mut rgba = Vec::new();
+        for y in 0..32u32 {
+            for x in 0..32u32 {
+                let c = match (x, y) {
+                    (0 | 31, _) | (_, 0 | 31) => Color { a: 0, ..main },
+                    (_, 1..=4) => main.mix(c("#000000"), 0.3),
+                    (_, 27..=30) => main.mix(c("#ffffff"), 0.4),
+                    (10..=20, 12..=18) => c("#e0e0e0"),
+                    _ => main,
+                };
+                rgba.extend_from_slice(&[c.r, c.g, c.b, c.a]);
+            }
+        }
+        crate::png::Image {
+            width: 32,
+            height: 32,
+            rgba,
+        }
+    }
+
+    #[test]
+    fn pictures_move_their_family_to_the_accent_and_keep_the_rest() {
+        let periwinkle = c("#8493d8");
+        let accent = c("#e0914f");
+        let folder = folder_picture(periwinkle);
+        let r = PixelRecolor::new(&[&folder], accent).unwrap();
+        let mut moved = folder.clone();
+        assert!(r.apply(&mut moved));
+        let at = |img: &crate::png::Image, x: usize, y: usize| {
+            let i = (y * 32 + x) * 4;
+            Color::rgb(img.rgba[i], img.rgba[i + 1], img.rgba[i + 2])
+        };
+        // The body is the accent, give or take rounding.
+        let body = at(&moved, 5, 8);
+        assert!(body.contrast(accent) < 1.05, "{}", body.hex());
+        // The darker band is darker than the body, the lighter one lighter.
+        assert!(lch(at(&moved, 5, 2)).0 < lch(body).0);
+        assert!(lch(at(&moved, 5, 28)).0 > lch(body).0);
+        // The grey label and the transparent edge are as they were.
+        assert_eq!(at(&moved, 15, 15), c("#e0e0e0"));
+        assert_eq!(moved.rgba[3], 0);
+        assert_eq!(moved.rgba.len(), folder.rgba.len());
+        // A picture with nothing of the family is left alone.
+        let mut grey = folder_picture(c("#808080"));
+        assert!(!r.apply(&mut grey));
+        // Folders that are all grey have no family to find.
+        assert!(PixelRecolor::new(&[&folder_picture(c("#808080"))], accent).is_none());
     }
 
     #[test]

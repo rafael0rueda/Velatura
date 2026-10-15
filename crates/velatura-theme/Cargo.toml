@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 sha2 = { version = "0.11", default-features = false }
+miniz_oxide = { version = "0.9", default-features = false, features = ["with-alloc"] }
 toml = { version = "1.1", default-features = false, features = ["std", "parse", "serde"] }
 
 [lints]

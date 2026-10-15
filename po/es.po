@@ -577,6 +577,9 @@ msgstr "Incluido en la próxima aplicación"
 msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
 msgstr "Da a las carpetas y a otros iconos destacados del tema de iconos en uso el color de acento del tema"
 
+msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
+msgstr "Da al cursor en uso los colores del tema: su cuerpo y su contorno, y su acento"
+
 msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
 msgstr "Da a la ventana de Firefox los colores del tema, mediante una hoja de estilo en su perfil predeterminado"
 
@@ -874,6 +877,9 @@ msgstr "Iconos, cursor, fondo de pantalla y tipografías"
 msgid "Recolored Icons"
 msgstr "Iconos recoloreados"
 
+msgid "Recolored Cursor"
+msgstr "Cursor recoloreado"
+
 msgid "Changes"
 msgstr "Cambios"
 
@@ -931,8 +937,16 @@ msgid "Create the icon set {1} with {2} recolored icons"
 msgstr "Crear el conjunto de iconos {1} con {2} iconos recoloreados"
 
 #, rust-format
+msgid "Create the cursor set {1} with {2} recolored cursors"
+msgstr "Crear el conjunto de cursores {1} con {2} cursores recoloreados"
+
+#, rust-format
 msgid "Remove the icon set {1}, made by Velatura for other colors ({2} icons)"
 msgstr "Quitar el conjunto de iconos {1}, hecho por Velatura para otros colores ({2} iconos)"
+
+#, rust-format
+msgid "Remove the cursor set {1}, made by Velatura for other colors ({2} cursors)"
+msgstr "Quitar el conjunto de cursores {1}, hecho por Velatura para otros colores ({2} cursores)"
 
 #, rust-format
 msgid "Create the folder {1}"
@@ -1057,6 +1071,10 @@ msgstr "Se omite: {1} ya elige una paleta, y su indicador está escrito para los
 
 msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
 msgstr "Se omite: Firefox aún no tiene perfil. Abra Firefox una vez y vuelva a aplicar"
+
+#, rust-format
+msgid "Left out: the cursor theme {1} cannot be recolored. It is not installed here, or has no cursor in a form Velatura reads"
+msgstr "Se omite: el tema de cursores {1} no se puede recolorear. No está instalado aquí, o no tiene ningún cursor en una forma que Velatura lea"
 
 #, rust-format
 msgid "Left out: the template cannot be used: {1}"

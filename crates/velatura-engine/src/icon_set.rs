@@ -11,7 +11,8 @@
 use std::path::{Path, PathBuf};
 
 use velatura_theme::editor::slug;
-use velatura_theme::icons::{self, Folder, Recolor};
+use velatura_theme::icons::{self, Folder, PixelRecolor, Recolor};
+use velatura_theme::png;
 use velatura_theme::{Resolved, sha256_hex};
 
 use crate::host::{Host, Kind};
@@ -52,7 +53,7 @@ fn find(host: &Host<'_>, env: Env<'_>, name: &str) -> Option<PathBuf> {
         })
 }
 
-fn read_capped(host: &Host<'_>, path: &Path, cap: usize) -> Option<Vec<u8>> {
+pub(crate) fn read_capped(host: &Host<'_>, path: &Path, cap: usize) -> Option<Vec<u8>> {
     read_opt(host, path)
         .ok()
         .flatten()
@@ -70,6 +71,13 @@ pub fn made_from(host: &Host<'_>, name: &str) -> Option<String> {
         MAX_INDEX_BYTES,
     )?;
     icons::base_of(&String::from_utf8_lossy(&index))
+}
+
+/// How an icon theme's colour is moved: in drawings, colour by colour; in
+/// pictures, pixel by pixel.
+enum Way {
+    Drawn(Recolor),
+    Pictures(PixelRecolor),
 }
 
 /// The files of a set, ready to be written.
@@ -93,30 +101,50 @@ fn build(
     let index = icons::parse_index(&String::from_utf8_lossy(&index_bytes));
     let folders: Vec<&Folder> = index.folders.iter().filter(|f| f.recolored()).collect();
 
-    // The accent is found in the folder icons, drawn ones only.
-    let mut folder_icons = Vec::new();
-    for f in folders.iter().filter(|f| f.context == "Places") {
-        for name in ["folder.svg", "folder-documents.svg", "folder-download.svg"] {
-            if let Some(svg) = read_capped(host, &base_dir.join(&f.name).join(name), MAX_ICON_BYTES)
-            {
-                folder_icons.push(svg);
+    // The accent is found in the folder icons: drawn ones where there
+    // are, pictures otherwise.
+    let found = |ext: &str| {
+        let mut out = Vec::new();
+        for f in folders.iter().filter(|f| f.context == "Places") {
+            for name in ["folder", "folder-documents", "folder-download"] {
+                let path = base_dir.join(&f.name).join(format!("{name}.{ext}"));
+                if let Some(bytes) = read_capped(host, &path, MAX_ICON_BYTES) {
+                    out.push(bytes);
+                }
             }
         }
-    }
+        out
+    };
+    let accent = theme.colors.ui.accent;
+    let mut folder_icons = found("svg");
     let refs: Vec<&[u8]> = folder_icons.iter().map(Vec::as_slice).collect();
-    let recolor = Recolor::new(&refs, theme.colors.ui.accent).ok_or_else(unusable)?;
+    let way = match Recolor::new(&refs, accent) {
+        Some(r) => Way::Drawn(r),
+        None => {
+            folder_icons = found("png");
+            let pictures: Vec<png::Image> =
+                folder_icons.iter().filter_map(|b| png::decode(b)).collect();
+            let refs: Vec<&png::Image> = pictures.iter().collect();
+            Way::Pictures(PixelRecolor::new(&refs, accent).ok_or_else(unusable)?)
+        }
+    };
+    let recipe = match &way {
+        Way::Drawn(r) => r.recipe(),
+        Way::Pictures(r) => r.recipe(),
+    };
 
-    let mut key = format!("{}\n{base}\n{}\n", icons::FORMAT, recolor.recipe());
+    let mut key = format!("{}\n{base}\n{recipe}\n", icons::FORMAT);
     key.push_str(&sha256_hex(&index_bytes));
     for svg in &folder_icons {
         key.push_str(&sha256_hex(svg));
     }
-    let short = slug(base);
-    let name = format!(
-        "Velatura-{}-{}",
-        if short.is_empty() { "icons" } else { &short },
-        &sha256_hex(key.as_bytes())[..10]
-    );
+    // An icon theme whose name starts like a cursor set's is told apart.
+    let short = match slug(base) {
+        s if s.is_empty() => "icons".to_owned(),
+        s if s.starts_with("cursors") => format!("icons-{s}"),
+        s => s,
+    };
+    let name = format!("Velatura-{}-{}", short, &sha256_hex(key.as_bytes())[..10]);
     let mut built = Built {
         name,
         files: Vec::new(),
@@ -130,17 +158,26 @@ fn build(
     for f in &folders {
         let dir = base_dir.join(&f.name);
         let mut any = false;
+        let ext = match way {
+            Way::Drawn(_) => ".svg",
+            Way::Pictures(_) => ".png",
+        };
         for entry in host.fs.list(&dir).unwrap_or_default() {
             let Some(file) = entry
                 .to_str()
-                .filter(|n| n.ends_with(".svg") && !n.starts_with('.'))
+                .filter(|n| n.ends_with(ext) && !n.starts_with('.'))
             else {
                 continue;
             };
-            let Some(svg) = read_capped(host, &dir.join(file), MAX_ICON_BYTES) else {
+            let Some(content) = read_capped(host, &dir.join(file), MAX_ICON_BYTES) else {
                 continue;
             };
-            if let Some(out) = recolor.apply(&svg) {
+            let out = match &way {
+                Way::Drawn(r) => r.apply(&content),
+                Way::Pictures(r) => png::decode(&content)
+                    .and_then(|mut image| r.apply(&mut image).then(|| png::encode(&image))),
+            };
+            if let Some(out) = out {
                 bytes += out.len();
                 built.files.push((format!("{}/{file}", f.name), out));
                 any = true;
@@ -167,7 +204,7 @@ fn build(
 }
 
 /// Files and folders under `root` that Velatura wrote, with what it wrote.
-fn ours_under<'a>(state: &'a State, root: &Path) -> Vec<(PathBuf, &'a String)> {
+pub(crate) fn ours_under<'a>(state: &'a State, root: &Path) -> Vec<(PathBuf, &'a String)> {
     state
         .owned
         .iter()
@@ -178,7 +215,7 @@ fn ours_under<'a>(state: &'a State, root: &Path) -> Vec<(PathBuf, &'a String)> {
 
 /// The folders between each file and `root`, `root` included, deepest
 /// first, so each is empty by the time its turn comes.
-fn folders_up_to(files: &[PathBuf], root: &Path) -> Vec<PathBuf> {
+pub(crate) fn folders_up_to(files: &[PathBuf], root: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = files
         .iter()
         .flat_map(|f| f.ancestors().skip(1).take_while(|d| d.starts_with(root)))
@@ -270,42 +307,7 @@ pub fn plan_icons(
     }
 
     if clear_old {
-        // Sets made for earlier colours, as far as they are as written.
-        let mut others: std::collections::BTreeMap<PathBuf, Vec<(PathBuf, &String)>> =
-            std::collections::BTreeMap::new();
-        for (path, hash) in ours_under(state, &root) {
-            let Ok(rest) = path.strip_prefix(&root) else {
-                continue;
-            };
-            let Some(top) = rest.components().next() else {
-                continue;
-            };
-            let top = root.join(top);
-            if top != set && top.to_string_lossy().contains("/Velatura-") {
-                others.entry(top).or_default().push((path, hash));
-            }
-        }
-        for (top, files) in others {
-            let mut gone = Vec::new();
-            for (path, written) in files {
-                let now = read_opt(host, &path).ok().flatten();
-                match now.as_deref().map(sha256_hex) {
-                    Some(hash) if hash == *written => {
-                        plan.changes.push(Change::Owned {
-                            path: path.clone(),
-                            content: None,
-                            pre: Some(hash),
-                        });
-                        gone.push(path);
-                    }
-                    Some(_) => plan.notes.push(Note::KeptFile { path }),
-                    None => {}
-                }
-            }
-            for dir in folders_up_to(&gone, &top) {
-                plan.changes.push(Change::RemoveDir { path: dir });
-            }
-        }
+        clear_other_sets(host, state, &set, &|name| !is_cursor_set(name), &mut plan);
     }
 
     match crate::targets::set_text(
@@ -317,6 +319,64 @@ pub fn plan_icons(
         Ok(()) => plan,
         Err(why) => skip(why),
     }
+}
+
+/// Sets of one kind Velatura made for earlier colours, as far as they are
+/// as written, taken away; `keep` is the one in use now. `kind` tells a
+/// set's folder name of that kind from the other's.
+pub(crate) fn clear_other_sets(
+    host: &Host<'_>,
+    state: &State,
+    keep: &Path,
+    kind: &dyn Fn(&str) -> bool,
+    plan: &mut TargetPlan,
+) {
+    let root = sets_dir(host);
+    // Sets made for earlier colours, as far as they are as written.
+    let mut others: std::collections::BTreeMap<PathBuf, Vec<(PathBuf, &String)>> =
+        std::collections::BTreeMap::new();
+    for (path, hash) in ours_under(state, &root) {
+        let Ok(rest) = path.strip_prefix(&root) else {
+            continue;
+        };
+        let Some(top) = rest.components().next() else {
+            continue;
+        };
+        let top = root.join(top);
+        let named = top
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.starts_with("Velatura-") && kind(n));
+        if top != keep && named {
+            others.entry(top).or_default().push((path, hash));
+        }
+    }
+    for (top, files) in others {
+        let mut gone = Vec::new();
+        for (path, written) in files {
+            let now = read_opt(host, &path).ok().flatten();
+            match now.as_deref().map(sha256_hex) {
+                Some(hash) if hash == *written => {
+                    plan.changes.push(Change::Owned {
+                        path: path.clone(),
+                        content: None,
+                        pre: Some(hash),
+                    });
+                    gone.push(path);
+                }
+                Some(_) => plan.notes.push(Note::KeptFile { path }),
+                None => {}
+            }
+        }
+        for dir in folders_up_to(&gone, &top) {
+            plan.changes.push(Change::RemoveDir { path: dir });
+        }
+    }
+}
+
+/// True for the folder name of a cursor set: icon sets are never named so.
+pub fn is_cursor_set(name: &str) -> bool {
+    name.starts_with(crate::cursor_set::PREFIX)
 }
 
 /// The number of icons in a set a list of changes writes or removes, by

@@ -1543,6 +1543,10 @@ fn part_row(
             ),
             true,
         ),
+        RowState::Ready if row.instance == targets::CURSORS => (
+            tr("Gives the cursor in use the theme's colors: its body and outline, and its accent"),
+            true,
+        ),
         RowState::Ready if row.instance == targets::FIREFOX => (
             tr(
                 "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
@@ -1606,7 +1610,12 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     let groups = [
         (
             tr("Desktop"),
-            vec![targets::APPEARANCE, targets::SHELL, targets::ICONS],
+            vec![
+                targets::APPEARANCE,
+                targets::SHELL,
+                targets::ICONS,
+                targets::CURSORS,
+            ],
         ),
         (
             tr("Terminals"),

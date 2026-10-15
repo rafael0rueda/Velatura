@@ -169,7 +169,7 @@ fn all_five_apply_and_undo_to_the_exact_start() {
     let p = plan(&host, &t[1]);
     assert_eq!(p.needing_consent(), [KITTY, GHOSTTY, GTK4, GTK3]);
     let report = engine::execute(&host, &p, &everyone()).unwrap();
-    // Firefox, Flatpak Apps and Recolored Icons are off until turned on, and the
+    // Firefox, Flatpak Apps, Recolored Icons and Recolored Cursor are off until turned on, and the
     // command-line apps are
     // not in this home (their tests are in cli_apps.rs); nothing else
     // is left out.
@@ -183,7 +183,8 @@ fn all_five_apply_and_undo_to_the_exact_start() {
         [
             &(targets::FIREFOX.to_owned(), Skip::NotSelected),
             &(FLATPAK.to_owned(), Skip::NotSelected),
-            &(targets::ICONS.to_owned(), Skip::NotSelected)
+            &(targets::ICONS.to_owned(), Skip::NotSelected),
+            &(targets::CURSORS.to_owned(), Skip::NotSelected)
         ]
     );
 
@@ -636,7 +637,13 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     engine::set_included(&host, GHOSTTY, false).unwrap();
     assert_eq!(
         engine::excluded(&host).unwrap(),
-        [GHOSTTY, targets::FIREFOX, FLATPAK, targets::ICONS]
+        [
+            GHOSTTY,
+            targets::FIREFOX,
+            FLATPAK,
+            targets::ICONS,
+            targets::CURSORS
+        ]
     );
     let p = plan(&host, &t[0]);
     assert_eq!(target(&p, GHOSTTY).skipped, Some(Skip::NotSelected));
@@ -656,7 +663,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     assert_eq!(engine::window_size(&host), Some((900, 640)));
     assert_eq!(
         engine::excluded(&host).unwrap(),
-        [targets::FIREFOX, FLATPAK, targets::ICONS]
+        [targets::FIREFOX, FLATPAK, targets::ICONS, targets::CURSORS]
     );
 }
 

@@ -36,11 +36,12 @@ pub const NVIM: &str = "nvim:default";
 pub const STARSHIP: &str = "starship:default";
 pub const PTYXIS: &str = "ptyxis:default";
 pub const TEXT_EDITOR: &str = "texteditor:default";
+pub use crate::cursor_set::CURSORS;
 pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 14] = [
+pub const INSTANCES: [&str; 15] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -55,11 +56,12 @@ pub const INSTANCES: [&str; 14] = [
     SHELL,
     APPEARANCE,
     ICONS,
+    CURSORS,
 ];
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours, or use a way in that is not supported.
-pub const OPT_IN: [&str; 3] = [FLATPAK, ICONS, FIREFOX];
+pub const OPT_IN: [&str; 4] = [FLATPAK, ICONS, FIREFOX, CURSORS];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1432,6 +1434,7 @@ pub fn plan(
         TEXT_EDITOR => plan_text_editor(host, theme, state, replace_changed),
         FIREFOX => crate::firefox::plan_firefox(host, env, theme, state, replace_changed),
         ICONS => crate::icon_set::plan_icons(host, env, theme, state, !opts.unattended),
+        CURSORS => crate::cursor_set::plan_cursors(host, env, theme, state, !opts.unattended),
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(
             host,

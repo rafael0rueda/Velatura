@@ -167,6 +167,7 @@ pub fn instance(id: &str) -> String {
         "flatpak:global" => t("Flatpak Apps"),
         "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),
         "icons:recolor" => t("Recolored Icons"),
+        "cursors:recolor" => t("Recolored Cursor"),
         "" => t("Changes"),
         other => match other.strip_prefix(velatura_engine::templates::PREFIX) {
             Some(id) => tf!("{1} (template)", clean_text(id, 64)),
@@ -304,14 +305,24 @@ pub fn changes(list: &[Change], home: &Path) -> Vec<String> {
             .find(|(s, _, w)| *s == set && *w == written)
             .map_or(0, |(_, n, _)| *n);
         let name = clean_text(&set.file_name().unwrap_or_default().to_string_lossy(), 80);
-        out.push(if written {
-            tf!("Create the icon set {1} with {2} recolored icons", name, n)
-        } else {
-            tf!(
+        let cursors = velatura_engine::icon_set::is_cursor_set(&name);
+        out.push(match (written, cursors) {
+            (true, false) => tf!("Create the icon set {1} with {2} recolored icons", name, n),
+            (true, true) => tf!(
+                "Create the cursor set {1} with {2} recolored cursors",
+                name,
+                n
+            ),
+            (false, false) => tf!(
                 "Remove the icon set {1}, made by Velatura for other colors ({2} icons)",
                 name,
                 n
-            )
+            ),
+            (false, true) => tf!(
+                "Remove the cursor set {1}, made by Velatura for other colors ({2} cursors)",
+                name,
+                n
+            ),
         });
     }
     out
@@ -453,6 +464,10 @@ pub fn skip(why: &Skip, home: &Path) -> String {
         Skip::FirefoxNoProfile => {
             t("Left out: Firefox has no profile yet. Start Firefox once, then apply again")
         }
+        Skip::CursorsNotRecolorable(name) => tf!(
+            "Left out: the cursor theme {1} cannot be recolored. It is not installed here, or has no cursor in a form Velatura reads",
+            clean_text(name, 64)
+        ),
         Skip::TemplateInvalid(why) => tf!(
             "Left out: the template cannot be used: {1}",
             template_problem(why, home)

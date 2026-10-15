@@ -7,6 +7,7 @@
 mod accent;
 pub mod bundled;
 mod color;
+pub mod cursor;
 pub mod editor;
 pub mod firefox;
 pub mod ghostty;
@@ -16,6 +17,7 @@ pub mod import;
 pub mod kitty;
 pub mod model;
 pub mod nvim;
+pub mod png;
 pub mod ptyxis;
 pub mod shell;
 pub mod sourceview;

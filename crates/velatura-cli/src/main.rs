@@ -330,6 +330,7 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::OwnPalette(_) => "own-palette",
         Skip::FirefoxNoProfile => "firefox-no-profile",
         Skip::TemplateInvalid(_) => "template-invalid",
+        Skip::CursorsNotRecolorable(_) => "cursors-not-recolorable",
     }
 }
 
@@ -579,6 +580,12 @@ impl Cx<'_> {
             (
                 "icons:recolor",
                 "Recolored Icons (off until turned on)",
+                "official",
+                p(h.dirs.data.join("icons")),
+            ),
+            (
+                "cursors:recolor",
+                "Recolored Cursor (off until turned on)",
                 "official",
                 p(h.dirs.data.join("icons")),
             ),
