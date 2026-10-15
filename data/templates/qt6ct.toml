@@ -1,0 +1,19 @@
+# A Velatura template for Qt apps, through qt6ct. To use it:
+#   velatura template add qt6ct.toml
+# then, once: in ~/.config/environment.d/qt.conf, the line
+#   QT_QPA_PLATFORMTHEME=qt6ct
+# sign out and in, and in qt6ct choose the color scheme "desktop-theme".
+#
+# Each line is Qt's 21 palette roles in its own order: window text,
+# button, light, midlight, dark, mid, text, bright text, button text,
+# base, window, shadow, highlight, highlighted text, link, visited link,
+# alternate base, no role, tooltip base, tooltip text, placeholder text.
+schema = 1
+name = "Qt (qt6ct)"
+output = "~/.config/qt6ct/colors/desktop-theme.conf"
+template = '''
+[ColorScheme]
+active_colors=#ff{{fg|bare}}, #ff{{surface|bare}}, #ff{{fg_muted|bare}}, #ff{{border|bare}}, #ff{{bg_dim|bare}}, #ff{{border|bare}}, #ff{{fg|bare}}, #ff{{fg|bare}}, #ff{{fg|bare}}, #ff{{bg_dim|bare}}, #ff{{bg|bare}}, #ff{{bg_dim|bare}}, #ff{{selection_bg|bare}}, #ff{{selection_fg|bare}}, #ff{{link|bare}}, #ff{{accent|bare}}, #ff{{surface|bare}}, #ff{{bg|bare}}, #ff{{surface|bare}}, #ff{{fg|bare}}, #ff{{fg_subtle|bare}}
+disabled_colors=#ff{{fg_subtle|bare}}, #ff{{surface|bare}}, #ff{{fg_muted|bare}}, #ff{{border|bare}}, #ff{{bg_dim|bare}}, #ff{{border|bare}}, #ff{{fg_subtle|bare}}, #ff{{fg|bare}}, #ff{{fg_subtle|bare}}, #ff{{bg_dim|bare}}, #ff{{bg|bare}}, #ff{{bg_dim|bare}}, #ff{{selection_bg|bare}}, #ff{{fg_subtle|bare}}, #ff{{link|bare}}, #ff{{accent|bare}}, #ff{{surface|bare}}, #ff{{bg|bare}}, #ff{{surface|bare}}, #ff{{fg|bare}}, #ff{{fg_subtle|bare}}
+inactive_colors=#ff{{fg|bare}}, #ff{{surface|bare}}, #ff{{fg_muted|bare}}, #ff{{border|bare}}, #ff{{bg_dim|bare}}, #ff{{border|bare}}, #ff{{fg|bare}}, #ff{{fg|bare}}, #ff{{fg|bare}}, #ff{{bg_dim|bare}}, #ff{{bg|bare}}, #ff{{bg_dim|bare}}, #ff{{selection_bg|bare}}, #ff{{selection_fg|bare}}, #ff{{link|bare}}, #ff{{accent|bare}}, #ff{{surface|bare}}, #ff{{bg|bare}}, #ff{{surface|bare}}, #ff{{fg|bare}}, #ff{{fg_subtle|bare}}
+'''

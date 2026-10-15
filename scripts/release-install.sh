@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Install Velatura from this folder for one user, without root: the
+# command and the app into ~/.local/bin, the app's launcher and icons under
+# ~/.local/share. Shipped as install.sh inside each release tarball.
+#
+#   ./install.sh                 install, or update an earlier install
+#   ./install.sh --prefix DIR    install under DIR instead of ~/.local
+#   ./install.sh --uninstall     remove what this script installed
+#
+# Removing the program leaves Velatura's changes to the desktop as they
+# are: to take those away first, run `velatura restore --original`.
+set -euo pipefail
+cd "$(dirname "$0")"
+prefix=$HOME/.local
+uninstall=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --prefix) prefix=${2:?--prefix needs a folder}; shift 2 ;;
+        --uninstall) uninstall=1; shift ;;
+        -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+done
+case "$prefix" in
+    /*) ;;
+    *) echo "--prefix needs a full path" >&2; exit 2 ;;
+esac
+case "$prefix" in
+    *[\"\`\$\\\|]*) echo "the folder's name has a character a launcher cannot hold" >&2; exit 2 ;;
+esac
+id=io.github.rafael0rueda.Velatura
+files=(
+    "bin/velatura"
+    "bin/velatura-app"
+    "share/applications/$id.desktop"
+    "share/icons/hicolor/scalable/apps/$id.svg"
+    "share/icons/hicolor/symbolic/apps/$id-symbolic.svg"
+)
+if [ -n "$uninstall" ]; then
+    for f in "${files[@]}"; do rm -f "$prefix/$f"; done
+    echo "Removed Velatura from $prefix."
+    exit 0
+fi
+for f in "${files[@]}"; do
+    case "$f" in bin/*) mode=755 ;; *) mode=644 ;; esac
+    install -D -m "$mode" "$f" "$prefix/$f"
+done
+# The launcher names the app by its full path: the folder need not be on
+# the session's PATH.
+sed -i "s|^Exec=velatura-app\$|Exec=\"$prefix/bin/velatura-app\"|" \
+    "$prefix/share/applications/$id.desktop"
+echo "Installed $("$prefix/bin/velatura" --version) in $prefix."
+case ":$PATH:" in
+    *":$prefix/bin:"*) ;;
+    *) echo "Note: $prefix/bin is not on PATH, so the command is found only by its full path." ;;
+esac

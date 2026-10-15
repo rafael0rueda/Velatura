@@ -1433,8 +1433,10 @@ pub fn plan(
         PTYXIS => plan_ptyxis(host, env, theme, state, replace_changed),
         TEXT_EDITOR => plan_text_editor(host, theme, state, replace_changed),
         FIREFOX => crate::firefox::plan_firefox(host, env, theme, state, replace_changed),
-        ICONS => crate::icon_set::plan_icons(host, env, theme, state, !opts.unattended),
-        CURSORS => crate::cursor_set::plan_cursors(host, env, theme, state, !opts.unattended),
+        ICONS => crate::icon_set::plan_icons(host, env, theme, state, !opts.unattended, opts.probe),
+        CURSORS => {
+            crate::cursor_set::plan_cursors(host, env, theme, state, !opts.unattended, opts.probe)
+        }
         FLATPAK => plan_flatpak(host, env, state),
         SHELL => plan_shell(
             host,

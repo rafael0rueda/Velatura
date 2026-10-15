@@ -228,13 +228,15 @@ pub(crate) fn folders_up_to(files: &[PathBuf], root: &Path) -> Vec<PathBuf> {
 
 /// The icon theme in use, recoloured. `clear_old` takes away the sets
 /// Velatura made for earlier themes, which only a run with someone present
-/// does.
+/// does. With `probe`, a set that is not there yet is only named, not
+/// made: the plan says that it would be, and is never carried out.
 pub fn plan_icons(
     host: &Host<'_>,
     env: Env<'_>,
     theme: &Resolved<'_>,
     state: &State,
     clear_old: bool,
+    probe: bool,
 ) -> TargetPlan {
     let skip = |why| TargetPlan::skip(ICONS, why);
     if crate::targets::high_contrast(host) {
@@ -270,6 +272,7 @@ pub fn plan_icons(
     match host.fs.kind(&set) {
         // Made already for these colours; nothing to write.
         Ok(Some(Kind::Dir)) if !mine.is_empty() => {}
+        Ok(None) if probe => plan.changes.push(Change::CreateDir { path: set.clone() }),
         Ok(None) => {
             let built = match build(host, &base_dir, &base, theme, true) {
                 Ok(b) => b,

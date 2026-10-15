@@ -10,6 +10,9 @@ read it online at <https://rafael0rueda.github.io/Velatura/>.
 - [Interface guidelines](https://rafael0rueda.github.io/Velatura/hig.html)
 - [Changelog](https://rafael0rueda.github.io/Velatura/changelog/index.html)
 
-Status: in development. The engine and the `velatura` command exist; the app window does not yet.
+Status: 0.1.0, the first release. The app and the `velatura` command work; several parts are experimental.
+
+To install without building: download the `x86_64-linux` tarball from
+[Releases](https://github.com/rafael0rueda/Velatura/releases), unpack it, and run `./install.sh`.
 
 License: GPL-3.0-or-later.

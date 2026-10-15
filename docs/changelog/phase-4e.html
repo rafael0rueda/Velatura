@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4e – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 4e – releases</h1>
+<p class="lead">Branch <code>phase-4e-releases</code>. Completed 2026-10-15. The last of five slices of Phase 4 (<a href="../decisions.html#d59">D59</a>). Its exit condition is Phase 4's: Velatura can be installed without building it from source. The release workflow builds a tarball of the programs that installs for one user and runs; it was run in full in a Fedora 41 container here, and it runs on the pull request in GitHub Actions. With it Phase 4 is complete. The first release, 0.1.0, is published by pushing its tag after this is merged.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. Every install was into a throw-away home folder.</div>
+
+<h2>What a release holds</h2>
+<div class="wrap"><table>
+<tr><th>File</th><th>What it is</th><th>Size (0.1.0)</th></tr>
+<tr><td><code>velatura-0.1.0-x86_64-linux.tar.gz</code></td><td>The command and the app, built on Fedora 41 (GNOME 47, the oldest supported) so they run on every newer one; the launcher and icons; <code>install.sh</code>; the template for Qt apps; the licence.</td><td>2.1 MB</td></tr>
+<tr><td><code>velatura-0.1.0-source.tar.gz</code></td><td>The source with every crate it needs, set up to build with no network: <code>cargo build --offline --release</code>.</td><td>12.3 MB</td></tr>
+<tr><td><code>velatura@rafael0rueda.github.io.shell-extension.zip</code></td><td>The Shell extension, as extensions.gnome.org takes it.</td><td>2 KB</td></tr>
+<tr><td><code>SHA256SUMS</code></td><td>A checksum for each.</td><td>&nbsp;</td></tr>
+</table></div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>Version 0.1.0</strong> (<a href="../decisions.html#d65">D65</a>), shown by <code>velatura --version</code> and the app's About.</li>
+<li><strong><code>install.sh</code></strong> puts the command and the app in <code>~/.local/bin</code> and the launcher and icons under <code>~/.local/share</code>, without root; <code>--prefix</code> another full path; <code>--uninstall</code> takes exactly those files out again. The launcher names the app by its full path, so it starts whether or not the folder is on the session's path. Uninstalling leaves the desktop as Velatura left it; <code>velatura restore --original</code> first takes Velatura's changes away.</li>
+<li><strong><code>scripts/release.sh</code></strong> builds all of it into <code>dist/</code>, with fixed times, owners and order inside each tarball.</li>
+<li><strong>The release workflow</strong>, <code>.github/workflows/release.yml</code>: on a tag <code>v&lt;version&gt;</code> it checks the tag is the version in <code>Cargo.toml</code>, builds on Fedora 41, checks the checksums, installs the programs into a throw-away home, runs them, uninstalls them and finds nothing left, builds the source with no network and an empty cache, and only then publishes the release with notes on how to install. On a pull request that changes any of this it does everything but publish.</li>
+<li><strong>Qt apps</strong> (<a href="../decisions.html#d66">D66</a>): no built-in part; a template for qt6ct comes in each release and in <a href="../targets.html#qt">Theming targets</a>, with the two steps that switch qt6ct on. Its format was taken from a colour scheme inside the qt6ct package.</li>
+<li><strong>A slower refresh, fixed.</strong> Since Phase 4d, working out how each part stands for the app built any recoloured set that was not there yet, every time the window refreshed: the whole cursor theme in use, recoloured, only to say "included in the next apply". On the slowest CI image the app's checks twice ran out of time. That question is now asked without making the set.</li>
+<li><strong>How to release</strong> is a section of the <a href="../workflow.html#release">workflow</a>; the README says where releases are.</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>The workflow's steps, run in a Fedora 41 container as GitHub runs them: built, installed, run, uninstalled, built offline from the source tarball, with a tag of <code>v0.1.0</code>.</li>
+<li>The programs built on Fedora 41 run on the owner's Fedora 44: no library missing, the command answers, the app starts in a headless session.</li>
+<li>One test that the qt6ct template is accepted and writes three lines of Qt's 21 roles as <code>#AARRGGBB</code>.</li>
+<li>One test that the parts list says a cursor set would be made without making it.</li>
+<li>234 tests in all. The translation template has 413 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>GitHub Releases only</strong>, as the owner chose (<a href="../decisions.html#d59">D59</a>): COPR, AUR and a Flatpak repository are not made.</li>
+<li><strong>Qt is settled</strong> as a template, not a part (<a href="../decisions.html#d66">D66</a>).</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>x86_64 only.</strong> No build for ARM.</li>
+<li><strong>Not signed.</strong> The checksums show a download is whole; they do not prove who made it.</li>
+<li><strong>The extension is not uploaded</strong> to extensions.gnome.org: that needs the owner's account and GNOME's review.</li>
+<li><strong>qt6ct was not run</strong> with the template's output.</li>
+<li><strong>The owner's full test</strong> of the app on the real desktop, which the owner set on 2026-10-14 for when the app is complete, comes next, and can use this release.</li>
+</ul>
+</main>
+</body>
+</html>
