@@ -7,6 +7,7 @@
 
 pub mod block;
 pub mod companion;
+pub mod cursor_set;
 pub mod engine;
 pub mod firefox;
 #[cfg(feature = "gio")]

@@ -96,6 +96,9 @@ pub enum Skip {
     /// Firefox is installed but has no profile yet: it has not been
     /// started, or its list of profiles cannot be read.
     FirefoxNoProfile,
+    /// The cursor theme in use cannot be recoloured: it is not installed,
+    /// or holds no cursor this reads.
+    CursorsNotRecolorable(String),
     /// A template of the user's that cannot be used, and why.
     TemplateInvalid(crate::templates::Invalid),
 }

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4d – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Phase 4d – recolored pictures and cursors</h1>
+<p class="lead">Branch <code>phase-4d-pictures</code>. Completed 2026-10-14. The fourth of five slices of Phase 4 (<a href="../decisions.html#d59">D59</a>). Its exit condition, that transaction tests pass for each, holds for icon themes made of pictures and for cursors.</p>
+<div class="note"><strong>On the owner's desktop</strong> nothing was changed. Frost-Aetherius and capitaine-cursors were read and recoloured into throw-away home folders that point at them.</div>
+
+<h2>What measuring showed</h2>
+<div class="wrap"><table>
+<tr><th>Question</th><th>Result</th></tr>
+<tr><td>What is Frost-Aetherius made of?</td><td>2,550 PNG pictures (37.5 MB) and 3,490 links, from 16 to 512 pixels, already retinted once by the owner's earlier scripts (Frost-Ember is the same set retinted to Ember). Its folders are a periwinkle around one hue; 464 pictures carry that hue, 270 of them places, 104 file types, 90 apps.</td></tr>
+<tr><td>What would a PNG library cost?</td><td>The command had 44 of its 45 crates. The <code>png</code> crate brings 8 new ones, <code>zune-png</code> 4, <code>miniz_oxide</code> alone 2. The owner chose <code>miniz_oxide</code>, with PNG's own structure written by Velatura (<a href="../decisions.html#d63">D63</a>); the cap is now 47, the command at 46.</td></tr>
+<tr><td>Does Velatura read PNG as GTK does?</td><td>Yes: all 2,550 pictures of Frost-Aetherius decode to exactly the pixels GdkPixbuf gives, and each one written back and read again is the same.</td></tr>
+<tr><td>What is capitaine-cursors made of?</td><td>48 Xcursor files and 52 links, 364 pictures at 24, 30, 36 and 48 pixels: a dark body, a light outline, and a busy spinner in every hue. No colour of its own, so cursors needed a rule of their own (<a href="../decisions.html#d64">D64</a>).</td></tr>
+<tr><td>How large, how fast?</td><td>Frost-Aetherius recoloured to Ember: a set of 1,746 pictures, 30 MB, made in 13.6 seconds, links copied and its faintly tinted greys moved part of the way. capitaine-cursors: a set of 99 cursors, 9.6 MB, in under a tenth of a second. Both within the limits a set has.</td></tr>
+</table></div>
+
+<h2>What it does</h2>
+<ul>
+<li><strong>Icon themes made of pictures</strong> are recoloured by Recolored Icons as drawn ones are (<a href="../decisions.html#d58">D58</a>): the family is the hue the folder pictures share, its main colour the one they are filled with, and each pixel of that hue moves to the accent with its lightness relative to the main one kept. Pixels at the family's edge move part of the way, so edges stay smooth; transparency, greys and other colours stay; app icons are not touched. Where the accent is the icon theme's own colour, the set is still made.</li>
+<li><strong>Recolored Cursor</strong>, a part of its own on Apps &amp; Desktop under Desktop, off until turned on: a cursor set beside the icon sets, from the cursor theme in use, with the cursor set to it. Greys go along the line from the theme's darker colour to its lighter, so the body and outline keep their contrast; coloured parts take the accent's hue. Only pixels change: every other byte of a cursor file stays.</li>
+<li><strong>Sets of each kind</strong> are cleared by their own part only: recolouring icons never takes a cursor set away, nor the other way round. An icon theme whose name starts like a cursor set's is told apart.</li>
+<li>The preview, the result and History say each set in one line: "Create the cursor set … with 99 recolored cursors".</li>
+</ul>
+
+<h2>Tests and checks</h2>
+<ul>
+<li>Three tests of the PNG code: what is written reads back the same; PNG's own checksum; damaged, cut, sixteen-bit and interlaced pictures give nothing. One test of pixel recolouring, three of cursors (body, outline, half-transparent pixels and the spinner; damaged files refused; a light theme).</li>
+<li>A transaction test for a small icon theme made of pictures, written by libpng: the marked pictures and a link to one in the set, a grey one and an app icon left out, the folder's body in the accent, alpha kept, another theme, two undos to the exact start.</li>
+<li>Four transaction tests in <code>tests/cursor_sets.rs</code> for a small cursor theme: off until turned on, the set with its alias copied and a file that is not a cursor left out, the arrow's outline and body in the theme's colours, another theme clearing the first set, undo bringing it back; a crash at every step, from a clean home and an applied one; a switch with no one present keeping earlier sets, and icons leaving cursor sets alone; cursor themes that cannot be recoloured.</li>
+<li>In the gate, <code>scripts/icons-accept.sh</code> now also recolours the two fixtures with the command: GdkPixbuf must load every picture in the set and find the folder in the accent, a reader that is not Velatura's must read every cursor and find the arrow in the theme's colours, and undo must put both back.</li>
+<li>232 tests in all. The translation template has 413 strings, all in Spanish.</li>
+</ul>
+
+<h2>Changed from the plan</h2>
+<ul>
+<li><strong>The cap on crates is 47</strong>, not 45 (<a href="../decisions.html#d63">D63</a>, accepted by the owner).</li>
+<li><strong>Cursors are a part of their own</strong>, off until turned on, as recoloured icons are; the plan did not say.</li>
+</ul>
+
+<h2>Not done, and what only a person can do</h2>
+<ul>
+<li><strong>Not looked at by a person</strong> in a real session: the pictures and cursors were looked at side by side with the originals, on light and dark grounds. How Frost-Aetherius in Ember reads in Files, and the cursor over real windows, is part of the owner's full test. GTK 4 apps load a new icon theme at once; other toolkits, and some apps for a new cursor, may need restarting.</li>
+<li><strong>Pictures other than PNG</strong> (XPM, sixteen bits a channel, interlaced PNG) are left as they are.</li>
+<li><strong>An already retinted theme</strong> such as Frost-Aetherius is recoloured from its present colours: its faint tint of periwinkle in the greys moves part of the way too.</li>
+</ul>
+</main>
+</body>
+</html>

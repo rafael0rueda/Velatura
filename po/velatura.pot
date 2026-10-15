@@ -579,6 +579,9 @@ msgstr ""
 msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color"
 msgstr ""
 
+msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
+msgstr ""
+
 msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
 msgstr ""
 
@@ -876,6 +879,9 @@ msgstr ""
 msgid "Recolored Icons"
 msgstr ""
 
+msgid "Recolored Cursor"
+msgstr ""
+
 msgid "Changes"
 msgstr ""
 
@@ -933,7 +939,15 @@ msgid "Create the icon set {1} with {2} recolored icons"
 msgstr ""
 
 #, rust-format
+msgid "Create the cursor set {1} with {2} recolored cursors"
+msgstr ""
+
+#, rust-format
 msgid "Remove the icon set {1}, made by Velatura for other colors ({2} icons)"
+msgstr ""
+
+#, rust-format
+msgid "Remove the cursor set {1}, made by Velatura for other colors ({2} cursors)"
 msgstr ""
 
 #, rust-format
@@ -1058,6 +1072,10 @@ msgid "Left out: {1} already chooses a palette, and its prompt is written for th
 msgstr ""
 
 msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
+msgstr ""
+
+#, rust-format
+msgid "Left out: the cursor theme {1} cannot be recolored. It is not installed here, or has no cursor in a form Velatura reads"
 msgstr ""
 
 #, rust-format

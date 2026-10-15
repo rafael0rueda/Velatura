@@ -314,6 +314,7 @@ fn an_icon_edited_in_a_set_is_kept_and_its_folder_with_it() {
 fn themes_that_cannot_be_recolored_are_left_out_with_the_reason() {
     let t = bundled::themes();
     for (theme, why) in [
+        // Its folder is not a picture this reads.
         ("Pics", Skip::IconsNotRecolorable("Pics".to_owned())),
         (
             "NotInstalledAnywhere",
@@ -386,4 +387,59 @@ fn a_set_is_not_offered_as_an_icon_theme_and_is_made_from_its_base_again() {
     let back = look::plan_select(&host, &env, Kind::Icons, Some("Mini")).unwrap();
     engine::execute(&host, &back, &[]).unwrap();
     assert_eq!(icon_theme(&s), "Mini");
+}
+
+/// An icon theme made of pictures (phase 4d): the pictures that carry its
+/// folders' colour are recoloured pixel by pixel; links become copies;
+/// grey pictures and app icons are left to the original.
+#[test]
+fn pictures_are_recolored_pixel_by_pixel_and_undone() {
+    use velatura_theme::png;
+    let t = bundled::themes();
+    let home = Home::new();
+    let s = settings("Frosty");
+    let host = home.host(&StdFs, &s);
+    let start = home.snapshot();
+    let report = apply(&host, &t[1]);
+    let name = icon_theme(&s);
+    assert!(name.starts_with("Velatura-frosty-"), "{name}");
+    let set = home.icons().join(&name);
+    let mut files = walk_files(&set);
+    files.sort();
+    assert_eq!(
+        files,
+        [
+            "48/mimetypes/audio-x-generic.png",
+            "48/places/folder.png",
+            "48/places/user-home.png",
+            "index.theme"
+        ]
+    );
+    assert!(report.notes.is_empty(), "{:?}", report.notes);
+    // GTK reads what was written; the folder's body is Ember's accent.
+    let folder = png::decode(&fs::read(set.join("48/places/folder.png")).unwrap()).unwrap();
+    let original =
+        png::decode(&fs::read(fixtures().join("icons/Frosty/48/places/folder.png")).unwrap())
+            .unwrap();
+    assert_eq!((folder.width, folder.height), (48, 48));
+    let at = |img: &png::Image, x: usize, y: usize| {
+        let i = (y * 48 + x) * 4;
+        img.rgba[i..i + 4].to_vec()
+    };
+    let accent = Resolved::new(&t[1], None).unwrap().colors.ui.accent;
+    let body = at(&folder, 10, 12);
+    for (got, want) in body.iter().zip([accent.r, accent.g, accent.b]) {
+        assert!(got.abs_diff(want) <= 3, "{body:?} against {}", accent.hex());
+    }
+    // The grey label, the alpha and the transparent edge are as they were.
+    assert_eq!(at(&folder, 20, 25), at(&original, 20, 25));
+    assert_eq!(at(&folder, 0, 0), at(&original, 0, 0));
+    assert_eq!(at(&folder, 1, 10)[3], 128);
+    // Another theme makes another set, and two undos are the start.
+    apply(&host, &t[0]);
+    assert_ne!(icon_theme(&s), name);
+    undo(&host);
+    undo(&host);
+    assert_eq!(home.snapshot(), start);
+    assert_eq!(icon_theme(&s), "Frosty");
 }

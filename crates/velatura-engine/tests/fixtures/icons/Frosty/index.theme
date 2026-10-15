@@ -1,0 +1,20 @@
+[Icon Theme]
+Name=Frosty
+Comment=A small icon theme made of pictures, for tests
+Inherits=hicolor
+Directories=48/places,48/mimetypes,48/apps
+
+[48/places]
+Size=48
+Context=Places
+Type=Fixed
+
+[48/mimetypes]
+Size=48
+Context=MimeTypes
+Type=Fixed
+
+[48/apps]
+Size=48
+Context=Applications
+Type=Fixed
