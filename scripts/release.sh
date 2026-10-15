@@ -2,7 +2,8 @@
 # Build everything a release holds, into dist/ (or the folder given):
 #
 #   velatura-<version>-x86_64-linux.tar.gz   the command and the app, built
-#       here, with install.sh to put them in ~/.local without root
+#       here, with install.sh to put them in ~/.local without root, and
+#       a template for Qt apps to add with: velatura template add
 #   velatura-<version>-source.tar.gz         the source with every crate it
 #       needs, so it builds with no network (cargo build --offline)
 #   velatura@rafael0rueda.github.io.shell-extension.zip   the Shell extension
@@ -35,6 +36,7 @@ install -D -m 644 "data/icons/hicolor/scalable/apps/$id.svg" \
 install -D -m 644 "data/icons/hicolor/symbolic/apps/$id-symbolic.svg" \
     "$stage/share/icons/hicolor/symbolic/apps/$id-symbolic.svg"
 install -m 755 scripts/release-install.sh "$stage/install.sh"
+install -D -m 644 data/templates/qt6ct.toml "$stage/templates/qt6ct.toml"
 install -m 644 LICENSE README.md "$stage/"
 # The same bytes for the same sources: fixed times, owners and order.
 when=$(git log -1 --format=%ct)

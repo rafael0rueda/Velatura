@@ -385,3 +385,42 @@ fn templates_that_cannot_be_used_are_said_and_left_out() {
         Err(Refused::BadId("../x".to_owned()))
     );
 }
+
+/// The qt6ct template in the docs (phase 4e) is one Velatura accepts, and
+/// writes what qt6ct reads: three lines of Qt's 21 roles, as #AARRGGBB.
+#[test]
+fn the_qt6ct_template_from_the_docs_writes_a_qt6ct_color_scheme() {
+    let t = bundled::themes();
+    let home = Home::new();
+    let s = MemSettings::gnome();
+    let host = home.host(&StdFs, &s);
+    let text = include_str!("../../../data/templates/qt6ct.toml");
+    let entry = templates::add(&host, "qt6ct", text, false).unwrap();
+    assert_eq!(
+        entry.output,
+        host.dirs.config.join("qt6ct/colors/desktop-theme.conf")
+    );
+    apply(&host, &t[1]);
+    let out = fs::read_to_string(&entry.output).unwrap();
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines[0], "[ColorScheme]");
+    for (line, key) in
+        lines[1..]
+            .iter()
+            .zip(["active_colors", "disabled_colors", "inactive_colors"])
+    {
+        let values = line.strip_prefix(&format!("{key}=")).unwrap();
+        let colors: Vec<&str> = values.split(", ").collect();
+        assert_eq!(colors.len(), 21, "{key}");
+        assert!(colors.iter().all(|c| c.len() == 9
+            && c.starts_with("#ff")
+            && c[1..].bytes().all(|b| b.is_ascii_hexdigit())));
+    }
+    let bg = Resolved::new(&t[1], None)
+        .unwrap()
+        .colors
+        .ui
+        .bg
+        .hex_noprefix();
+    assert!(lines[1].contains(&format!("#ff{bg}")));
+}
