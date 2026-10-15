@@ -1212,14 +1212,18 @@ fn error_text(e: &Error) -> String {
     }
 }
 
-/// A page that says Velatura is at work, put up only once the work has
-/// taken long enough to be noticed, so a quick change does not flash it.
+/// A page that says Velatura is at work, put up as soon as the work
+/// starts and kept long enough to be read, so even a quick change shows
+/// that something happened.
 struct Working {
     ui: U,
     page: adw::NavigationPage,
-    timer: RefCell<Option<glib::SourceId>>,
-    shown: Rc<Cell<bool>>,
+    status: adw::StatusPage,
+    since: std::time::Instant,
 }
+
+/// The shortest time the page stays up.
+const WORKING_AT_LEAST: std::time::Duration = std::time::Duration::from_millis(700);
 
 impl Working {
     fn new(ui: &U, title: &str, detail: Option<String>) -> Self {
@@ -1242,30 +1246,31 @@ impl Working {
             .can_pop(false)
             .child(&view)
             .build();
-        let shown = Rc::new(Cell::new(false));
-        let timer = {
-            let (nav, page, shown) = (ui.nav.clone(), page.clone(), shown.clone());
-            glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
-                shown.set(true);
-                nav.push(&page);
-            })
-        };
+        ui.nav.push(&page);
         Self {
             ui: ui.clone(),
             page,
-            timer: RefCell::new(Some(timer)),
-            shown,
+            status,
+            since: std::time::Instant::now(),
         }
     }
 
-    /// Take the page away, or keep it from coming up.
-    fn done(&self) {
-        if let Some(timer) = self.timer.borrow_mut().take()
-            && !self.shown.get()
-        {
-            timer.remove();
+    /// Say what is being done now, on the same page.
+    fn retitle(&self, title: &str) {
+        self.status.set_title(&glib::markup_escape_text(title));
+        self.status.set_description(None);
+        self.page.set_title(title);
+    }
+
+    /// Take the page away, once it has been up long enough to be read.
+    async fn done(&self) {
+        if let Some(rest) = WORKING_AT_LEAST.checked_sub(self.since.elapsed()) {
+            glib::timeout_future(rest).await;
         }
-        if self.shown.replace(false) {
+        // The page on show is popped: removing it would leave it there.
+        if self.ui.nav.visible_page().as_ref() == Some(&self.page) {
+            self.ui.nav.pop();
+        } else {
             self.ui.nav.remove(&self.page);
         }
     }
@@ -1300,9 +1305,12 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
         .find(|e| e.theme.id == id)
         .map(|e| e.theme.name.clone())
         .unwrap_or_default();
+    let applying = tr("Applying {name}…").replace("{name}", &shown_name);
+    // Getting ready is where icons are recoloured, before anything is
+    // asked or changed.
     let work = Working::new(
         ui,
-        &tr("Applying {name}…").replace("{name}", &shown_name),
+        &tr("Preparing {name}…").replace("{name}", &shown_name),
         detail,
     );
     ui.busy.set(true);
@@ -1320,14 +1328,14 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     .flatten();
     ui.busy.set(false);
     let Some((name, plan)) = planned else {
-        work.done();
+        work.done().await;
         toast(ui, &tr("That theme is no longer available"));
         return;
     };
     let plan = match plan {
         Ok(plan) => plan,
         Err(e) => {
-            work.done();
+            work.done().await;
             result_page(
                 ui,
                 &tr("Theme Not Applied"),
@@ -1339,7 +1347,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
         }
     };
     if plan.is_empty() {
-        work.done();
+        work.done().await;
         toast(ui, &tr("Nothing to change"));
         return;
     }
@@ -1361,17 +1369,24 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     } else {
         Vec::new()
     };
-    if (first || !asking.is_empty() || low) && !confirm(ui, &name, &plan, &home, low, &tools).await
-    {
-        work.done();
-        return;
-    }
+    // The question is asked over the main view, not over a page saying
+    // the theme is being applied; that page comes back once agreed to.
+    let work = if first || !asking.is_empty() || low {
+        work.done().await;
+        if !confirm(ui, &name, &plan, &home, low, &tools).await {
+            return;
+        }
+        Working::new(ui, &applying, None)
+    } else {
+        work.retitle(&applying);
+        work
+    };
 
     ui.busy.set(true);
     let executed = data::run(move |host| engine::execute(host, &plan, &asking)).await;
     ui.busy.set(false);
     refresh(ui).await;
-    work.done();
+    work.done().await;
     match executed {
         Some(Ok(report)) => applied(ui, &name, &report, &home),
         Some(Err(e)) => result_page(

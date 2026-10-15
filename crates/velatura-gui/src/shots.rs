@@ -207,7 +207,23 @@ async fn flow(ui: &U, dir: &Path) {
     println!("FLOW start applied={:?}", ui.snap.borrow().applied);
     let ui2 = ui.clone();
     glib::spawn_future_local(async move { crate::apply_theme(&ui2, id, variant).await });
-    pause(1200).await;
+    // The page saying Velatura is at work comes up at once.
+    pause(300).await;
+    save(ui, dir, "preparing");
+    let shown = ui
+        .nav
+        .visible_page()
+        .and_then(|p| p.tag())
+        .map(|t| t.to_string());
+    println!(
+        "FLOW working page {}",
+        if shown.as_deref() == Some("working") {
+            "shown"
+        } else {
+            "not shown"
+        }
+    );
+    pause(900).await;
     save(ui, dir, "confirm");
     match ui.window.visible_dialog() {
         Some(confirm) => {
@@ -216,7 +232,9 @@ async fn flow(ui: &U, dir: &Path) {
         }
         None => println!("FLOW no confirmation"),
     }
-    pause(2000).await;
+    pause(500).await;
+    save(ui, dir, "applying");
+    pause(1500).await;
     save(ui, dir, "after-apply");
     println!("FLOW applied={:?}", ui.snap.borrow().applied);
     gtk::prelude::WidgetExt::activate_action(&ui.window, "win.undo", None).ok();

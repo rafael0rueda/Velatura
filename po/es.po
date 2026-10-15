@@ -521,6 +521,10 @@ msgstr "Recolorear los iconos tarda unos segundos la primera vez. Velatura guard
 msgid "Applying {name}…"
 msgstr "Aplicando {name}…"
 
+#, rust-format
+msgid "Preparing {name}…"
+msgstr "Preparando {name}…"
+
 msgid "Theme Not Applied"
 msgstr "Tema no aplicado"
 
@@ -1381,4 +1385,3 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
-
