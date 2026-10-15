@@ -1212,6 +1212,80 @@ fn error_text(e: &Error) -> String {
     }
 }
 
+/// A page that says Velatura is at work, put up as soon as the work
+/// starts and kept long enough to be read, so even a quick change shows
+/// that something happened.
+struct Working {
+    ui: U,
+    page: adw::NavigationPage,
+    status: adw::StatusPage,
+    since: std::time::Instant,
+}
+
+/// The shortest time the page stays up.
+const WORKING_AT_LEAST: std::time::Duration = std::time::Duration::from_millis(700);
+
+impl Working {
+    fn new(ui: &U, title: &str, detail: Option<String>) -> Self {
+        let spinner = adw::Spinner::builder()
+            .width_request(48)
+            .height_request(48)
+            .halign(gtk::Align::Center)
+            .build();
+        let status = adw::StatusPage::builder()
+            .title(glib::markup_escape_text(title))
+            .child(&spinner)
+            .build();
+        status.set_description(detail.as_deref());
+        let view = adw::ToolbarView::new();
+        view.add_top_bar(&adw::HeaderBar::builder().show_back_button(false).build());
+        view.set_content(Some(&status));
+        let page = adw::NavigationPage::builder()
+            .title(title)
+            .tag("working")
+            .can_pop(false)
+            .child(&view)
+            .build();
+        ui.nav.push(&page);
+        Self {
+            ui: ui.clone(),
+            page,
+            status,
+            since: std::time::Instant::now(),
+        }
+    }
+
+    /// Say what is being done now, on the same page.
+    fn retitle(&self, title: &str) {
+        self.status.set_title(&glib::markup_escape_text(title));
+        self.status.set_description(None);
+        self.page.set_title(title);
+    }
+
+    /// Take the page away, once it has been up long enough to be read.
+    async fn done(&self) {
+        if let Some(rest) = WORKING_AT_LEAST.checked_sub(self.since.elapsed()) {
+            glib::timeout_future(rest).await;
+        }
+        // The page on show is popped: removing it would leave it there.
+        if self.ui.nav.visible_page().as_ref() == Some(&self.page) {
+            self.ui.nav.pop();
+        } else {
+            self.ui.nav.remove(&self.page);
+        }
+    }
+}
+
+/// True if applying may recolour icons or cursors: either part is
+/// included and can be themed. Making a set the first time takes seconds.
+fn recolors(snap: &Snapshot) -> bool {
+    snap.rows.iter().any(|r| {
+        matches!(r.instance.as_str(), targets::ICONS | targets::CURSORS)
+            && r.included
+            && !matches!(r.state, RowState::Unavailable(_))
+    })
+}
+
 /// Apply a theme: plan, confirm when the guidelines call for it, execute,
 /// and say what happened.
 async fn apply_theme(ui: &U, id: String, variant: String) {
@@ -1220,6 +1294,26 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     }
     let first = ui.snap.borrow().applied.is_none();
     let home = ui.snap.borrow().home.clone();
+    let detail = recolors(&ui.snap.borrow()).then(|| {
+        tr("Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick")
+    });
+    let shown_name = ui
+        .snap
+        .borrow()
+        .themes
+        .iter()
+        .find(|e| e.theme.id == id)
+        .map(|e| e.theme.name.clone())
+        .unwrap_or_default();
+    let applying = tr("Applying {name}…").replace("{name}", &shown_name);
+    // Getting ready is where icons are recoloured, before anything is
+    // asked or changed.
+    let work = Working::new(
+        ui,
+        &tr("Preparing {name}…").replace("{name}", &shown_name),
+        detail,
+    );
+    ui.busy.set(true);
     let (plan_id, plan_variant) = (id.clone(), variant.clone());
     let planned = data::run(move |host| {
         let (themes, _) = velatura_engine::library::load(host);
@@ -1232,13 +1326,16 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     })
     .await
     .flatten();
+    ui.busy.set(false);
     let Some((name, plan)) = planned else {
+        work.done().await;
         toast(ui, &tr("That theme is no longer available"));
         return;
     };
     let plan = match plan {
         Ok(plan) => plan,
         Err(e) => {
+            work.done().await;
             result_page(
                 ui,
                 &tr("Theme Not Applied"),
@@ -1250,6 +1347,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
         }
     };
     if plan.is_empty() {
+        work.done().await;
         toast(ui, &tr("Nothing to change"));
         return;
     }
@@ -1271,15 +1369,24 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     } else {
         Vec::new()
     };
-    if (first || !asking.is_empty() || low) && !confirm(ui, &name, &plan, &home, low, &tools).await
-    {
-        return;
-    }
+    // The question is asked over the main view, not over a page saying
+    // the theme is being applied; that page comes back once agreed to.
+    let work = if first || !asking.is_empty() || low {
+        work.done().await;
+        if !confirm(ui, &name, &plan, &home, low, &tools).await {
+            return;
+        }
+        Working::new(ui, &applying, None)
+    } else {
+        work.retitle(&applying);
+        work
+    };
 
     ui.busy.set(true);
     let executed = data::run(move |host| engine::execute(host, &plan, &asking)).await;
     ui.busy.set(false);
     refresh(ui).await;
+    work.done().await;
     match executed {
         Some(Ok(report)) => applied(ui, &name, &report, &home),
         Some(Err(e)) => result_page(
@@ -1539,7 +1646,7 @@ fn part_row(
         // Off until turned on, so the row says what turning on does.
         RowState::Ready if row.instance == targets::ICONS => (
             tr(
-                "Gives the folders and other marked icons of the icon theme in use the theme's accent color",
+                "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in",
             ),
             true,
         ),

@@ -559,6 +559,12 @@ pub fn note(n: &Note, home: &Path) -> String {
         }
         Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
         Note::FirefoxRestart => t("Firefox shows the change after it is restarted"),
+        Note::IconsReopen => t(
+            "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere",
+        ),
+        Note::CursorReopen => t(
+            "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere",
+        ),
         Note::FirefoxOtherProfiles => t(
             "Only the profile Firefox opens by default is given the theme. Its other profiles are left as they are",
         ),

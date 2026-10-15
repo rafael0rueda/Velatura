@@ -310,7 +310,14 @@ pub fn plan_icons(
     }
 
     if clear_old {
-        clear_other_sets(host, state, &set, &|name| !is_cursor_set(name), &mut plan);
+        clear_other_sets(
+            host,
+            state,
+            &set,
+            &recent_sets(host, "icon-theme"),
+            &|name| !is_cursor_set(name),
+            &mut plan,
+        );
     }
 
     match crate::targets::set_text(
@@ -319,18 +326,59 @@ pub fn plan_icons(
         &named.name,
         &mut plan,
     ) {
-        Ok(()) => plan,
+        Ok(()) => {
+            if !plan.changes.is_empty() {
+                plan.notes.push(Note::IconsReopen);
+            }
+            plan
+        }
         Err(why) => skip(why),
     }
 }
 
+/// How many sets of each kind are kept besides the one in use, so going
+/// back to a recent theme uses its set again instead of making it anew.
+pub const KEPT_SETS: usize = 3;
+
+/// The names of Velatura's sets that `key` (`icon-theme` or
+/// `cursor-theme`) was set to or from, most recent first, as many as are
+/// kept: read from the backups.
+pub(crate) fn recent_sets(host: &Host<'_>, key: &str) -> Vec<String> {
+    let Ok((all, _)) = crate::store::manifests(host) else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = Vec::new();
+    for manifest in all.iter().rev() {
+        for record in manifest.records.iter().rev() {
+            let crate::store::Record::Setting {
+                key: k, pre, post, ..
+            } = record
+            else {
+                continue;
+            };
+            if k != key {
+                continue;
+            }
+            for name in [post, pre].into_iter().flatten() {
+                if name.starts_with("Velatura-") && !out.contains(name) {
+                    out.push(name.clone());
+                }
+            }
+        }
+    }
+    out.truncate(KEPT_SETS);
+    out
+}
+
 /// Sets of one kind Velatura made for earlier colours, as far as they are
-/// as written, taken away; `keep` is the one in use now. `kind` tells a
-/// set's folder name of that kind from the other's.
+/// as written, taken away: all but `keep`, the one in use now, and
+/// `recent`, the ones used last, which are kept to be used again. `kind`
+/// tells a set's folder name of that kind from the other's.
 pub(crate) fn clear_other_sets(
     host: &Host<'_>,
     state: &State,
     keep: &Path,
+    recent: &[String],
     kind: &dyn Fn(&str) -> bool,
     plan: &mut TargetPlan,
 ) {
@@ -346,10 +394,9 @@ pub(crate) fn clear_other_sets(
             continue;
         };
         let top = root.join(top);
-        let named = top
-            .file_name()
-            .and_then(|n| n.to_str())
-            .is_some_and(|n| n.starts_with("Velatura-") && kind(n));
+        let named = top.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+            n.starts_with("Velatura-") && kind(n) && !recent.iter().any(|r| r == n)
+        });
         if top != keep && named {
             others.entry(top).or_default().push((path, hash));
         }

@@ -139,6 +139,11 @@ pub enum Note {
     PtyxisReopen,
     /// GTK reads its stylesheet once, when an app starts.
     GtkRestart,
+    /// Open apps show recoloured icons once reopened; signing out and in
+    /// shows them everywhere.
+    IconsReopen,
+    /// The same for a recoloured cursor.
+    CursorReopen,
     /// Firefox reads its stylesheet when it starts.
     FirefoxRestart,
     /// Firefox has other profiles, which are left as they are.

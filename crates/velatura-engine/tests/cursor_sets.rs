@@ -189,11 +189,11 @@ fn the_cursors_are_recolored_in_a_set_of_their_own_and_undone() {
     );
 
     // The same again changes nothing; another theme makes another set and
-    // clears this one; two undos are the start.
+    // keeps this one to use again; two undos are the start.
     assert!(plan_as(&host, &t[1], false).is_empty());
     apply(&host, &t[0]);
     assert_ne!(cursor_theme(&s), name);
-    assert!(!set.exists());
+    assert!(set.exists(), "the earlier set is kept");
     undo(&host);
     assert!(set.exists());
     undo(&host);
