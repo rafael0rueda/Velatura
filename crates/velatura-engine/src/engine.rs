@@ -60,6 +60,10 @@ pub struct ApplyOpts {
     /// No one is there to answer: the plan is for the schedule. It removes
     /// nothing, not even folders Velatura generated itself.
     pub unattended: bool,
+    /// Only how each part stands is wanted, not a plan to carry out: a
+    /// recoloured set that is not there yet is not made to find that out.
+    /// Such a plan is never executed.
+    pub probe: bool,
 }
 
 fn matches(instance: &str, names: &[String]) -> bool {
@@ -755,6 +759,7 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
     // Naming every instance looks past the ones that are turned off.
     let all = ApplyOpts {
         only: instances(host),
+        probe: true,
         ..ApplyOpts::default()
     };
     let Ok(plan) = plan_apply(host, env, &resolved, &all) else {

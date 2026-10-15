@@ -292,3 +292,31 @@ fn cursor_themes_that_cannot_be_recolored_are_left_out() {
         );
     }
 }
+
+/// How the parts stand, as the app shows them, is worked out without
+/// making a set: the cursor part is ready, and the plan that says so holds
+/// no cursor to write.
+#[test]
+fn the_parts_list_does_not_make_a_set_to_say_one_would_be_made() {
+    use velatura_engine::engine::PartState;
+    let home = Home::new();
+    let s = settings("Pointy");
+    let host = home.host(&StdFs, &s);
+    let (themes, _) = velatura_engine::library::load(&host);
+    let parts = engine::parts(&host, &env, &themes);
+    let cursors = parts.iter().find(|p| p.instance == CURSORS).unwrap();
+    assert_eq!(cursors.state, PartState::Ready);
+    let t = bundled::themes();
+    let resolved = Resolved::new(&t[0], None).unwrap();
+    let probe = ApplyOpts {
+        only: vec![CURSORS.to_owned()],
+        probe: true,
+        ..ApplyOpts::default()
+    };
+    let p = engine::plan_apply(&host, &env, &resolved, &probe).unwrap();
+    assert!(
+        !p.changes()
+            .any(|c| matches!(c, velatura_engine::plan::Change::Owned { .. }))
+    );
+    assert!(!home.icons().exists(), "nothing was written");
+}

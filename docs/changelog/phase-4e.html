@@ -40,6 +40,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li><strong><code>scripts/release.sh</code></strong> builds all of it into <code>dist/</code>, with fixed times, owners and order inside each tarball.</li>
 <li><strong>The release workflow</strong>, <code>.github/workflows/release.yml</code>: on a tag <code>v&lt;version&gt;</code> it checks the tag is the version in <code>Cargo.toml</code>, builds on Fedora 41, checks the checksums, installs the programs into a throw-away home, runs them, uninstalls them and finds nothing left, builds the source with no network and an empty cache, and only then publishes the release with notes on how to install. On a pull request that changes any of this it does everything but publish.</li>
 <li><strong>Qt apps</strong> (<a href="../decisions.html#d66">D66</a>): no built-in part; a template for qt6ct comes in each release and in <a href="../targets.html#qt">Theming targets</a>, with the two steps that switch qt6ct on. Its format was taken from a colour scheme inside the qt6ct package.</li>
+<li><strong>A slower refresh, fixed.</strong> Since Phase 4d, working out how each part stands for the app built any recoloured set that was not there yet, every time the window refreshed: the whole cursor theme in use, recoloured, only to say "included in the next apply". On the slowest CI image the app's checks twice ran out of time. That question is now asked without making the set.</li>
 <li><strong>How to release</strong> is a section of the <a href="../workflow.html#release">workflow</a>; the README says where releases are.</li>
 </ul>
 
@@ -48,7 +49,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>The workflow's steps, run in a Fedora 41 container as GitHub runs them: built, installed, run, uninstalled, built offline from the source tarball, with a tag of <code>v0.1.0</code>.</li>
 <li>The programs built on Fedora 41 run on the owner's Fedora 44: no library missing, the command answers, the app starts in a headless session.</li>
 <li>One test that the qt6ct template is accepted and writes three lines of Qt's 21 roles as <code>#AARRGGBB</code>.</li>
-<li>233 tests in all. The translation template has 413 strings, all in Spanish.</li>
+<li>One test that the parts list says a cursor set would be made without making it.</li>
+<li>234 tests in all. The translation template has 413 strings, all in Spanish.</li>
 </ul>
 
 <h2>Changed from the plan</h2>

@@ -1549,6 +1549,7 @@ They are kept in {}",
             replace_changed: self.args.replace_changed,
             unattended: false,
             keep_style: false,
+            probe: false,
             // Naming the part outright is asking for it.
             untested_shell: self
                 .args
