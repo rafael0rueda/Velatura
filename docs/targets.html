@@ -45,6 +45,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>Firefox</td><td><code>userChrome.css</code> in the default profile, enabled by one preference</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>After restarting Firefox</td><td>4a</td></tr>
 <tr><td>Icons (recolour, bitmap themes); cursor (recolour)</td><td>Pixel processing of bitmaps</td><td><span class="tag wa">Workaround</span> (experimental)</td><td>—</td><td>4</td></tr>
 <tr><td>Exact accent and full coverage in the Shell</td><td>Restating the installed Shell's own compiled stylesheet in the theme's colours</td><td><span class="tag wa">Workaround</span></td><td>Immediately</td><td>4b</td></tr>
+<tr><td>Templates of the user's</td><td>Any text with the theme's colours put in, written to a file the app creates under <code>~/.config</code> or <code>~/.local/share</code></td><td>Depends on the app it is for</td><td>As the app reads its file</td><td>4c</td></tr>
 <tr><td>Qt apps</td><td>Would need extra system packages and a session variable</td><td>Deferred</td><td>—</td><td>4+</td></tr>
 <tr><td>Lock screen</td><td>User Themes is not active while the screen is locked</td><td><span class="tag no">Not feasible</span></td><td>—</td><td>—</td></tr>
 <tr><td>GDM login screen</td><td>Requires root</td><td><span class="tag no">Not feasible</span></td><td>—</td><td>—</td></tr>
@@ -193,6 +194,25 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>Mozilla does not support this mechanism and Firefox releases every four weeks, so it is the most fragile target. Rules of the user's in <code>userChrome.css</code> that set the same variables, and a line after the block that turns the preference off, win and are reported.</li>
 <li>Written while Firefox runs: it reads these files only when it starts and never writes them. Its own settings file, <code>prefs.js</code>, is never touched. Firefox shows the change after it is restarted.</li>
 <li><strong>Not fully reversible:</strong> once Firefox has read the preference it keeps it in its own settings; removing the line does not turn it off. Undo and Remove Everything say so, with the setting to change in <code>about:config</code>. With the import gone it has nothing of Velatura's to read.</li>
+</ul>
+<h3 id="templates">Templates of the user's (Phase 4c)</h3>
+<p>For an app Velatura does not know, a template: a TOML file in <code>~/.local/share/velatura/templates/</code> that names where its output goes and holds its text (<a href="decisions.html#d62">D62</a>).</p>
+<pre><code>schema = 1
+name = "Foot"
+output = "~/.config/foot/colors.ini"
+template = '''
+[colors]
+background={{bg|bare}}
+foreground={{fg|bare}}
+regular1={{red|bare}}
+'''</code></pre>
+<ul>
+<li><strong>Placeholders</strong> are <code>{{name}}</code> or <code>{{name|format}}</code>. Names: the interface roles (<code>bg</code>, <code>fg</code>, <code>accent</code>, <code>surface</code> and the rest), the sixteen terminal colours (<code>black</code> to <code>bright_white</code>), <code>syntax.&lt;role&gt;</code>, <code>diff.&lt;role&gt;</code>, <code>diagnostic.&lt;role&gt;</code>, and <code>appearance</code>, the word <code>dark</code> or <code>light</code>. Formats: <code>hex</code> (<code>#rrggbb</code>, the default), <code>bare</code> (<code>rrggbb</code>), <code>rgb</code> (<code>224, 145, 79</code>) and <code>float</code> (<code>0.878, 0.569, 0.310</code>). Nothing else: no conditions, loops or includes, and nothing of a theme file but its colours reaches the output.</li>
+<li>A <code>{{</code> without a placeholder's shape is text, so code that holds one is left alone. One with the shape that names something unknown is refused, with its line, so a misspelt name is never written out.</li>
+<li><strong>Where the output may go.</strong> A template's text is written as it is, so a template is as trustworthy as a settings file from wherever it came from. Its output must be a file under <code>~/.config/</code> (the settings folder) or <code>~/.local/share/</code> (the data folder), and not in a folder programs are started from: <code>autostart</code>, <code>systemd</code> and <code>environment.d</code> in the first; <code>applications</code>, <code>dbus-1</code>, <code>systemd</code>, <code>gnome-shell</code>, <code>nautilus</code>, <code>flatpak</code> and <code>kservices5</code> in the second; nor Velatura's own folders, nor any name that starts like Velatura's own files. Velatura creates and owns that file, makes the folders it needs, and never writes over a file it did not make. Two templates may not write one file.</li>
+<li><strong>Taking part.</strong> A template takes part in every apply and switch once it is added, and can be turned off on Apps &amp; Desktop under Templates or with <code>--except</code>. Its first write is made only when agreed to, so a scheduled switch never starts one by itself.</li>
+<li><strong>Managing.</strong> <code>velatura template add &lt;file&gt;</code> checks a template and copies it in (<code>--as</code> for another id, <code>--replace</code> to replace one); <code>velatura template</code> lists them with where each writes, or why one cannot be used; <code>velatura template remove &lt;id&gt;</code> takes one out and keeps a copy. The file a removed template wrote stays, as a part's files do when it is turned off, until Undo or Remove Everything takes it away.</li>
+<li>Connecting the output to its app (an include line in its settings, say) is the user's to do.</li>
 </ul>
 
 <h2 id="notfeasible">10. Not feasible or deferred</h2>

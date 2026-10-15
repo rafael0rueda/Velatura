@@ -96,6 +96,8 @@ pub enum Skip {
     /// Firefox is installed but has no profile yet: it has not been
     /// started, or its list of profiles cannot be read.
     FirefoxNoProfile,
+    /// A template of the user's that cannot be used, and why.
+    TemplateInvalid(crate::templates::Invalid),
 }
 
 /// Something the user should know that does not stop the operation.

@@ -565,18 +565,6 @@ msgstr "Revertido"
 msgid "Not Fully Rolled Back"
 msgstr "No se revirtió del todo"
 
-msgid "Desktop"
-msgstr "Escritorio"
-
-msgid "Terminals"
-msgstr "Terminales"
-
-msgid "Command-Line Apps"
-msgstr "Aplicaciones de línea de órdenes"
-
-msgid "Apps"
-msgstr "Aplicaciones"
-
 msgid "Themed"
 msgstr "Con el tema"
 
@@ -606,6 +594,24 @@ msgstr "No oficial: puede dejar de funcionar tras una actualización de GNOME"
 
 msgid "Unofficial: may stop working after a Firefox update"
 msgstr "No oficial: puede dejar de funcionar tras una actualización de Firefox"
+
+msgid "Desktop"
+msgstr "Escritorio"
+
+msgid "Terminals"
+msgstr "Terminales"
+
+msgid "Command-Line Apps"
+msgstr "Aplicaciones de línea de órdenes"
+
+msgid "Apps"
+msgstr "Aplicaciones"
+
+msgid "Templates"
+msgstr "Plantillas"
+
+msgid "Files written from the templates in ~/.local/share/velatura/templates. Added and removed with: velatura template"
+msgstr "Archivos escritos a partir de las plantillas de ~/.local/share/velatura/templates. Se añaden y quitan con: velatura template"
 
 msgid "_Remove Everything Velatura Added"
 msgstr "_Quitar todo lo que añadió Velatura"
@@ -871,6 +877,10 @@ msgstr "Iconos recoloreados"
 msgid "Changes"
 msgstr "Cambios"
 
+#, rust-format
+msgid "{1} (template)"
+msgstr "{1} (plantilla)"
+
 msgid "Legacy Application Theme"
 msgstr "Tema de aplicaciones antiguas"
 
@@ -1048,8 +1058,53 @@ msgstr "Se omite: {1} ya elige una paleta, y su indicador está escrito para los
 msgid "Left out: Firefox has no profile yet. Start Firefox once, then apply again"
 msgstr "Se omite: Firefox aún no tiene perfil. Abra Firefox una vez y vuelva a aplicar"
 
+#, rust-format
+msgid "Left out: the template cannot be used: {1}"
+msgstr "Se omite: la plantilla no se puede usar: {1}"
+
 msgid "Left out: older apps can only be recolored with the adw-gtk3 theme, which is not installed. It can be installed without administrator rights into ~/.local/share/themes, or from the adw-gtk3-theme package"
 msgstr "Se omite: las aplicaciones antiguas solo se pueden recolorear con el tema adw-gtk3, que no está instalado. Se puede instalar sin permisos de administrador en ~/.local/share/themes, o con el paquete adw-gtk3-theme"
+
+msgid "the file is too large for a template"
+msgstr "el archivo es demasiado grande para una plantilla"
+
+#, rust-format
+msgid "it is not a template file ({1})"
+msgstr "no es un archivo de plantilla ({1})"
+
+msgid "it was written for a newer Velatura"
+msgstr "se escribió para un Velatura más reciente"
+
+#, rust-format
+msgid "it has no {1}"
+msgstr "no tiene {1}"
+
+#, rust-format
+msgid "its output, {1}, is not a file under ~/.config/ or ~/.local/share/"
+msgstr "su salida, {1}, no es un archivo dentro de ~/.config/ o ~/.local/share/"
+
+#, rust-format
+msgid "its output, {1}, is in a folder that programs are started from, or is named like a file of Velatura's own"
+msgstr "su salida, {1}, está en una carpeta desde la que se inician programas, o se llama como un archivo propio de Velatura"
+
+#, rust-format
+msgid "another template already writes {1}"
+msgstr "otra plantilla ya escribe {1}"
+
+#, rust-format
+msgid "line {1}: no color is called {2}"
+msgstr "línea {1}: ningún color se llama {2}"
+
+#, rust-format
+msgid "line {1}: no format is called {2}. The formats are hex, bare, rgb and float"
+msgstr "línea {1}: ningún formato se llama {2}. Los formatos son hex, bare, rgb y float"
+
+#, rust-format
+msgid "line {1}: appearance is a word, dark or light, and takes no format"
+msgstr "línea {1}: appearance es una palabra, dark o light, y no admite formato"
+
+msgid "it names no color"
+msgstr "no nombra ningún color"
 
 #, rust-format
 msgid "{1} has lines after the Velatura block that win over the theme (line {2})"

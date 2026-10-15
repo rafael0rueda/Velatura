@@ -18,6 +18,7 @@ use velatura_engine::plan::{Cause, Change, Note, Plan, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, Times};
 use velatura_engine::store::DayNight;
 use velatura_engine::targets;
+use velatura_engine::templates;
 use velatura_text as text;
 use velatura_theme::model::{ANSI_NAMES, clean_text};
 use velatura_theme::{Color, Resolved, nearest_accent, parse_theme};
@@ -193,6 +194,9 @@ fn main() -> ExitCode {
         ["theme", "export", theme, file] => cx.theme_export(theme, Some(file)),
         ["theme", "resolve", theme] => cx.theme_resolve(theme),
         ["theme", "remove", theme] => cx.theme_remove(theme),
+        ["template"] | ["template", "list"] => cx.template_list(),
+        ["template", "add", file] => cx.template_add(file),
+        ["template", "remove", id] => cx.template_remove(id),
         ["look"] => cx.look_show(),
         ["look", "list", what] => cx.look_list(what),
         ["look", "set", what, value] => cx.look_set(what, Some(value)),
@@ -325,6 +329,7 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::Invalid(_) => "invalid-file",
         Skip::OwnPalette(_) => "own-palette",
         Skip::FirefoxNoProfile => "firefox-no-profile",
+        Skip::TemplateInvalid(_) => "template-invalid",
     }
 }
 
@@ -663,7 +668,7 @@ impl Cx<'_> {
                     .trim_start_matches("Left out: ")
                     .to_owned(),
             };
-            println!("{}: {state}", text::instance(part.instance));
+            println!("{}: {state}", text::instance(&part.instance));
         }
         let sched = schedule::status(&self.host);
         if sched.on {
@@ -896,6 +901,136 @@ impl Cx<'_> {
         library::remove(&self.host, id).map_err(|why| self.library_exit(why))?;
         println!(
             "Removed {} from the library. A copy is kept.\nTo put it back: velatura theme import {}",
+            clean_text(id, 64),
+            text::path(&kept, self.home)
+        );
+        Ok(OK)
+    }
+
+    fn template_exit(&self, why: templates::Refused) -> Exit {
+        use templates::Refused;
+        let (code, message) = match why {
+            Refused::BadId(id) => (
+                USAGE,
+                format!(
+                    "{id} cannot be a template's id: use lower-case letters, digits and dashes"
+                ),
+            ),
+            Refused::Invalid(why) => (
+                USAGE,
+                format!(
+                    "The template cannot be used: {}",
+                    text::template_problem(&why, self.home)
+                ),
+            ),
+            Refused::Exists(id) => (
+                USAGE,
+                format!(
+                    "A template called {id} is there already. To replace it: --replace. To keep both: --as <id>"
+                ),
+            ),
+            Refused::NotFound(id) => (USAGE, format!("No template is called {id}")),
+            Refused::Io(e) => (FAILED, e),
+        };
+        Exit { code, message }
+    }
+
+    fn template_list(&self) -> Outcome {
+        let all = templates::load(&self.host);
+        let off = engine::excluded(&self.host).unwrap_or_default();
+        if self.args.json {
+            self.emit(json!({
+                "templates": all.iter().map(|(id, entry)| {
+                    let instance = format!("{}{id}", templates::PREFIX);
+                    match entry {
+                        Ok(e) => json!({
+                            "id": id, "name": e.name, "output": e.written,
+                            "included": !off.contains(&instance),
+                        }),
+                        Err(why) => json!({
+                            "id": id, "problem": text::template_problem(why, self.home),
+                        }),
+                    }
+                }).collect::<Vec<_>>(),
+            }));
+            return Ok(OK);
+        }
+        if all.is_empty() {
+            println!(
+                "No templates. Add one with: velatura template add <file>
+They are kept in {}",
+                text::path(&templates::dir(&self.host), self.home)
+            );
+            return Ok(OK);
+        }
+        for (id, entry) in &all {
+            let instance = format!("{}{id}", templates::PREFIX);
+            match entry {
+                Ok(e) => println!(
+                    "{id:<20} {:<24} {}{}",
+                    e.name,
+                    e.written,
+                    if off.contains(&instance) {
+                        " (left out)"
+                    } else {
+                        ""
+                    }
+                ),
+                Err(why) => println!(
+                    "{id:<20} cannot be used: {}",
+                    text::template_problem(why, self.home)
+                ),
+            }
+        }
+        Ok(OK)
+    }
+
+    fn template_add(&self, file: &str) -> Outcome {
+        let failed = |e: std::io::Error| Exit {
+            code: FAILED,
+            message: clean_text(&e.to_string(), 200),
+        };
+        let path = std::path::absolute(file).map_err(failed)?;
+        let size = std::fs::metadata(&path).map_err(failed)?.len();
+        if size > 512 * 1024 {
+            return Err(
+                self.template_exit(templates::Refused::Invalid(templates::Invalid::TooLarge))
+            );
+        }
+        let text = std::fs::read_to_string(&path).map_err(failed)?;
+        let id = match &self.args.rename {
+            Some(id) => id.clone(),
+            None => velatura_theme::editor::slug(
+                &path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+            ),
+        };
+        if self.args.preview {
+            let entry = templates::read(&self.host, &id, &text)
+                .map_err(|why| self.template_exit(templates::Refused::Invalid(why)))?;
+            println!(
+                "{} ({id}) would write {}.",
+                entry.name,
+                text::path(&entry.output, self.home)
+            );
+            return Ok(OK);
+        }
+        let entry = templates::add(&self.host, &id, &text, self.args.replace)
+            .map_err(|why| self.template_exit(why))?;
+        println!(
+            "Added the template {} ({id}). It writes {} from the next apply on; the first time, it asks.",
+            entry.name,
+            text::path(&entry.output, self.home)
+        );
+        Ok(OK)
+    }
+
+    fn template_remove(&self, id: &str) -> Outcome {
+        let kept = templates::remove(&self.host, id).map_err(|why| self.template_exit(why))?;
+        println!(
+            "Removed the template {}. A copy is kept.\nThe file it wrote stays until Undo or Remove Everything takes it away.\nTo put it back: velatura template add {}",
             clean_text(id, 64),
             text::path(&kept, self.home)
         );
@@ -1299,6 +1434,11 @@ impl Cx<'_> {
                 for instance in asking {
                     if instance == targets::NVIM {
                         print!("\nAdd Velatura's two files to the Neovim settings folder? [y/N] ");
+                    } else if let Some(id) = instance.strip_prefix(templates::PREFIX) {
+                        print!(
+                            "\nWrite the output of the template {} for the first time? [y/N] ",
+                            clean_text(id, 64)
+                        );
                     } else if instance == targets::FIREFOX {
                         print!(
                             "\nAdd Velatura's stylesheet to the Firefox profile, with a line in its userChrome.css and one in its user.js? [y/N] "

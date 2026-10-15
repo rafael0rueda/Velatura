@@ -83,7 +83,7 @@ enum Change {
 }</pre>
 <ul>
 <li><strong>Nothing happens that is not a Change.</strong> Creating a directory, enabling a timer or granting a Flatpak permission are all Changes, so they appear in the preview and in the backup. The Flatpak override is an edit of Flatpak's own key file, not a call to the <code>flatpak</code> program.</li>
-<li><strong>Simple renderers are embedded template files</strong> filled by an in-house substitution of the form <code>{role|format}</code> with four formats and no conditionals or loops. One named-colour renderer serves GTK4, GTK3 and Flatpak; one CSS-variable renderer serves Firefox. Third-party templates are a later, separate decision.</li>
+<li><strong>Simple renderers are embedded template files</strong> filled by an in-house substitution of the form <code>{role|format}</code> with four formats and no conditionals or loops. One named-colour renderer serves GTK4, GTK3 and Flatpak; one CSS-variable renderer serves Firefox. Templates of the user's use a substitution of the same kind, <code>{{name|format}}</code>, with no logic; see <a href="targets.html#templates">Theming targets</a> and <a href="decisions.html#d62">D62</a>.</li>
 <li><strong>Version-specific data</strong> is a single list per target annotated with "since" and "removed", split only when a release makes a name harmful.</li>
 </ul>
 

@@ -62,6 +62,9 @@ pub struct Snapshot {
     pub unfinished: bool,
     pub history: Vec<Manifest>,
     pub rows: Vec<AppRow>,
+    /// The user's templates: instance, name, and where the output goes as
+    /// the file says it.
+    pub templates: Vec<(String, String, String)>,
     pub window: Option<(i32, i32)>,
     pub day_night: DayNight,
     pub schedule: schedule::Status,
@@ -115,6 +118,16 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         })
         .collect();
     snap.rows = engine::parts(host, &env, &themes);
+    snap.templates = velatura_engine::templates::load(host)
+        .into_iter()
+        .map(|(id, entry)| {
+            let instance = format!("{}{id}", velatura_engine::templates::PREFIX);
+            match entry {
+                Ok(e) => (instance, e.name, e.written),
+                Err(_) => (instance, id, String::new()),
+            }
+        })
+        .collect();
     snap.themes = themes;
     snap
 }
