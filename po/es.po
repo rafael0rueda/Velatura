@@ -1181,8 +1181,8 @@ msgid "The User Themes extension is turned off, so the top bar keeps its colors.
 msgstr "La extensión User Themes está desactivada, así que la barra superior conserva sus colores. Actívela en la aplicación Extensiones"
 
 #, rust-format
-msgid "These extensions bring their own colors, which win over the theme where they apply: {1}"
-msgstr "Estas extensiones traen sus propios colores, que se imponen al tema allí donde se aplican: {1}"
+msgid "These extensions color the top bar or its menus themselves, which wins over the theme there: {1}. Velatura's own extension wins over them: velatura extension install"
+msgstr "Estas extensiones colorean ellas mismas la barra superior o sus menús, y eso gana al tema allí: {1}. La extensión propia de Velatura gana sobre ellas: velatura extension install"
 
 #, rust-format
 msgid "{1} asks older apps for dark and can work against this light theme"
@@ -1368,3 +1368,5 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
+
+#, rust-format

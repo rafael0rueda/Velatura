@@ -586,9 +586,15 @@ fn the_shell_needs_user_themes_and_reports_what_hides_the_theme() {
         "{SHELL_SCHEMA}@{}",
         home.path(&format!("{ext}/schemas")).display()
     );
+    // One that colours the top bar itself; one that colours only its own
+    // widgets, and the panel only under a class of its own (an option).
     home.write(
         ".local/share/gnome-shell/extensions/styled@test/stylesheet.css",
-        "",
+        "/* panel */\n#panel.styled-panel .panel-button { color: #d3d9ee; }\n",
+    );
+    home.write(
+        ".local/share/gnome-shell/extensions/widgets@test/stylesheet.css",
+        ".widgets-label { color: red; }\n.widgets-option #panel { background-color: transparent; }\n#panelish { color: red; }\n",
     );
     let settings = MemSettings::new(&[
         (INTERFACE_SCHEMA, "color-scheme", "default"),
@@ -596,7 +602,7 @@ fn the_shell_needs_user_themes_and_reports_what_hides_the_theme() {
         (
             "org.gnome.shell",
             "enabled-extensions",
-            "['styled@test', 'plain@test']",
+            "['styled@test', 'widgets@test', 'plain@test']",
         ),
     ]);
     let host = home.host(&StdFs, &settings);

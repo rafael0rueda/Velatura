@@ -167,8 +167,8 @@ pub enum Note {
     /// User Themes is installed but turned off, so the Shell does not load
     /// the theme until it is turned on.
     UserThemesOff,
-    /// Enabled extensions that ship their own stylesheet, which always wins
-    /// over a user theme.
+    /// Enabled extensions whose stylesheets colour the Shell's own
+    /// surfaces, which always wins over a user theme.
     ShellExtensionStyles {
         names: Vec<String>,
     },

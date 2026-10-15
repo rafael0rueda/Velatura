@@ -1183,7 +1183,7 @@ msgid "The User Themes extension is turned off, so the top bar keeps its colors.
 msgstr ""
 
 #, rust-format
-msgid "These extensions bring their own colors, which win over the theme where they apply: {1}"
+msgid "These extensions color the top bar or its menus themselves, which wins over the theme there: {1}. Velatura's own extension wins over them: velatura extension install"
 msgstr ""
 
 #, rust-format
