@@ -1,0 +1,101 @@
+name: release
+
+# A tag v<version> publishes a release. On a pull request that changes how
+# a release is made, everything is built and checked, and nothing is
+# published.
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - scripts/release.sh
+      - scripts/release-install.sh
+      - scripts/pack-extension.sh
+      - Cargo.toml
+      - Cargo.lock
+
+permissions:
+  contents: read
+
+jobs:
+  # Built on the oldest GNOME Velatura supports (47, Fedora 41), so the
+  # programs also run on every newer one.
+  build:
+    runs-on: ubuntu-latest
+    container: fedora:41
+    steps:
+      - name: Install git
+        run: dnf install -y --setopt=install_weak_deps=False git
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          dnf install -y --setopt=install_weak_deps=False gcc pkgconf-pkg-config glib2-devel \
+            gtk4-devel libadwaita-devel python3 desktop-file-utils tar gzip rustup
+          rustup-init -y -q --profile minimal
+      - name: The tag names the version being released
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "the tag is $GITHUB_REF_NAME, Cargo.toml says $version"; exit 1; }
+      - name: Build
+        run: |
+          . "$HOME/.cargo/env"
+          git config --global --add safe.directory "$PWD"
+          scripts/release.sh dist
+      - name: Check what was built
+        run: |
+          . "$HOME/.cargo/env"
+          cd dist && sha256sum -c SHA256SUMS && cd ..
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          # The programs install for one user, run, and uninstall.
+          w=$(mktemp -d)
+          tar -xzf "dist/velatura-$version-x86_64-linux.tar.gz" -C "$w"
+          HOME="$w/home" "$w/velatura-$version-x86_64-linux/install.sh"
+          [ "$("$w/home/.local/bin/velatura" --version)" = "velatura $version" ]
+          desktop-file-validate "$w"/home/.local/share/applications/*.desktop
+          HOME="$w/home" GSETTINGS_BACKEND=memory "$w/home/.local/bin/velatura" list
+          HOME="$w/home" "$w/velatura-$version-x86_64-linux/install.sh" --uninstall
+          [ -z "$(find "$w/home" -type f)" ]
+          # The source builds with no network and nothing cached.
+          tar -xzf "dist/velatura-$version-source.tar.gz" -C "$w"
+          (cd "$w/velatura-$version-source" &&
+            CARGO_HOME="$w/cargo" cargo build --offline --locked --release -p velatura-cli)
+          [ "$("$w/velatura-$version-source/target/release/velatura" --version)" = "velatura $version" ]
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          cat > notes.md <<EOF
+          One color theme for the whole GNOME desktop: the shell, apps, terminals and more.
+
+          **Install for one user, without root:** download \`velatura-$version-x86_64-linux.tar.gz\`, check it against \`SHA256SUMS\` (\`sha256sum -c SHA256SUMS --ignore-missing\`), unpack it, and run \`./install.sh\` inside. \`./install.sh --uninstall\` removes it again.
+
+          Needs GNOME 47 to 51, with GTK 4.16 and libadwaita 1.6 or newer. Built on Fedora 41.
+
+          **From source:** \`velatura-$version-source.tar.gz\` holds every crate it needs and builds with no network: \`cargo build --offline --release\`.
+
+          **Shell extension:** \`velatura@rafael0rueda.github.io.shell-extension.zip\`; the app can also install it (Apps & Desktop, Shell Extension).
+
+          Documentation and the changelog: https://rafael0rueda.github.io/Velatura/
+          EOF
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "Velatura $version" --notes-file notes.md
