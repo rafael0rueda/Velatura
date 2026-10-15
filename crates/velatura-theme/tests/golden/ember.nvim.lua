@@ -184,3 +184,19 @@ vim.g.terminal_color_12 = "#bfa5ae"
 vim.g.terminal_color_13 = "#a8929a"
 vim.g.terminal_color_14 = "#9db09a"
 vim.g.terminal_color_15 = "#dbc7b0"
+local uv = vim.uv or vim.loop
+local file = string.sub(debug.getinfo(1, "S").source, 2)
+local function stamp()
+  local s = uv.fs_stat(file)
+  return s and (s.mtime.sec .. "." .. s.mtime.nsec)
+end
+local loaded = stamp()
+vim.api.nvim_create_autocmd("FocusGained", {
+  group = vim.api.nvim_create_augroup("velatura", { clear = true }),
+  nested = true,
+  callback = function()
+    if vim.g.colors_name == "velatura" and not (stamp() == loaded) then
+      vim.cmd.colorscheme("velatura")
+    end
+  end,
+})

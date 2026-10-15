@@ -545,8 +545,23 @@ pub fn note(n: &Note, home: &Path) -> String {
             "tmux sessions that are running keep their colors until this is run in one of them: tmux source-file {1}",
             path(conf, home)
         ),
-        Note::NeovimSelect => t(
-            "Neovim shows the theme once its settings select the colorscheme named velatura. To try it in an open Neovim: :colorscheme velatura",
+        Note::NeovimOtherScheme {
+            name: Some(name),
+            path: p,
+        } => tf!(
+            "Neovim's settings choose the colorscheme {1}. The line Velatura adds at the end of {2}, once agreed to, chooses the theme's after Neovim starts. The rest of the settings stay as they are",
+            clean_text(name, 64),
+            path(p, home)
+        ),
+        Note::NeovimOtherScheme {
+            name: None,
+            path: p,
+        } => tf!(
+            "Neovim's settings do not choose the theme's colorscheme. The line Velatura adds at the end of {1}, once agreed to, chooses it after Neovim starts. The rest of the settings stay as they are",
+            path(p, home)
+        ),
+        Note::NeovimReload => t(
+            "Open Neovim windows take the new colors the next time they are focused, or with :colorscheme velatura",
         ),
         Note::StarshipNames => t(
             "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory",

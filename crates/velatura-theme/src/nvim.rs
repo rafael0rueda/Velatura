@@ -316,8 +316,31 @@ pub fn render(theme: &Resolved<'_>) -> String {
     for (i, color) in theme.colors.ansi.iter().enumerate() {
         let _ = writeln!(out, "vim.g.terminal_color_{i} = \"{}\"", color.hex());
     }
+    out.push_str(RELOAD);
     out
 }
+
+/// Velatura writes this file again when another theme is applied; a
+/// Neovim already open loads it again the next time its window is
+/// focused. Nested, so the user's own `ColorScheme` autocommands run too.
+/// Written with the same few characters as the rest of the file.
+const RELOAD: &str = r#"local uv = vim.uv or vim.loop
+local file = string.sub(debug.getinfo(1, "S").source, 2)
+local function stamp()
+  local s = uv.fs_stat(file)
+  return s and (s.mtime.sec .. "." .. s.mtime.nsec)
+end
+local loaded = stamp()
+vim.api.nvim_create_autocmd("FocusGained", {
+  group = vim.api.nvim_create_augroup("velatura", { clear = true }),
+  nested = true,
+  callback = function()
+    if vim.g.colors_name == "velatura" and not (stamp() == loaded) then
+      vim.cmd.colorscheme("velatura")
+    end
+  end,
+})
+"#;
 
 /// The same colours as a table, for `require("velatura.palette")`.
 pub fn render_palette(theme: &Resolved<'_>) -> String {

@@ -777,6 +777,7 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
                     | Note::KittyAutoTheme { .. }
                     | Note::UserThemesOff
                     | Note::ShellExtensionStyles { .. }
+                    | Note::NeovimOtherScheme { .. }
             )
         });
         let state = match (&t.skipped, shadow) {

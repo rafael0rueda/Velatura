@@ -9,10 +9,13 @@ pub const FORMAT: u32 = 1;
 
 /// How a comment is written in the file a target's block lives in: CSS for
 /// the GTK targets and Firefox's stylesheet, JavaScript for Firefox's
-/// preferences, a leading `#` everywhere else.
+/// preferences, Lua and Vim script for Neovim's settings, a leading `#`
+/// everywhere else.
 fn comment(target: &str) -> (&'static str, &'static str) {
     match target {
         FIREFOX_PREFS => ("// ", ""),
+        NVIM_LUA => ("-- ", ""),
+        NVIM_VIM => ("\" ", ""),
         FIREFOX => ("/* ", " */"),
         t if t.starts_with("gtk") => ("/* ", " */"),
         _ => ("# ", ""),
@@ -23,6 +26,11 @@ fn comment(target: &str) -> (&'static str, &'static str) {
 /// `user.js`.
 pub const FIREFOX: &str = "firefox";
 pub const FIREFOX_PREFS: &str = "firefox-prefs";
+
+/// The blocks of the Neovim target: in `init.lua`, or in `init.vim` where
+/// that is the settings file.
+pub const NVIM_LUA: &str = "nvim";
+pub const NVIM_VIM: &str = "nvim-vim";
 
 const BOM: &[u8] = b"\xef\xbb\xbf";
 
@@ -383,5 +391,23 @@ mod tests {
         );
         // The two names do not find each other's block.
         assert_eq!(find(&up.content, FIREFOX), Found::Absent);
+    }
+
+    #[test]
+    fn neovim_settings_get_lua_or_vim_comments() {
+        let up = upsert(b"vim.o.number = true\n", NVIM_LUA, "x").unwrap();
+        assert_eq!(
+            String::from_utf8(up.content.clone()).unwrap(),
+            "vim.o.number = true\n-- >>> velatura nvim 1 >>>\nx\n-- <<< velatura nvim 1 <<<\n"
+        );
+        let up = upsert(b"set number\n", NVIM_VIM, "x").unwrap();
+        assert_eq!(
+            String::from_utf8(up.content.clone()).unwrap(),
+            "set number\n\" >>> velatura nvim-vim 1 >>>\nx\n\" <<< velatura nvim-vim 1 <<<\n"
+        );
+        assert_eq!(
+            remove(&up.content, NVIM_VIM, up.added_eol).unwrap(),
+            b"set number\n"
+        );
     }
 }

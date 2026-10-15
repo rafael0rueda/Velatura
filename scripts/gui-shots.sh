@@ -40,6 +40,8 @@ chmod 700 "$root/run"
 printf 'font_size 12\n' > "$root/home/.config/kitty/kitty.conf"
 printf 'font-size = 12\n' > "$root/home/.config/ghostty/config"
 printf '/* mine */\n' > "$root/home/.config/gtk-4.0/gtk.css"
+mkdir -p "$root/home/.config/nvim"
+printf 'vim.cmd("colorscheme habamax")\n' > "$root/home/.config/nvim/init.lua"
 if [ -n "$template" ]; then
     mkdir -p "$root/home/.local/share/velatura/templates"
     cp "$template" "$root/home/.local/share/velatura/templates/"
