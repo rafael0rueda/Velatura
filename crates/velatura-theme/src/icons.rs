@@ -18,7 +18,9 @@ use std::fmt::Write;
 use crate::Color;
 
 /// Bumped whenever the colours chosen or the way they are moved changes.
-pub const FORMAT: u32 = 1;
+/// 2: icons are passed over by name (`-symbolic`), not by folder, and a
+/// theme drawn in pictures has its drawn icons recoloured too.
+pub const FORMAT: u32 = 2;
 
 /// Below this chroma (OKLCH) a colour counts as grey and is never moved.
 const GREY: f64 = 0.06;
@@ -159,13 +161,21 @@ pub struct Folder {
 
 impl Folder {
     /// Folders whose icons are not recoloured: those of apps, whose colours
-    /// are their makers', and symbolic ones, which follow the text colour.
+    /// are their makers'. Symbolic icons are passed over one by one, by
+    /// name ([`symbolic`]): a folder named `symbolic` can hold icons with
+    /// colours of their own too.
     pub fn recolored(&self) -> bool {
         !matches!(
             self.context.as_str(),
             "Applications" | "Apps" | "Animations"
-        ) && !self.name.contains("symbolic")
+        )
     }
+}
+
+/// An icon that takes the colour of the text around it wherever it is
+/// shown (`…-symbolic.svg`, `…-symbolic.symbolic.png`), so has none to move.
+pub fn symbolic(file: &str) -> bool {
+    file.contains("-symbolic.")
 }
 
 /// What an icon theme's `index.theme` says that recolouring needs.
@@ -432,6 +442,28 @@ impl PixelRecolor {
         moved
     }
 
+    /// `svg` with the family's colours moved as in a picture, for the
+    /// drawn icons of a theme whose folders are pictures. `None` if it has
+    /// none of them. Every other byte stays as it was.
+    pub fn apply_svg(&self, svg: &[u8]) -> Option<Vec<u8>> {
+        let mut out = Vec::with_capacity(svg.len());
+        let mut at = 0;
+        let mut moved = false;
+        for (start, end, c) in colors(svg) {
+            if let Some(to) = self.moved(c).filter(|to| *to != c) {
+                out.extend_from_slice(&svg[at..start]);
+                out.extend_from_slice(to.hex().as_bytes());
+                at = end;
+                moved = true;
+            }
+        }
+        if !moved {
+            return None;
+        }
+        out.extend_from_slice(&svg[at..]);
+        Some(out)
+    }
+
     /// What decides the result, as text.
     pub fn recipe(&self) -> String {
         let r = |v: f64| (v * 1000.0).round() / 1000.0;
@@ -599,15 +631,39 @@ mod tests {
                 "16@2x/places"
             ]
         );
+        // Apps keep their makers' colours; a folder named symbolic is kept,
+        // and its symbolic icons are passed over one by one.
         let kept: Vec<&Folder> = index.folders.iter().filter(|f| f.recolored()).collect();
-        assert_eq!(kept.len(), 2);
-        assert_eq!(kept[1].kind, None, "an unknown type is not written");
+        assert_eq!(kept.len(), 3);
+        assert_eq!(kept[2].kind, None, "an unknown type is not written");
         let text = index_theme("Tela-purple", &kept);
         assert!(text.contains("Inherits=Tela-purple\nHidden=true\n"));
-        assert!(text.contains("Directories=16/places,16@2x/places\n"));
+        assert!(text.contains("Directories=16/places,symbolic/places,16@2x/places\n"));
         assert!(text.contains("[16@2x/places]\nSize=16\nScale=2\nContext=Places\n"));
         assert_eq!(base_of(&text).as_deref(), Some("Tela-purple"));
-        assert_eq!(parse_index(&text).folders.len(), 2);
+        assert_eq!(parse_index(&text).folders.len(), 3);
         assert!(plain_name("Tela purple") && !plain_name("a,b") && !plain_name("../x"));
+    }
+
+    #[test]
+    fn symbolic_icons_are_told_by_name() {
+        assert!(symbolic("battery-good-symbolic.svg"));
+        assert!(symbolic("folder-symbolic.symbolic.png"));
+        assert!(!symbolic("solaar-battery-100-ok.svg"));
+        assert!(!symbolic("symbolic-folder.svg"));
+    }
+
+    /// A theme drawn in pictures can have drawn icons of the same family,
+    /// as the top bar's: they move with it, and other colours stay.
+    #[test]
+    fn drawn_icons_of_a_picture_theme_move_with_its_family() {
+        let main = c("#8493d8");
+        let accent = c("#e5484f");
+        let r = PixelRecolor::new(&[&folder_picture(main)], accent).unwrap();
+        let svg = b"<path fill=\"#8493D8\"/><path fill=\"#27ae60\"/><path fill=\"#232629\"/>";
+        let out = String::from_utf8(r.apply_svg(svg).unwrap()).unwrap();
+        assert!(!out.contains("#8493D8"), "{out}");
+        assert!(out.contains("#27ae60") && out.contains("#232629"), "{out}");
+        assert!(r.apply_svg(b"<path fill=\"#27ae60\"/>").is_none());
     }
 }
