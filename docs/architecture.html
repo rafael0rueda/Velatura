@@ -226,7 +226,7 @@ velatura theme import|export|resolve</pre>
 </ul>
 
 <h2 id="dist">10. Distribution</h2>
-<p>Run from source for now. The recommended order afterwards:</p>
+<p><strong>Since 0.1.0 (Phase 4e, <a href="decisions.html#d65">D65</a>), each release is on GitHub Releases</strong>: the command and the app built on Fedora 41 (GNOME 47, the oldest supported) with an <code>install.sh</code> that puts them in <code>~/.local</code> without root and can take them out again; the source with every crate it needs, which builds with no network; the Shell extension; and a checksum for each. A tag <code>v&lt;version&gt;</code> on <code>main</code> starts <code>.github/workflows/release.yml</code>, which builds, installs, runs and uninstalls the result, builds the source offline, and only then publishes. The rest of this section is the order recommended at the start; D59 kept COPR, AUR and a Flatpak repository out of Phase 4.</p>
 <ol>
 <li><strong>User-prefix install</strong> from source (<code>~/.local</code>), which also works on immutable systems and gives the CLI a stable path for timers.</li>
 <li><strong>COPR, AUR and a tarball with vendored crates.</strong> Fedora 44 already packages the needed Rust GTK crates, so an official Fedora package is possible later.</li>

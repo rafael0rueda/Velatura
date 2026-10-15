@@ -37,7 +37,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </ul>
 <h3>Out of scope</h3>
 <ul>
-<li>Obsidian (left out by the owner's decision of 2026-10-13, D54). Qt apps (deferred by decision), the GDM login screen and the lock screen (not reachable without root or unsupported Shell changes), Zen browser, Alacritty.</li>
+<li>Obsidian (left out by the owner's decision of 2026-10-13, D54). Qt apps as a built-in part (a template for qt6ct comes instead, D66), the GDM login screen and the lock screen (not reachable without root or unsupported Shell changes), Zen browser, Alacritty.</li>
 <li>Anything that requires <code>sudo</code>. The app only detects system packages and tells the user how to install them.</li>
 </ul>
 
@@ -188,7 +188,7 @@ cursor_theme = "capitaine-cursors"
 <tr><td><strong>4b. Shell</strong></td><td>The exact accent and fuller coverage in the Shell, by restating its own stylesheet (<a href="decisions.html#d61">D61</a>).</td><td>The Shell shows the theme's own accent.</td></tr>
 <tr><td><strong>4c. Templates</strong></td><td>User-supplied templates (<a href="decisions.html#d62">D62</a>).</td><td>A template of the user's applies, undoes and recovers like a built-in target.</td></tr>
 <tr><td><strong>4d. Pictures</strong></td><td>Recolouring of bitmap icon themes and of cursors (experimental; <a href="decisions.html#d63">D63</a>, <a href="decisions.html#d64">D64</a>).</td><td>Transaction tests pass for each.</td></tr>
-<tr><td><strong>4e. Releases</strong></td><td>GitHub Releases: a tarball with vendored crates and prebuilt binaries (<a href="decisions.html#d59">D59</a>). Qt reconsidered.</td><td>The Phase 4 exit condition.</td></tr>
+<tr><td><strong>4e. Releases</strong></td><td>GitHub Releases: a tarball with vendored crates and prebuilt binaries (<a href="decisions.html#d59">D59</a>, <a href="decisions.html#d65">D65</a>). Qt reconsidered (<a href="decisions.html#d66">D66</a>).</td><td>The Phase 4 exit condition.</td></tr>
 </table></div>
 
 <h2 id="done">8. Definition of done for the MVP</h2>
