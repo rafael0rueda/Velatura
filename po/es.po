@@ -1179,8 +1179,8 @@ msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven 
 msgid "Firefox shows the change after it is restarted"
 msgstr "Firefox muestra el cambio después de reiniciarse"
 
-msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere"
-msgstr "Las aplicaciones abiertas muestran los iconos recoloreados al volver a abrirse. Cerrar sesión y volver a entrar los muestra en todas partes"
+msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere. Icons that apps keep in the top bar, such as Solaar's, change once the AppIndicator extension is turned off and on again, or after signing out and in"
+msgstr "Las aplicaciones abiertas muestran los iconos recoloreados al volver a abrirse. Cerrar sesión y volver a entrar los muestra en todas partes. Los iconos que las aplicaciones tienen en la barra superior, como el de Solaar, cambian al desactivar y volver a activar la extensión AppIndicator, o tras cerrar sesión y volver a entrar"
 
 msgid "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere"
 msgstr "Las aplicaciones abiertas pueden conservar el cursor anterior hasta volver a abrirse. Cerrar sesión y volver a entrar muestra el nuevo en todas partes"
@@ -1393,3 +1393,4 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
+

@@ -1181,7 +1181,7 @@ msgstr ""
 msgid "Firefox shows the change after it is restarted"
 msgstr ""
 
-msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere"
+msgid "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere. Icons that apps keep in the top bar, such as Solaar's, change once the AppIndicator extension is turned off and on again, or after signing out and in"
 msgstr ""
 
 msgid "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere"
