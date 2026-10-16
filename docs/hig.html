@@ -62,9 +62,9 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h2 id="widgets">4. Which pattern for which part</h2>
 <div class="wrap"><table>
 <tr><th>Part of Velatura</th><th>Pattern</th><th>Rules that matter</th></tr>
-<tr><td>Theme list</td><td>Boxed list with a swatch strip per row; a grid can be offered later</td><td>Row leads to the theme page and carries the go-next arrow. "In use" is text plus a check mark. Sorted with the theme in use first, then most recently used.</td></tr>
-<tr><td>Apps &amp; Desktop</td><td>Boxed lists in titled groups (Desktop, Terminals, Apps)</td><td>One switch per row. Switch labels are nouns in header capitalisation. A switch that cannot work is insensitive, with the reason in the subtitle.</td></tr>
-<tr><td>History</td><td>Boxed list; a list view if it grows large</td><td>Restore is one button at the end of each row. Original Setup is a separate group at the top.</td></tr>
+<tr><td>Theme list</td><td>The theme in use as a card of its own, then every theme as a card in a grid of three columns, two when narrow, with an All, Dark and Light filter (<a href="decisions.html#d72">D72</a>)</td><td>Selecting a card applies its theme, with the same confirmations as before (<a href="#h8">H8</a>), and Undo in the toast. "In use" is text plus a check mark and an outline. Each card has a menu (secondary button, long press, Menu key or Shift+F10) with Details, Edit, Export and Remove; the card in use also shows Edit and Export as buttons and the menu behind a "More" button, so nothing is reached only by a hidden gesture. The library's order.</td></tr>
+<tr><td>Apps &amp; Desktop</td><td>Boxed lists in titled groups (Desktop, Terminals, Command-Line Apps, Apps), each saying how many of its parts follow the theme, under one line counting them all</td><td>One switch per row, after a tile with the part's symbolic icon. Switch labels are nouns in header capitalisation. No subtitle that only repeats the switch; one where it adds something. "Unofficial" is a tag, with what it means in its tooltip and accessible description. A switch that cannot work is insensitive, with the reason in the subtitle; when narrow it is hidden there, with its tag.</td></tr>
+<tr><td>History</td><td>Boxed lists, one per day (Today, Yesterday, then the date), forty changes at a time with a row to show older ones</td><td>Each row: the time, the colours of the theme it applied, what it was. The newest change that stands says "Current"; the others that stand have Restore… as a flat button at the end, which asks first. Undo Last Apply stays in the primary menu.</td></tr>
 <tr><td>Empty History, empty search, no themes</td><td>Status page with a symbolic icon</td><td>Heading states the empty state, one line says what to do, neutral tone.</td></tr>
 <tr><td>Theme search (once there are many)</td><td>Search bar under the header bar</td><td>Hidden until used. Opens by typing, by Ctrl+F and by a header bar button. Results update while typing. "No Results" placeholder.</td></tr>
 <tr><td>Apply confirmation, conflict prompt, Apply Anyway</td><td>Alert dialog</td><td>Cancel first, then the action. The action is a specific verb, never OK. Return triggers the action unless it is destructive or cannot be undone; then there is no default. Esc cancels.</td></tr>
@@ -73,7 +73,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <tr><td>Lasting states</td><td>Banner</td><td>One short title, one optional button. Used sparingly.</td></tr>
 <tr><td>Progress</td><td>None under about 3 seconds; a spinner beside the control after that; a progress bar with a text label past about 30 seconds</td><td>An apply is expected to finish well under 3 seconds, so no indicator is shown unless it runs long. No separate progress window.</td></tr>
 <tr><td>Editor colours</td><td>Entry rows and the standard colour dialog</td><td>Changes apply on Return or when focus leaves. Feedback while typing. Positive confirmation of a valid value in preference to an error on every keystroke.</td></tr>
-<tr><td>Schedule (Phase 2)</td><td>Combo row with three or more choices; switch row for on and off</td><td>A drop-down never has fewer than three items. Items in sentence capitalisation.</td></tr>
+<tr><td>Day and Night, with the schedule</td><td>One group: the two themes as combo rows, then Switch Automatically as three linked toggle buttons, Off, Schedule and Dark Style (<a href="decisions.html#d72">D72</a>)</td><td>The button that goes from one theme to the other sits at the group's header. A way that cannot be chosen is insensitive, with the reason in its tooltip, and in the row's line when nothing but Off can be chosen. The two times show only while Schedule is chosen. libadwaita 1.6 has no toggle group, so these are GTK toggle buttons in a linked box; when narrow they go under the title. A drop-down never has fewer than three items. Items in sentence capitalisation.</td></tr>
 <tr><td>Preferences, About</td><td>The libadwaita preferences and about dialogs</td><td>Menu items "Preferences" and "About Velatura". A control in one preferences page never changes a control in another.</td></tr>
 </table></div>
 <p>All of the above exist in libadwaita 1.6, the floor set in the plan.</p>
@@ -116,10 +116,10 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>The app follows the system light or dark style. It has no style preference of its own.</li>
 <li>Built-in style classes and colour variables only, each for its intended purpose: suggested for Apply Theme, destructive for Apply Anyway and for removing a generated folder, the standard title and caption text styles.</li>
 <li>One suggested or destructive button per view.</li>
-<li>The one stylesheet of its own is the stock-colours exception (<a href="#h7">H7</a>), plus the scoped colours of the preview.</li>
+<li>The stylesheets of its own are the stock-colours exception (<a href="#h7">H7</a>), the scoped colours of the preview, and a few rules libadwaita has no class for (<a href="decisions.html#d72">D72</a>): the outline of the theme card in use, the tile behind a part's icon, the tags beside a part's name, and the dimmed name of a part that cannot be themed. Those rules use named colours only.</li>
 <li>A theme's colours appear only in swatches and in the preview. A swatch always has its name and value as text beside it or as its accessible name.</li>
 <li>No flashing or blinking. No text drawn over images.</li>
-<li>Interface icons are symbolic and taken from the existing sets before any is drawn. A control has an icon or a label, not both, except in the view switcher. Icon-only buttons are limited to icons people already know: menu, search, back.</li>
+<li>Interface icons are symbolic and taken from the existing sets before any is drawn. A control has an icon or a label, not both, except in the view switcher and the buttons beside the theme cards, in Day and Night and in History, which have both (<a href="decisions.html#d72">D72</a>). Icon-only buttons are limited to icons people already know: menu, search, back.</li>
 </ul>
 
 <h2 id="a11y">8. Accessibility</h2>
@@ -134,8 +134,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h2 id="icon">9. Name and icon</h2>
 <ul>
 <li><strong>Name:</strong> "Velatura", capitalised, in every title, menu and store entry.</li>
-<li><strong>App icon:</strong> one simple object tied to the name, for example a brush laying a translucent band of colour over a surface. Drawn on the 128 px template with its 2 px grid, in the GNOME palette, with slight depth (top and front faces), flat colours on flat surfaces, and no shadow outside the outline. It must read at 64 and 32 px.</li>
-<li><strong>Symbolic icon:</strong> same idea in one colour on the 16 px grid with 2 px strokes, kept in the same file.</li>
+<li><strong>App icon:</strong> one simple object tied to the name. Since <a href="decisions.html#d72">D72</a> a fan of three paint chips pinned at one point, each topped with a theme colour (red, orange, blue), on a lit violet tile over a darker base edge: slight depth, flat colours on flat surfaces, and no shadow outside the outline. It must read at 64 and 32 px.</li>
+<li><strong>Symbolic icon:</strong> the same fan as outlines, in one colour on the 16 px grid. Filled paths only, with the two chips behind cut at the front one's edge: GTK 4.22 draws symbolic icons itself and ignores clip paths, and older GTK fills every shape.</li>
 <li><strong>Development builds</strong> get the nightly variant so they are not mistaken for a release.</li>
 <li>Checked with App Icon Preview and Symbolic Preview. Neither is installed yet; both are available as Flatpaks and will be asked for before Phase 1c.</li>
 </ul>
@@ -156,7 +156,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li>Usable at 360×294 and at 1024×600; content capped on a wide window; window size remembered.</li>
 <li>Passes in High Contrast, with large text, with the screen reader, with the keyboard alone, and with animations off.</li>
 <li>No status carried by colour alone.</li>
-<li>No custom styling beyond the two recorded exceptions.</li>
+<li>No custom styling beyond the three recorded exceptions.</li>
 <li>App icon and symbolic icon follow section 9.</li>
 <li>A right-to-left run and a pseudo-locale run show no broken layout.</li>
 </ol>

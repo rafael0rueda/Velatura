@@ -320,23 +320,99 @@ msgstr "Claro"
 msgid "Dark"
 msgstr "Oscuro"
 
-msgid "In use"
-msgstr "En uso"
+msgid "Today"
+msgstr "Hoy"
 
-msgid "In Use"
-msgstr "En uso"
+msgid "Yesterday"
+msgstr "Ayer"
 
-msgid "_New Theme"
-msgstr "Tema _nuevo"
+#. Translators: a day in History, as in "Wednesday 14 October".
+#. The codes are those of strftime: %A the weekday, %-d the
+#. day of the month, %B the month.
+msgid "%A %-d %B"
+msgstr "%A, %-d de %B"
+
+#. Translators: a day in History of another year, as in
+#. "Wednesday 14 October 2025"; %Y is the year.
+msgid "%A %-d %B %Y"
+msgstr "%A, %-d de %B de %Y"
+
+#, rust-format
+msgid "Applied today at {time}"
+msgstr "Aplicado hoy a las {time}"
+
+#, rust-format
+msgid "Applied yesterday at {time}"
+msgstr "Aplicado ayer a las {time}"
+
+#, rust-format
+msgid "Applied on {day} at {time}"
+msgstr "Aplicado el {day} a las {time}"
+
+msgid "No Theme in Use"
+msgstr "Ningún tema en uso"
+
+msgid "Selecting a theme below applies it to the whole desktop"
+msgstr "Elegir un tema de abajo lo aplica a todo el escritorio"
+
+#, rust-format
+msgid "In use · {style}"
+msgstr "En uso · {style}"
+
+msgid "Apply _Changes"
+msgstr "Aplicar _cambios"
+
+msgid "_Duplicate to Edit"
+msgstr "_Duplicar para editar"
+
+msgid "_Edit Theme"
+msgstr "_Editar tema"
+
+msgid "E_xport…"
+msgstr "E_xportar…"
+
+msgid "More"
+msgstr "Más"
+
+msgid "Themes"
+msgstr "Temas"
+
+msgid "Show"
+msgstr "Mostrar"
 
 msgid "_Import…"
 msgstr "_Importar…"
 
+msgid "_New Theme"
+msgstr "Tema _nuevo"
+
+msgid "No light themes"
+msgstr "No hay temas claros"
+
+msgid "No dark themes"
+msgstr "No hay temas oscuros"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "In Use"
+msgstr "En uso"
+
+#, rust-format
+msgid "{name}, {style}, in use"
+msgstr "{name}, {style}, en uso"
+
+msgid "De_tails"
+msgstr "De_talles"
+
+msgid "_Remove Theme"
+msgstr "_Quitar tema"
+
 msgid "Day and Night"
 msgstr "Día y noche"
 
-msgid "Two themes to change between with one press"
-msgstr "Dos temas entre los que cambiar con una pulsación"
+msgid "A pair of themes to switch between by hand or on a schedule"
+msgstr "Un par de temas entre los que cambiar a mano o según un horario"
 
 msgid "None"
 msgstr "Ninguno"
@@ -350,23 +426,14 @@ msgstr "Tema de n_oche"
 msgid "The choice could not be saved"
 msgstr "No se pudo guardar la elección"
 
-msgid "_Switch to Nighttime Theme"
-msgstr "_Cambiar al tema de noche"
+msgid "S_witch to Night"
+msgstr "Ca_mbiar a noche"
 
-msgid "_Switch to Daytime Theme"
-msgstr "_Cambiar al tema de día"
+msgid "S_witch to Day"
+msgstr "Ca_mbiar a día"
 
 msgid "That theme is no longer available"
 msgstr "Ese tema ya no está disponible"
-
-msgid "Schedule"
-msgstr "Horario"
-
-msgid "Changes between the two themes by the clock. Apps that are already open keep their colors until reopened"
-msgstr "Cambia entre los dos temas según la hora. Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
-
-msgid "The timer was changed outside Velatura. Turn this off and on to repair it"
-msgstr "El temporizador se cambió fuera de Velatura. Desactive y active esta opción para repararlo"
 
 msgid "Needs the velatura command installed, for example in ~/.local/bin"
 msgstr "Necesita la orden velatura instalada, por ejemplo en ~/.local/bin"
@@ -374,20 +441,41 @@ msgstr "Necesita la orden velatura instalada, por ejemplo en ~/.local/bin"
 msgid "Choose a daytime and a nighttime theme first"
 msgstr "Elija primero un tema de día y uno de noche"
 
-msgid "_Change on a Schedule"
-msgstr "Cambiar según un _horario"
+msgid "Needs a light daytime theme and a dark nighttime theme"
+msgstr "Necesita un tema de día claro y un tema de noche oscuro"
 
-msgid "_Follow the Dark Style"
-msgstr "_Seguir el estilo oscuro"
+msgid "The timer was changed outside Velatura. Turn this off and on to repair it"
+msgstr "El temporizador se cambió fuera de Velatura. Desactive y active esta opción para repararlo"
 
-msgid "The daytime theme with the light style, the nighttime theme with the dark style. Needs a light and a dark theme"
-msgstr "El tema de día con el estilo claro y el de noche con el estilo oscuro. Necesita un tema claro y uno oscuro"
+msgid "Switch by hand with the button above"
+msgstr "Se cambia a mano con el botón de arriba"
 
-msgid "Daytime Theme _Begins"
-msgstr "_Empieza el tema de día"
+msgid "Changes between the two themes by the clock"
+msgstr "Cambia entre los dos temas según la hora"
 
-msgid "Nighttime Theme B_egins"
-msgstr "E_mpieza el tema de noche"
+msgid "Uses the daytime theme with the light style and the nighttime theme with the dark style"
+msgstr "Usa el tema de día con el estilo claro y el tema de noche con el estilo oscuro"
+
+msgid "Switch Automatically"
+msgstr "Cambiar automáticamente"
+
+msgid "_Off"
+msgstr "_A mano"
+
+msgid "_Schedule"
+msgstr "_Horario"
+
+msgid "Dark St_yle"
+msgstr "Es_tilo oscuro"
+
+msgid "Day _Begins"
+msgstr "_Empieza el día"
+
+msgid "Night B_egins"
+msgstr "Empie_za la noche"
+
+msgid "Apps that are already open keep their colors until reopened"
+msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
 
 msgid "Schedule turned on"
 msgstr "Horario activado"
@@ -407,18 +495,6 @@ msgstr "_Cancelar"
 
 msgid "_Turn On"
 msgstr "_Activar"
-
-msgid "_Duplicate to Edit"
-msgstr "_Duplicar para editar"
-
-msgid "_Edit Theme"
-msgstr "_Editar tema"
-
-msgid "E_xport…"
-msgstr "E_xportar…"
-
-msgid "_Remove Theme"
-msgstr "_Quitar tema"
 
 msgid "Theme Files"
 msgstr "Archivos de tema"
@@ -487,14 +563,14 @@ msgstr "Iconos sugeridos"
 msgid "Suggested Cursor"
 msgstr "Cursor sugerido"
 
+msgid "In use"
+msgstr "En uso"
+
 msgid "Not installed"
 msgstr "No instalado"
 
 msgid "Use"
 msgstr "Usar"
-
-msgid "Apply _Changes"
-msgstr "Aplicar _cambios"
 
 msgid "Applied"
 msgstr "Aplicado"
@@ -579,9 +655,6 @@ msgstr "Revertido"
 msgid "Not Fully Rolled Back"
 msgstr "No se revirtió del todo"
 
-msgid "Themed"
-msgstr "Con el tema"
-
 msgid "Taken away at the next apply"
 msgstr "Se quita en la próxima aplicación"
 
@@ -606,17 +679,26 @@ msgstr "Da a la ventana de Firefox los colores del tema, mediante una hoja de es
 msgid "Lets every Flatpak app read the two GTK settings folders, so the colors reach them"
 msgstr "Permite que todas las aplicaciones Flatpak lean las dos carpetas de configuración de GTK, para que les lleguen los colores"
 
-msgid "Left out"
-msgstr "Se omite"
-
 msgid "Set up, but not taking effect"
 msgstr "Configurado, pero sin efecto"
 
-msgid "Unofficial: may stop working after a GNOME update"
-msgstr "No oficial: puede dejar de funcionar tras una actualización de GNOME"
+msgid "May stop working after a GNOME update"
+msgstr "Puede dejar de funcionar tras una actualización de GNOME"
 
-msgid "Unofficial: may stop working after a Firefox update"
-msgstr "No oficial: puede dejar de funcionar tras una actualización de Firefox"
+msgid "May stop working after a Firefox update"
+msgstr "Puede dejar de funcionar tras una actualización de Firefox"
+
+msgid "Unofficial"
+msgstr "No oficial"
+
+msgid "_How to Install"
+msgstr "Cómo _instalar"
+
+#, rust-format
+msgid "{on} of {n} themed"
+msgid_plural "{on} of {n} themed"
+msgstr[0] "{on} de {n} con el tema"
+msgstr[1] "{on} de {n} con el tema"
 
 msgid "Desktop"
 msgstr "Escritorio"
@@ -629,6 +711,12 @@ msgstr "Aplicaciones de línea de órdenes"
 
 msgid "Apps"
 msgstr "Aplicaciones"
+
+#, rust-format
+msgid "{on} of {n} part of the desktop and apps follows the theme"
+msgid_plural "{on} of {n} parts of the desktop and apps follow the theme"
+msgstr[0] "{on} de {n} parte del escritorio y las aplicaciones sigue el tema"
+msgstr[1] "{on} de {n} partes del escritorio y las aplicaciones siguen el tema"
 
 #, rust-format
 msgid "Apply _Changes to {theme}"
@@ -698,6 +786,9 @@ msgstr "Se hace una copia de seguridad cada vez que se aplica un tema"
 msgid "Restoring goes back to how things were just before that change"
 msgstr "Restaurar devuelve todo a como estaba justo antes de ese cambio"
 
+msgid "_Show Older Changes"
+msgstr "_Mostrar cambios anteriores"
+
 #, rust-format
 msgid "Applied {theme}"
 msgstr "Se aplicó {theme}"
@@ -718,6 +809,9 @@ msgstr "Cambio"
 
 msgid "Undone"
 msgstr "Deshecho"
+
+msgid "Current"
+msgstr "Actual"
 
 msgid "Restore…"
 msgstr "Restaurar…"
@@ -1031,6 +1125,9 @@ msgstr "Actualizar el bloque de Velatura en {1}"
 msgid "Set {1} to {2}"
 msgstr "Poner {1} en {2}"
 
+msgid "Left out"
+msgstr "Se omite"
+
 msgid "Left out: adding to its settings was not agreed to"
 msgstr "Se omite: no se aceptó añadir nada a su configuración"
 
@@ -1194,9 +1291,6 @@ msgstr "Solo el perfil predeterminado de Ptyxis recibe la paleta. Para otro, eli
 
 msgid "If open Ptyxis windows keep the old colors, close and reopen them"
 msgstr "Si las ventanas abiertas de Ptyxis conservan los colores anteriores, ciérrelas y vuelva a abrirlas"
-
-msgid "Apps that are already open keep their colors until reopened"
-msgstr "Las aplicaciones ya abiertas conservan sus colores hasta que se vuelven a abrir"
 
 msgid "Firefox shows the change after it is restarted"
 msgstr "Firefox muestra el cambio después de reiniciarse"
@@ -1415,3 +1509,5 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
+
+#, rust-format

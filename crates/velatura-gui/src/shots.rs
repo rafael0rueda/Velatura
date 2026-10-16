@@ -69,6 +69,19 @@ pub async fn run_if_asked(ui: &U) {
         ui.stack.set_visible_child_name(view);
         pause(500).await;
         save(ui, dir, view);
+        // And the end of the view, scrolled down.
+        if let Some(scroll) = ui
+            .stack
+            .visible_child()
+            .and_then(|bin| bin.first_child())
+            .and_then(|view| view.first_child())
+            .and_downcast::<gtk::ScrolledWindow>()
+        {
+            let bar = scroll.vadjustment();
+            bar.set_value(bar.upper());
+            pause(300).await;
+            save(ui, dir, &format!("{view}-end"));
+        }
     }
     ui.stack.set_visible_child_name("themes");
     let first = ui
