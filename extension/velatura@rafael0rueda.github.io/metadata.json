@@ -4,5 +4,5 @@
   "description": "Loads the colors the Velatura app writes for the top bar, overview, menus and dialogs, and loads them again when they change. While the app's Window Outline part is on, it also draws a thin line in the theme's accent beside the window in use. It holds no colors and no settings of its own: without the Velatura app it does nothing.",
   "url": "https://github.com/rafael0rueda/Velatura",
   "shell-version": ["47", "48", "49", "50", "51"],
-  "version-name": "2"
+  "version-name": "3"
 }

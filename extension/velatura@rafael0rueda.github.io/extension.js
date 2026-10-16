@@ -101,17 +101,22 @@ class Outline {
         global.window_group.add_child(this._widget);
         this._window = null;
         this._windowIds = [];
+        this._later = 0;
         this._ids = [
-            [this._widget, this._widget.connect('style-changed', () => this._place())],
+            [this._widget, this._widget.connect('style-changed', () => this._queue())],
             [global.display, global.display.connect('notify::focus-window', () => this._follow())],
-            [global.display, global.display.connect('restacked', () => this._place())],
-            [Main.overview, Main.overview.connect('showing', () => this._place())],
-            [Main.overview, Main.overview.connect('hidden', () => this._place())],
+            [global.display, global.display.connect('restacked', () => this._queue())],
+            [Main.overview, Main.overview.connect('showing', () => this._queue())],
+            [Main.overview, Main.overview.connect('hidden', () => this._queue())],
         ];
         this._follow();
     }
 
     destroy() {
+        if (this._later) {
+            global.compositor.get_laters().remove(this._later);
+            this._later = 0;
+        }
         this._leave();
         for (const [object, id] of this._ids)
             object.disconnect(id);
@@ -135,13 +140,26 @@ class Outline {
             this._windowIds = [
                 'position-changed', 'size-changed', 'notify::fullscreen',
                 'notify::minimized', 'workspace-changed',
-            ].map(signal => this._window.connect(signal, () => this._place()));
+            ].map(signal => this._window.connect(signal, () => this._queue()));
             this._windowIds.push(this._window.connect('unmanaged', () => {
                 this._leave();
-                this._place();
+                this._queue();
             }));
         }
-        this._place();
+        this._queue();
+    }
+
+    // Placed just before the next frame, once the Shell has stacked the
+    // windows: placed at once, a window raised in the same change (as when
+    // leaving a full-screen one) could end up above the outline.
+    _queue() {
+        if (this._later)
+            return;
+        this._later = global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._later = 0;
+            this._place();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _maximized(window) {
