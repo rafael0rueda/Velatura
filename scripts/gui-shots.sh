@@ -3,12 +3,13 @@
 # throw-away home folder, a private session bus with its own settings
 # database, and a headless compositor.
 #
-#   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--flow]
+#   scripts/gui-shots.sh <output folder> [WIDTHxHEIGHT] [--rtl] [--applied] [--history] [--flow]
 #                        [--large-text] [--high-contrast] [--scheduled] [--editor] [--lang es]
-#                        [--import <file>] [--template <file>]
+#                        [--import <file>] [--template <file>] [--themes <folder>]
 #
 # --applied applies a theme in the sandbox first, so the views show a
-# themed state and a backup. --flow then drives a real apply through the
+# themed state and a backup. --history applies three times, and undoes the
+# last, so History has several changes to show. --flow then drives a real apply through the
 # confirmation and an undo, and checks the files in the sandbox after each.
 # --scheduled installs both programs in the sandbox's ~/.local/bin, turns
 # the schedule on against a stand-in systemctl and runs one scheduled
@@ -18,17 +19,20 @@
 # --import <file> imports a base16, base24 or Kitty file through the app's
 # question, choosing another accent than the usual one.
 # --template <file> puts a template of the user's in the sandbox first.
+# --themes <folder> puts the theme files in that folder into the sandbox's
+# library first, for a fuller Themes view.
 # --lang es runs the app in Spanish.
 # Needs mutter and dbus-run-session.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 out=$(realpath -m "${1:?output folder}"); shift
-size=""; rtl=""; applied=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""; import=""; want_import=""; template=""; want_template=""
+size=""; rtl=""; applied=""; history=""; flow=""; large=""; contrast=""; scheduled=""; editor=""; lang=""; want_lang=""; import=""; want_import=""; template=""; want_template=""; themes=""; want_themes=""
 for a in "$@"; do
     [ -n "$want_lang" ] && { lang=$a; want_lang=""; continue; }
     [ -n "$want_import" ] && { import=$(realpath "$a"); want_import=""; continue; }
     [ -n "$want_template" ] && { template=$(realpath "$a"); want_template=""; continue; }
-    case "$a" in --template) want_template=1 ;; --import) want_import=1 ;; --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
+    [ -n "$want_themes" ] && { themes=$(realpath "$a"); want_themes=""; continue; }
+    case "$a" in --themes) want_themes=1 ;; --template) want_template=1 ;; --import) want_import=1 ;; --lang) want_lang=1 ;; --rtl) rtl=1 ;; --applied) applied=1 ;; --history) history=1 ;; --flow) flow=1 ;; --large-text) large=1 ;; --high-contrast) contrast=1 ;; --scheduled) scheduled=1 ;; --editor) editor=1 ;; *x*) size=$a ;; esac
 done
 cargo build -q -p velatura-gui -p velatura-cli
 root=$(mktemp -d)
@@ -46,6 +50,10 @@ if [ -n "$template" ]; then
     mkdir -p "$root/home/.local/share/velatura/templates"
     cp "$template" "$root/home/.local/share/velatura/templates/"
 fi
+if [ -n "$themes" ]; then
+    mkdir -p "$root/home/.local/share/velatura/themes"
+    cp "$themes"/*.toml "$root/home/.local/share/velatura/themes/"
+fi
 bin=$PWD/target/debug
 if [ -n "$scheduled" ]; then
     mkdir -p "$root/home/.local/bin" "$root/bin"
@@ -57,9 +65,13 @@ if [ -n "$scheduled" ]; then
 fi
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" ${lang:+LANG=${lang}_ES.UTF-8 LANGUAGE=$lang} $([ -z "$lang" ] && echo LC_ALL=C.UTF-8) \
     GSETTINGS_BACKEND=dconf VELATURA_SHOTS="$out" VELATURA_SHOTS_SIZE="$size" \
-    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} ${editor:+VELATURA_SHOTS_EDITOR=1} ${import:+VELATURA_SHOTS_IMPORT="$import"} APPLIED="$applied" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
+    ${rtl:+VELATURA_SHOTS_RTL=1} ${flow:+VELATURA_SHOTS_FLOW=1} ${editor:+VELATURA_SHOTS_EDITOR=1} ${import:+VELATURA_SHOTS_IMPORT="$import"} APPLIED="$applied" HISTORY="$history" SCHEDULED="$scheduled" LARGE="$large" CONTRAST="$contrast" BIN="$bin" \
     dbus-run-session -- bash -c ' exec 2>/dev/null
         [ -n "$APPLIED" ] && "$BIN/velatura" apply ember --yes >/dev/null
+        if [ -n "$HISTORY" ]; then
+            for theme in aetherius ember aetherius; do "$BIN/velatura" apply "$theme" --yes >/dev/null; done
+            "$BIN/velatura" undo >/dev/null
+        fi
         if [ -n "$SCHEDULED" ]; then
             "$BIN/velatura" switch set day ember >/dev/null
             "$BIN/velatura" switch set night aetherius >/dev/null

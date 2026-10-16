@@ -35,6 +35,10 @@ const APP_ID: &str = "io.github.rafael0rueda.Velatura";
 /// Below this width the view switcher moves to the bottom of the window.
 const NARROW: f64 = 550.0;
 
+/// History lists this many changes, and this many more each time older
+/// ones are asked for.
+const HISTORY_PAGE: usize = 40;
+
 struct Ui {
     window: adw::ApplicationWindow,
     nav: adw::NavigationView,
@@ -51,6 +55,10 @@ struct Ui {
     busy: Cell<bool>,
     /// True while the banner's button rolls an interrupted change back.
     banner_rolls_back: Cell<bool>,
+    /// Which themes the grid shows; kept when the views are rebuilt.
+    filter: Rc<Cell<Filter>>,
+    /// How many changes History lists before "Show Older".
+    history_shown: Cell<usize>,
 }
 
 type U = Rc<Ui>;
@@ -99,7 +107,7 @@ fn build(app: &adw::Application) -> U {
             &apps,
             "apps",
             tr("_Apps & Desktop"),
-            "preferences-desktop-apps-symbolic",
+            "view-app-grid-symbolic",
         ),
         (
             &history,
@@ -163,8 +171,8 @@ fn build(app: &adw::Application) -> U {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("Velatura")
-        .default_width(760)
-        .default_height(640)
+        .default_width(880)
+        .default_height(800)
         .width_request(360)
         .height_request(294)
         .content(&toasts)
@@ -186,6 +194,13 @@ fn build(app: &adw::Application) -> U {
 
     keep_stock_colors(&window);
 
+    let app_css = gtk::CssProvider::new();
+    app_css.load_from_string(widgets::APP_CSS);
+    gtk::style_context_add_provider_for_display(
+        &gtk::prelude::WidgetExt::display(&window),
+        &app_css,
+        gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
     let preview_css = gtk::CssProvider::new();
     gtk::style_context_add_provider_for_display(
         &gtk::prelude::WidgetExt::display(&window),
@@ -206,6 +221,8 @@ fn build(app: &adw::Application) -> U {
         snap: RefCell::new(Snapshot::default()),
         busy: Cell::new(false),
         banner_rolls_back: Cell::new(false),
+        filter: Rc::default(),
+        history_shown: Cell::new(HISTORY_PAGE),
     });
     // Every handler holds the state weakly; the window holds the one strong
     // reference, and lets go of it when it is destroyed. Without it the
@@ -265,8 +282,8 @@ fn stock_css() -> String {
 /// Keep this app's window in stock colours whatever theme is applied, so a
 /// theme that turns out unreadable cannot hide the way back. GTK loads the
 /// user's stylesheet into every app, this one included; these definitions
-/// sit one step above it. One of the app's two recorded styling exceptions:
-/// it holds colour definitions only.
+/// sit one step above it. One of the app's three recorded styling
+/// exceptions: it holds colour definitions only.
 fn keep_stock_colors(window: &adw::ApplicationWindow) {
     let provider = gtk::CssProvider::new();
     provider.load_from_string(&stock_css());
@@ -309,6 +326,34 @@ fn add_actions(ui: &U) {
         }),
         entry("save-theme", ui, |_| {
             glib::spawn_future_local(editor::save_current());
+        }),
+    ]);
+    // What a theme's card and its menu do, given its `theme/variant`.
+    let theme_entry = |name: &str, ui: &U, f: fn(U, String, String)| {
+        let weak = Rc::downgrade(ui);
+        gio::ActionEntry::builder(name)
+            .parameter_type(Some(glib::VariantTy::STRING))
+            .activate(move |_: &adw::ApplicationWindow, _, spec| {
+                let (Some(ui), Some(spec)) = (weak.upgrade(), spec.and_then(|s| s.str())) else {
+                    return;
+                };
+                let (id, variant) = spec.split_once('/').unwrap_or((spec, ""));
+                f(ui, id.to_owned(), variant.to_owned());
+            })
+            .build()
+    };
+    ui.window.add_action_entries([
+        theme_entry("theme-details", ui, |ui, id, variant| {
+            open_theme(&ui, &id, &variant);
+        }),
+        theme_entry("edit-theme", ui, |ui, id, variant| {
+            editor::edit(&ui, &id, &variant);
+        }),
+        theme_entry("export-theme", ui, |ui, id, _| {
+            glib::spawn_future_local(async move { export_theme(&ui, id).await });
+        }),
+        theme_entry("remove-theme", ui, |ui, id, _| {
+            glib::spawn_future_local(async move { remove_theme(&ui, id).await });
         }),
     ]);
 }
@@ -409,79 +454,628 @@ fn appearance_word(entry: &Entry, variant: &str) -> String {
     }
 }
 
-fn themes_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
-    let page = adw::PreferencesPage::new();
-    let group = adw::PreferencesGroup::new();
-    // The theme in use comes first; the rest keep the library's order.
-    let mut entries: Vec<(&Entry, &String)> = snap
-        .themes
-        .iter()
-        .flat_map(|e| e.theme.variants.keys().map(move |k| (e, k)))
-        .collect();
-    let in_use = |e: &Entry, k: &str| {
-        snap.applied.as_deref() == Some(format!("{}/{k}", e.theme.id).as_str())
-    };
-    entries.sort_by_key(|(e, k)| !in_use(e, k));
-    for (entry, variant) in entries {
-        let Some(resolved) = Resolved::new(&entry.theme, Some(variant)) else {
-            continue;
-        };
-        let used = in_use(entry, variant);
-        let style = appearance_word(entry, variant);
-        let row = adw::ActionRow::builder()
-            .title(glib::markup_escape_text(&resolved.colors.name))
-            .subtitle(if used {
-                format!("{style} · {}", tr("In use"))
-            } else {
-                style
-            })
-            .activatable(true)
+/// Which themes the grid shows.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum Filter {
+    #[default]
+    All,
+    Dark,
+    Light,
+}
+
+/// A view's scrolling column: content no wider than 680 pixels, its
+/// sections 32 apart, and what changes on a narrow window.
+struct Column {
+    view: adw::BreakpointBin,
+    column: gtk::Box,
+    /// Below 700 pixels.
+    narrow: adw::Breakpoint,
+    /// Below 450 pixels. Only one breakpoint applies at a time, the last
+    /// added that matches, so this one holds the first one's setters too.
+    narrowest: adw::Breakpoint,
+}
+
+impl Column {
+    fn new() -> Self {
+        let column = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(32)
+            .margin_top(28)
+            .margin_bottom(48)
+            .margin_start(24)
+            .margin_end(24)
             .build();
-        row.add_prefix(&widgets::swatches(&resolved));
-        if used {
-            let check = gtk::Image::from_icon_name("object-select-symbolic");
-            check.set_tooltip_text(Some(&tr("In Use")));
-            row.add_suffix(&check);
+        let clamp = adw::Clamp::builder()
+            .maximum_size(680)
+            .tightening_threshold(560)
+            .child(&column)
+            .build();
+        let scroll = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vexpand(true)
+            .child(&clamp)
+            .build();
+        let below = |width| {
+            adw::Breakpoint::new(adw::BreakpointCondition::new_length(
+                adw::BreakpointConditionLengthType::MaxWidth,
+                width,
+                adw::LengthUnit::Sp,
+            ))
+        };
+        let this = Self {
+            view: adw::BreakpointBin::builder()
+                .width_request(300)
+                .height_request(200)
+                .child(&scroll)
+                .build(),
+            column,
+            narrow: below(700.0),
+            narrowest: below(450.0),
+        };
+        for side in ["margin-start", "margin-end"] {
+            this.when_narrowest(&this.column, side, 12);
         }
-        row.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
-        let weak = Rc::downgrade(ui);
-        let spec = (entry.theme.id.clone(), variant.clone());
-        row.connect_activated(move |_| {
-            if let Some(ui) = weak.upgrade() {
-                open_theme(&ui, &spec.0, &spec.1);
-            }
-        });
-        group.add(&row);
+        this
     }
-    page.add(&group);
-    let library = adw::PreferencesGroup::new();
-    for (title, action) in [
-        (tr("_New Theme"), "win.new-theme"),
-        (tr("_Import…"), "win.import"),
-    ] {
-        library.add(
-            &adw::ButtonRow::builder()
-                .title(title)
+
+    /// Set `property` of `object` to `value` below 700 pixels.
+    fn when_narrow(&self, object: &impl IsA<glib::Object>, property: &str, value: impl ToValue) {
+        self.narrow
+            .add_setter(object, property, Some(&value.to_value()));
+        self.narrowest
+            .add_setter(object, property, Some(&value.to_value()));
+    }
+
+    /// Set `property` of `object` to `value` below 450 pixels.
+    fn when_narrowest(&self, object: &impl IsA<glib::Object>, property: &str, value: impl ToValue) {
+        self.narrowest
+            .add_setter(object, property, Some(&value.to_value()));
+    }
+
+    fn append(&self, child: &impl IsA<gtk::Widget>) {
+        self.column.append(child);
+    }
+
+    /// The finished view, once everything is in it.
+    fn done(self) -> gtk::Widget {
+        self.view.add_breakpoint(self.narrow);
+        self.view.add_breakpoint(self.narrowest);
+        self.view.upcast()
+    }
+}
+
+/// A button with an icon and a label, and an access key in the label.
+fn icon_button(icon: &str, label: &str) -> gtk::Button {
+    gtk::Button::builder()
+        .child(
+            &adw::ButtonContent::builder()
+                .icon_name(icon)
+                .label(label)
                 .use_underline(true)
-                .action_name(action)
+                .build(),
+        )
+        .valign(gtk::Align::Center)
+        .build()
+}
+
+/// The `theme/variant` label of a theme and variant.
+fn spec_of(id: &str, variant: &str) -> String {
+    format!("{id}/{variant}")
+}
+
+/// A day as History heads it and as a sentence names it: today, yesterday,
+/// or the weekday and date.
+fn day_name(at: &glib::DateTime) -> String {
+    let Ok(today) = glib::DateTime::now_local() else {
+        return String::new();
+    };
+    let yesterday = today.add_days(-1).ok();
+    if at.ymd() == today.ymd() {
+        tr("Today")
+    } else if yesterday.is_some_and(|y| y.ymd() == at.ymd()) {
+        tr("Yesterday")
+    } else {
+        let format = if at.year() == today.year() {
+            // Translators: a day in History, as in "Wednesday 14 October".
+            // The codes are those of strftime: %A the weekday, %-d the
+            // day of the month, %B the month.
+            tr("%A %-d %B")
+        } else {
+            // Translators: a day in History of another year, as in
+            // "Wednesday 14 October 2025"; %Y is the year.
+            tr("%A %-d %B %Y")
+        };
+        at.format(&format).map(String::from).unwrap_or_default()
+    }
+}
+
+/// "Applied today at 08:55", from the newest change that applied `label`.
+fn applied_when(snap: &Snapshot, label: &str) -> Option<String> {
+    let change = snap.history.iter().find(|m| {
+        !m.undone
+            && matches!(m.cause.as_str(), "apply" | "scheduled")
+            && m.theme.as_deref() == Some(label)
+    })?;
+    let at = glib::DateTime::from_unix_local(change.time as i64).ok()?;
+    let time = at.format("%H:%M").ok()?.to_string();
+    let today = glib::DateTime::now_local().ok()?;
+    let text = if at.ymd() == today.ymd() {
+        tr("Applied today at {time}")
+    } else if today.add_days(-1).ok().is_some_and(|y| y.ymd() == at.ymd()) {
+        tr("Applied yesterday at {time}")
+    } else {
+        tr("Applied on {day} at {time}").replace("{day}", &day_name(&at))
+    };
+    Some(text.replace("{time}", &time))
+}
+
+fn themes_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
+    let page = Column::new();
+    page.append(&current_card(ui, snap, &page));
+    page.append(&theme_grid(ui, snap, &page));
+    page.append(&day_night_section(ui, snap, &page));
+    page.done()
+}
+
+/// The theme in use, large: a picture of it, its name, when it was
+/// applied, and what can be done with it.
+/// Narrow, it stacks its picture over its words, and its buttons too.
+fn current_card(ui: &U, snap: &Snapshot, page: &Column) -> gtk::Widget {
+    let inner = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .spacing(22)
+        .margin_top(18)
+        .margin_bottom(18)
+        .margin_start(18)
+        .margin_end(18)
+        .build();
+    page.when_narrow(&inner, "orientation", gtk::Orientation::Vertical);
+    for side in ["margin-top", "margin-bottom", "margin-start", "margin-end"] {
+        page.when_narrowest(&inner, side, 12);
+    }
+    let card = adw::Bin::builder()
+        .child(&inner)
+        .css_classes(["card"])
+        .build();
+    let words = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(10)
+        .valign(gtk::Align::Center)
+        .hexpand(true)
+        .build();
+    let Some(label) = snap.applied.clone() else {
+        let title = gtk::Label::builder()
+            .label(tr("No Theme in Use"))
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["title-2"])
+            .build();
+        let hint = gtk::Label::builder()
+            .label(tr(
+                "Selecting a theme below applies it to the whole desktop",
+            ))
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["dim-label"])
+            .build();
+        words.append(&title);
+        words.append(&hint);
+        inner.append(&words);
+        return card.upcast();
+    };
+    let (id, variant) = label.split_once('/').unwrap_or((label.as_str(), ""));
+    let entry = snap.themes.iter().find(|e| e.theme.id == id);
+    let resolved = entry.and_then(|e| Resolved::new(&e.theme, Some(variant)));
+    if let Some(resolved) = &resolved {
+        inner.append(&widgets::window_art(resolved));
+    }
+
+    let style = entry.map_or_else(|| tr("Dark"), |e| appearance_word(e, variant));
+    let kicker = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .spacing(6)
+        .css_classes(["accent"])
+        .build();
+    kicker.append(&gtk::Image::from_icon_name("object-select-symbolic"));
+    kicker.append(
+        &gtk::Label::builder()
+            .label(tr("In use · {style}").replace("{style}", &style))
+            .xalign(0.0)
+            .css_classes(["caption-heading"])
+            .build(),
+    );
+    words.append(&kicker);
+    words.append(
+        &gtk::Label::builder()
+            .label(theme_name(snap, &label))
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["title-2"])
+            .build(),
+    );
+    if let Some(when) = applied_when(snap, &label) {
+        words.append(
+            &gtk::Label::builder()
+                .label(when)
+                .xalign(0.0)
+                .wrap(true)
+                .css_classes(["dim-label"])
                 .build(),
         );
     }
-    page.add(&library);
-    page.add(&day_night_group(ui, snap));
-    page.add(&schedule_group(ui, snap));
-    page.upcast()
+
+    // A part turned on or off since takes effect when applied again.
+    if pending(snap) {
+        let apply = gtk::Button::builder()
+            .label(tr("Apply _Changes"))
+            .use_underline(true)
+            .halign(gtk::Align::Start)
+            .css_classes(["suggested-action"])
+            .build();
+        let weak = Rc::downgrade(ui);
+        let spec = (id.to_owned(), variant.to_owned());
+        apply.connect_clicked(move |_| {
+            if let Some(ui) = weak.upgrade() {
+                let spec = spec.clone();
+                glib::spawn_future_local(async move { apply_theme(&ui, spec.0, spec.1).await });
+            }
+        });
+        words.append(&apply);
+    }
+    // What can be done with it; the rest is in the same menu as its card's.
+    if let Some(entry) = entry.filter(|_| resolved.is_some()) {
+        let target = label.to_variant();
+        let buttons = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(8)
+            .margin_top(4)
+            .build();
+        let edit = icon_button(
+            "document-edit-symbolic",
+            &if entry.bundled {
+                tr("_Duplicate to Edit")
+            } else {
+                tr("_Edit Theme")
+            },
+        );
+        edit.set_action_name(Some("win.edit-theme"));
+        edit.set_action_target_value(Some(&target));
+        buttons.append(&edit);
+        let export = icon_button("document-send-symbolic", &tr("E_xport…"));
+        export.set_action_name(Some("win.export-theme"));
+        export.set_action_target_value(Some(&target));
+        buttons.append(&export);
+        let more = gtk::MenuButton::builder()
+            .icon_name("view-more-symbolic")
+            .menu_model(&theme_menu(&label, entry.bundled))
+            .tooltip_text(tr("More"))
+            .valign(gtk::Align::Center)
+            .build();
+        buttons.append(&more);
+        // Stacked when narrow, each as wide as its label.
+        for button in [
+            edit.upcast_ref::<gtk::Widget>(),
+            export.upcast_ref(),
+            more.upcast_ref(),
+        ] {
+            button.set_halign(gtk::Align::Start);
+        }
+        page.when_narrowest(&buttons, "orientation", gtk::Orientation::Vertical);
+        words.append(&buttons);
+    }
+    inner.append(&words);
+    card.upcast()
 }
 
-/// Choosing which theme is for the day and which for the night, and one
-/// button to change between them.
-fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
+/// Every theme in the library as a card; selecting one applies it.
+/// Narrow, the buttons go under the heading.
+fn theme_grid(ui: &U, snap: &Snapshot, page: &Column) -> gtk::Box {
+    let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    let title = gtk::Label::builder()
+        .label(tr("Themes"))
+        .xalign(0.0)
+        .hexpand(true)
+        .css_classes(["title-4"])
+        .accessible_role(gtk::AccessibleRole::Heading)
+        .build();
+    let filters = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .css_classes(["linked"])
+        .valign(gtk::Align::Center)
+        .build();
+    filters.update_property(&[gtk::accessible::Property::Label(&tr("Show"))]);
+    let top = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    top.set_hexpand(true);
+    top.append(&title);
+    top.append(&filters);
+    let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    let import = icon_button("document-open-symbolic", &tr("_Import…"));
+    import.set_action_name(Some("win.import"));
+    let new = icon_button("list-add-symbolic", &tr("_New Theme"));
+    new.set_action_name(Some("win.new-theme"));
+    actions.append(&import);
+    actions.append(&new);
+    let header = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    header.append(&top);
+    header.append(&actions);
+    page.when_narrow(&header, "orientation", gtk::Orientation::Vertical);
+    section.append(&header);
+
+    let flow = gtk::FlowBox::builder()
+        .selection_mode(gtk::SelectionMode::None)
+        .homogeneous(true)
+        .column_spacing(12)
+        .row_spacing(12)
+        .min_children_per_line(2)
+        .max_children_per_line(3)
+        .valign(gtk::Align::Start)
+        .build();
+    // Light or not, per card, for the filter.
+    let mut light = Vec::new();
+    for entry in &snap.themes {
+        for variant in entry.theme.variants.keys() {
+            let Some(resolved) = Resolved::new(&entry.theme, Some(variant)) else {
+                continue;
+            };
+            let spec = spec_of(&entry.theme.id, variant);
+            let used = snap.applied.as_deref() == Some(spec.as_str());
+            let card = theme_card(ui, entry, variant, &resolved, used);
+            flow.insert(&card, -1);
+            if let Some(child) = card.parent() {
+                child.set_focusable(false);
+            }
+            light.push(matches!(
+                resolved.colors.appearance,
+                velatura_theme::Appearance::Light
+            ));
+        }
+    }
+    let none = gtk::Label::builder()
+        .xalign(0.0)
+        .css_classes(["dim-label"])
+        .build();
+    let filter = ui.filter.clone();
+    let light = Rc::new(light);
+    let shown = {
+        let light = light.clone();
+        move |which: Filter| match which {
+            Filter::All => light.len(),
+            Filter::Dark => light.iter().filter(|l| !**l).count(),
+            Filter::Light => light.iter().filter(|l| **l).count(),
+        }
+    };
+    {
+        let filter = filter.clone();
+        flow.set_filter_func(move |child| {
+            let is_light = light.get(child.index() as usize).copied().unwrap_or(false);
+            match filter.get() {
+                Filter::All => true,
+                Filter::Dark => !is_light,
+                Filter::Light => is_light,
+            }
+        });
+    }
+    let say_none = {
+        let none = none.clone();
+        move |which: Filter| {
+            none.set_label(&match which {
+                Filter::Light => tr("No light themes"),
+                _ => tr("No dark themes"),
+            });
+            none.set_visible(shown(which) == 0);
+        }
+    };
+    say_none(filter.get());
+    let say_none = Rc::new(say_none);
+    let mut first: Option<gtk::ToggleButton> = None;
+    for (which, label) in [
+        (Filter::All, tr("All")),
+        (Filter::Dark, tr("Dark")),
+        (Filter::Light, tr("Light")),
+    ] {
+        let button = gtk::ToggleButton::builder()
+            .label(label)
+            .active(filter.get() == which)
+            .build();
+        match &first {
+            Some(group) => button.set_group(Some(group)),
+            None => first = Some(button.clone()),
+        }
+        let (filter, flow, say_none) = (filter.clone(), flow.clone(), say_none.clone());
+        button.connect_toggled(move |button| {
+            if button.is_active() {
+                filter.set(which);
+                flow.invalidate_filter();
+                say_none(which);
+            }
+        });
+        filters.append(&button);
+    }
+    section.append(&flow);
+    section.append(&none);
+    section
+}
+
+/// One theme as a card: its colours, its name and style, and a check mark
+/// on the one in use. A menu holds what else can be done with it.
+fn theme_card(
+    ui: &U,
+    entry: &Entry,
+    variant: &str,
+    resolved: &Resolved<'_>,
+    used: bool,
+) -> gtk::Button {
+    let name = resolved.colors.name.clone();
+    let style = appearance_word(entry, variant);
+    let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    content.append(&widgets::card_art(resolved));
+    let bottom = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .spacing(8)
+        .margin_top(10)
+        .margin_bottom(10)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+    let words = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(2)
+        .hexpand(true)
+        .build();
+    words.append(
+        &gtk::Label::builder()
+            .label(&name)
+            .xalign(0.0)
+            .ellipsize(gtk::pango::EllipsizeMode::End)
+            .css_classes(["heading"])
+            .build(),
+    );
+    words.append(
+        &gtk::Label::builder()
+            .label(&style)
+            .xalign(0.0)
+            .css_classes(["caption", "dim-label"])
+            .build(),
+    );
+    bottom.append(&words);
+    if used {
+        let check = gtk::Image::builder()
+            .icon_name("object-select-symbolic")
+            .css_classes(["accent"])
+            .tooltip_text(tr("In Use"))
+            .valign(gtk::Align::Center)
+            .build();
+        bottom.append(&check);
+    }
+    content.append(&bottom);
+    let button = gtk::Button::builder()
+        .child(&content)
+        .overflow(gtk::Overflow::Hidden)
+        .css_classes(["card", "velatura-theme"])
+        .build();
+    if used {
+        button.add_css_class("velatura-in-use");
+    }
+    let spoken = if used {
+        tr("{name}, {style}, in use")
+    } else {
+        // Only the two names: nothing to translate.
+        String::from("{name}, {style}")
+    };
+    button.update_property(&[gtk::accessible::Property::Label(
+        &spoken.replace("{name}", &name).replace("{style}", &style),
+    )]);
+    let weak = Rc::downgrade(ui);
+    let spec = (entry.theme.id.clone(), variant.to_owned());
+    button.connect_clicked(move |_| {
+        // The one in use is already applied; its card in use says how to
+        // apply changes.
+        if let (Some(ui), false) = (weak.upgrade(), used) {
+            let spec = spec.clone();
+            glib::spawn_future_local(async move { apply_theme(&ui, spec.0, spec.1).await });
+        }
+    });
+    card_menu(&button, &spec_of(&entry.theme.id, variant), entry.bundled);
+    button
+}
+
+/// What else can be done with a theme, given its `theme/variant`.
+fn theme_menu(spec: &str, bundled: bool) -> gio::Menu {
+    let menu = gio::Menu::new();
+    let item = |label: String, action: &str| {
+        let item = gio::MenuItem::new(Some(&label), None);
+        item.set_action_and_target_value(Some(action), Some(&spec.to_variant()));
+        menu.append_item(&item);
+    };
+    item(tr("De_tails"), "win.theme-details");
+    item(
+        if bundled {
+            tr("_Duplicate to Edit")
+        } else {
+            tr("_Edit Theme")
+        },
+        "win.edit-theme",
+    );
+    item(tr("E_xport…"), "win.export-theme");
+    if !bundled {
+        item(tr("_Remove Theme"), "win.remove-theme");
+    }
+    menu
+}
+
+/// The menu of a theme's card, opened with the secondary button, a long
+/// press, or the Menu key or Shift+F10.
+fn card_menu(button: &gtk::Button, spec: &str, bundled: bool) {
+    let menu = theme_menu(spec, bundled);
+    let show = Rc::new(move |button: &gtk::Widget, at: Option<(f64, f64)>| {
+        let popover = gtk::PopoverMenu::from_model(Some(&menu));
+        popover.set_parent(button);
+        if let Some((x, y)) = at {
+            popover.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+        }
+        // Made for each opening, and let go of once closed.
+        popover.connect_closed(|popover| {
+            let popover = popover.clone();
+            glib::idle_add_local_once(move || popover.unparent());
+        });
+        popover.popup();
+    });
+    let click = gtk::GestureClick::builder()
+        .button(gtk::gdk::BUTTON_SECONDARY)
+        .build();
+    let open = show.clone();
+    click.connect_pressed(move |gesture, _, x, y| {
+        if let Some(widget) = gesture.widget() {
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+            open(&widget, Some((x, y)));
+        }
+    });
+    button.add_controller(click);
+    let press = gtk::GestureLongPress::builder().touch_only(true).build();
+    let open = show.clone();
+    press.connect_pressed(move |gesture, x, y| {
+        if let Some(widget) = gesture.widget() {
+            open(&widget, Some((x, y)));
+        }
+    });
+    button.add_controller(press);
+    let keys = gtk::ShortcutController::new();
+    let open = show;
+    keys.add_shortcut(gtk::Shortcut::new(
+        gtk::ShortcutTrigger::parse_string("Menu|<Shift>F10"),
+        Some(gtk::CallbackAction::new(move |widget, _| {
+            open(widget, None);
+            glib::Propagation::Stop
+        })),
+    ));
+    button.add_controller(keys);
+}
+
+/// How the pair of themes switches by itself, if it does.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Auto {
+    Off,
+    Clock,
+    Style,
+}
+
+/// The pair of themes for the day and the night, the button that goes from
+/// one to the other, and how they switch by themselves.
+/// Narrow, the three ways of switching go under their title.
+fn day_night_section(ui: &U, snap: &Snapshot, page: &Column) -> gtk::Box {
     let group = adw::PreferencesGroup::builder()
         .title(tr("Day and Night"))
-        .description(tr("Two themes to change between with one press"))
+        .description(tr(
+            "A pair of themes to switch between by hand or on a schedule",
+        ))
         .build();
     // Every theme and variant, as the engine names them and as shown.
-    let choices: Vec<(String, String)> = snap
+    let choices: Vec<(
+        String,
+        String,
+        Option<[velatura_theme::Color; 4]>,
+        velatura_theme::Appearance,
+    )> = snap
         .themes
         .iter()
         .flat_map(|e| {
@@ -489,32 +1083,56 @@ fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
                 let spec = if key == e.theme.default_variant() {
                     e.theme.id.clone()
                 } else {
-                    format!("{}/{key}", e.theme.id)
+                    spec_of(&e.theme.id, key)
                 };
-                (spec, v.name.clone())
+                let dots = Resolved::new(&e.theme, Some(key)).map(|r| {
+                    let c = widgets::palette(&r);
+                    [c[2], c[3], c[4], c[5]]
+                });
+                (spec, v.name.clone(), dots, v.appearance)
             })
         })
         .collect();
     let mut names = vec![tr("None")];
-    names.extend(choices.iter().map(|(_, name)| name.clone()));
+    names.extend(choices.iter().map(|(_, name, ..)| name.clone()));
     let names: Vec<&str> = names.iter().map(String::as_str).collect();
+    let mut dots = vec![None];
+    dots.extend(choices.iter().map(|(_, _, d, _)| *d));
+    let dots = Rc::new(dots);
+    let appearance = |spec: &Option<String>| {
+        let spec = spec.as_ref()?;
+        choices.iter().find(|(s, ..)| s == spec).map(|(.., a)| *a)
+    };
 
-    for (which, title, current) in [
-        ("day", tr("_Daytime Theme"), &snap.day_night.day),
-        ("night", tr("_Nighttime Theme"), &snap.day_night.night),
+    for (which, title, icon, current) in [
+        (
+            "day",
+            tr("_Daytime Theme"),
+            "weather-clear-symbolic",
+            &snap.day_night.day,
+        ),
+        (
+            "night",
+            tr("_Nighttime Theme"),
+            "weather-clear-night-symbolic",
+            &snap.day_night.night,
+        ),
     ] {
         let selected = current
             .as_ref()
-            .and_then(|spec| choices.iter().position(|(s, _)| s == spec))
+            .and_then(|spec| choices.iter().position(|(s, ..)| s == spec))
             .map_or(0, |i| i + 1);
+        let model = gtk::StringList::new(&names);
         let row = adw::ComboRow::builder()
             .title(title)
             .use_underline(true)
-            .model(&gtk::StringList::new(&names))
+            .factory(&theme_factory(&model, dots.clone()))
+            .model(&model)
             .selected(selected as u32)
             .build();
+        row.add_prefix(&gtk::Image::from_icon_name(icon));
         let weak = Rc::downgrade(ui);
-        let specs: Vec<String> = choices.iter().map(|(s, _)| s.clone()).collect();
+        let specs: Vec<String> = choices.iter().map(|(s, ..)| s.clone()).collect();
         row.connect_selected_notify(move |row| {
             let picked = (row.selected() as usize)
                 .checked_sub(1)
@@ -550,21 +1168,23 @@ fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
             })
     };
     let to_night = is(&snap.day_night.day) || !is(&snap.day_night.night);
-    let (next, label) = if to_night && snap.day_night.night.is_some() {
+    let (next, icon, label) = if to_night && snap.day_night.night.is_some() {
         (
             snap.day_night.night.clone(),
-            tr("_Switch to Nighttime Theme"),
+            "weather-clear-night-symbolic",
+            tr("S_witch to Night"),
         )
     } else {
-        (snap.day_night.day.clone(), tr("_Switch to Daytime Theme"))
+        (
+            snap.day_night.day.clone(),
+            "weather-clear-symbolic",
+            tr("S_witch to Day"),
+        )
     };
-    let switch = adw::ButtonRow::builder()
-        .title(label)
-        .use_underline(true)
-        .sensitive(next.is_some() && !is(&next))
-        .build();
+    let switch = icon_button(icon, &label);
+    switch.set_sensitive(next.is_some() && !is(&next));
     let weak = Rc::downgrade(ui);
-    switch.connect_activated(move |_| {
+    switch.connect_clicked(move |_| {
         if let (Some(ui), Some(spec)) = (weak.upgrade(), next.clone()) {
             glib::spawn_future_local(async move {
                 let (id, variant) = match spec.split_once('/') {
@@ -586,28 +1206,18 @@ fn day_night_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
             });
         }
     });
-    group.add(&switch);
-    group
-}
+    group.set_header_suffix(Some(&switch));
 
-/// Changing between the two themes by the clock: one switch and two times.
-fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
-    let group = adw::PreferencesGroup::builder()
-        .title(tr("Schedule"))
-        .description(tr(
-            "Changes between the two themes by the clock. Apps that are already open keep their colors until reopened",
-        ))
-        .build();
+    // One choice of three: by hand, by the clock, or with the dark style.
     let status = &snap.schedule;
+    let mode = match (status.on, status.follows_style) {
+        (false, _) => Auto::Off,
+        (true, false) => Auto::Clock,
+        (true, true) => Auto::Style,
+    };
     let chosen = snap.day_night.day.is_some() && snap.day_night.night.is_some();
-    // A switch that cannot work is insensitive and says why.
-    let reason = if status.on && status.damaged {
-        Some(tr(
-            "The timer was changed outside Velatura. Turn this off and on to repair it",
-        ))
-    } else if status.on {
-        None
-    } else if !snap.can_schedule {
+    // Why a way of switching cannot be chosen now, if it cannot.
+    let blocked = if !snap.can_schedule {
         Some(tr(
             "Needs the velatura command installed, for example in ~/.local/bin",
         ))
@@ -616,94 +1226,242 @@ fn schedule_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
     } else {
         None
     };
-    let switch = adw::SwitchRow::builder()
-        .title(tr("_Change on a Schedule"))
-        .use_underline(true)
-        .subtitle(reason.unwrap_or_default())
-        .subtitle_lines(0)
-        .active(status.on && !status.follows_style)
-        .sensitive(status.on || (snap.can_schedule && chosen))
-        .build();
-    let weak = Rc::downgrade(ui);
-    switch.connect_active_notify(move |switch| {
-        let on = switch.is_active();
-        if let Some(ui) = weak.upgrade() {
-            glib::spawn_future_local(async move { set_schedule(&ui, on, None, false).await });
+    let pair = appearance(&snap.day_night.day) == Some(velatura_theme::Appearance::Light)
+        && appearance(&snap.day_night.night) == Some(velatura_theme::Appearance::Dark);
+    let style_blocked = blocked
+        .clone()
+        .or_else(|| (!pair).then(|| tr("Needs a light daytime theme and a dark nighttime theme")));
+    let hint = if status.on && status.damaged {
+        tr("The timer was changed outside Velatura. Turn this off and on to repair it")
+    } else {
+        match (mode, &blocked) {
+            (Auto::Off, Some(why)) => why.clone(),
+            (Auto::Off, None) => tr("Switch by hand with the button above"),
+            (Auto::Clock, _) => tr("Changes between the two themes by the clock"),
+            (Auto::Style, _) => tr(
+                "Uses the daytime theme with the light style and the nighttime theme with the dark style",
+            ),
         }
-    });
-    group.add(&switch);
-
-    // The other way to change by itself: with the desktop's style. One or
-    // the other is on, never both.
-    let follow = adw::SwitchRow::builder()
-        .title(tr("_Follow the Dark Style"))
-        .use_underline(true)
-        .subtitle(tr(
-            "The daytime theme with the light style, the nighttime theme with the dark style. Needs a light and a dark theme",
-        ))
-        .subtitle_lines(0)
-        .active(status.follows_style)
-        .sensitive(status.follows_style || (snap.can_schedule && chosen))
+    };
+    // Laid out like an action row, which cannot put its suffix under its
+    // title when narrow.
+    let texts = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(3)
+        .hexpand(true)
+        .valign(gtk::Align::Center)
         .build();
-    let weak = Rc::downgrade(ui);
-    follow.connect_active_notify(move |switch| {
-        let on = switch.is_active();
-        if let Some(ui) = weak.upgrade() {
-            glib::spawn_future_local(async move { set_schedule(&ui, on, None, true).await });
-        }
-    });
-    group.add(&follow);
-
-    for (is_day, title, minutes) in [
-        (true, tr("Daytime Theme _Begins"), status.times.day),
-        (false, tr("Nighttime Theme B_egins"), status.times.night),
+    let title = gtk::Label::builder()
+        .label(tr("Switch Automatically"))
+        .xalign(0.0)
+        .wrap(true)
+        .build();
+    texts.append(&title);
+    texts.append(
+        &gtk::Label::builder()
+            .label(hint)
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["caption", "dim-label"])
+            .build(),
+    );
+    let ways = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .css_classes(["linked"])
+        .valign(gtk::Align::Center)
+        .halign(gtk::Align::Start)
+        .build();
+    let body = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    body.append(&texts);
+    body.append(&ways);
+    page.when_narrowest(&body, "orientation", gtk::Orientation::Vertical);
+    let line = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .spacing(12)
+        .margin_top(10)
+        .margin_bottom(10)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+    line.append(
+        &gtk::Image::builder()
+            .icon_name("preferences-system-time-symbolic")
+            .valign(gtk::Align::Center)
+            .build(),
+    );
+    line.append(&body);
+    let auto = adw::PreferencesRow::builder()
+        .title(tr("Switch Automatically"))
+        .activatable(false)
+        .child(&line)
+        .build();
+    ways.update_property(&[gtk::accessible::Property::Label(&tr(
+        "Switch Automatically",
+    ))]);
+    let mut first: Option<gtk::ToggleButton> = None;
+    for (way, label, why) in [
+        (Auto::Off, tr("_Off"), None),
+        (Auto::Clock, tr("_Schedule"), blocked.clone()),
+        (Auto::Style, tr("Dark St_yle"), style_blocked),
     ] {
-        let row = adw::EntryRow::builder()
-            .title(title)
+        // The way in use can always be chosen again, or left.
+        let why = why.filter(|_| mode != way);
+        let button = gtk::ToggleButton::builder()
+            .label(label)
             .use_underline(true)
-            .text(schedule::format_time(minutes))
-            .input_purpose(gtk::InputPurpose::Digits)
-            .show_apply_button(true)
+            .active(mode == way)
+            .sensitive(why.is_none())
             .build();
-        // Feedback while typing: an entry that is not a time is marked.
-        row.connect_changed(|row| {
-            if schedule::parse_time(&row.text()).is_some() {
-                row.remove_css_class("error");
-            } else {
-                row.add_css_class("error");
-            }
-        });
+        button.set_tooltip_text(why.as_deref());
+        match &first {
+            Some(group) => button.set_group(Some(group)),
+            None => first = Some(button.clone()),
+        }
         let weak = Rc::downgrade(ui);
-        row.connect_apply(move |row| {
-            let (Some(ui), Some(minutes)) = (weak.upgrade(), schedule::parse_time(&row.text()))
-            else {
+        button.connect_toggled(move |button| {
+            let Some(ui) = weak.upgrade().filter(|_| button.is_active()) else {
                 return;
             };
             glib::spawn_future_local(async move {
-                let mut times = ui.snap.borrow().schedule.times;
-                if is_day {
-                    times.day = minutes;
-                } else {
-                    times.night = minutes;
-                }
-                let by_clock = {
-                    let s = &ui.snap.borrow().schedule;
-                    s.on && !s.follows_style
-                };
-                if by_clock {
-                    set_schedule(&ui, true, Some(times), false).await;
-                } else {
-                    let saved = data::run(move |host| times.save(host)).await;
-                    if !matches!(saved, Some(Ok(()))) {
-                        toast(&ui, &tr("The choice could not be saved"));
-                    }
-                    refresh(&ui).await;
+                match way {
+                    Auto::Off => set_schedule(&ui, false, None, false).await,
+                    Auto::Clock => set_schedule(&ui, true, None, false).await,
+                    Auto::Style => set_schedule(&ui, true, None, true).await,
                 }
             });
         });
-        group.add(&row);
+        ways.append(&button);
     }
-    group
+    group.add(&auto);
+
+    // The times, only while the clock leads.
+    if mode == Auto::Clock {
+        for (is_day, title, icon, minutes) in [
+            (
+                true,
+                tr("Day _Begins"),
+                "weather-clear-symbolic",
+                status.times.day,
+            ),
+            (
+                false,
+                tr("Night B_egins"),
+                "weather-clear-night-symbolic",
+                status.times.night,
+            ),
+        ] {
+            let row = adw::EntryRow::builder()
+                .title(title)
+                .use_underline(true)
+                .text(schedule::format_time(minutes))
+                .input_purpose(gtk::InputPurpose::Digits)
+                .show_apply_button(true)
+                .build();
+            row.add_prefix(&gtk::Image::from_icon_name(icon));
+            // Feedback while typing: an entry that is not a time is marked.
+            row.connect_changed(|row| {
+                if schedule::parse_time(&row.text()).is_some() {
+                    row.remove_css_class("error");
+                } else {
+                    row.add_css_class("error");
+                }
+            });
+            let weak = Rc::downgrade(ui);
+            row.connect_apply(move |row| {
+                let (Some(ui), Some(minutes)) = (weak.upgrade(), schedule::parse_time(&row.text()))
+                else {
+                    return;
+                };
+                glib::spawn_future_local(async move {
+                    let mut times = ui.snap.borrow().schedule.times;
+                    if is_day {
+                        times.day = minutes;
+                    } else {
+                        times.night = minutes;
+                    }
+                    set_schedule(&ui, true, Some(times), false).await;
+                });
+            });
+            group.add(&row);
+        }
+    }
+
+    let note = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    note.append(
+        &gtk::Image::builder()
+            .icon_name("dialog-information-symbolic")
+            .valign(gtk::Align::Start)
+            .css_classes(["dim-label"])
+            .build(),
+    );
+    note.append(
+        &gtk::Label::builder()
+            .label(tr(
+                "Apps that are already open keep their colors until reopened",
+            ))
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["caption", "dim-label"])
+            .build(),
+    );
+    let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    section.append(&group);
+    section.append(&note);
+    section
+}
+
+/// Each theme's name in a drop-down, after four of its colours. `dots`
+/// follows the order of `model`.
+fn theme_factory(
+    model: &gtk::StringList,
+    dots: Rc<Vec<Option<[velatura_theme::Color; 4]>>>,
+) -> gtk::SignalListItemFactory {
+    let model = model.downgrade();
+    let factory = gtk::SignalListItemFactory::new();
+    factory.connect_setup(|_, item| {
+        let Some(item) = item.downcast_ref::<gtk::ListItem>() else {
+            return;
+        };
+        let line = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        line.append(&widgets::small_dots());
+        line.append(
+            &gtk::Label::builder()
+                .xalign(0.0)
+                .ellipsize(gtk::pango::EllipsizeMode::End)
+                .build(),
+        );
+        item.set_child(Some(&line));
+    });
+    factory.connect_bind(move |_, item| {
+        let Some(item) = item.downcast_ref::<gtk::ListItem>() else {
+            return;
+        };
+        let Some(line) = item.child() else {
+            return;
+        };
+        let Some(shown) = item.item() else {
+            return;
+        };
+        let name = shown
+            .downcast_ref::<gtk::StringObject>()
+            .map(|s| s.string().to_string())
+            .unwrap_or_default();
+        // The row's own display of the choice has no position in the list:
+        // the item is looked up instead.
+        let at = model.upgrade().and_then(|model| {
+            (0..model.n_items()).find(|i| model.item(*i).as_ref() == Some(&shown))
+        });
+        if let Some(area) = line.first_child().and_downcast::<gtk::DrawingArea>() {
+            widgets::paint_dots(
+                &area,
+                at.and_then(|i| dots.get(i as usize).copied().flatten()),
+            );
+        }
+        if let Some(label) = line.last_child().and_downcast::<gtk::Label>() {
+            label.set_label(&name);
+        }
+    });
+    factory
 }
 
 /// Turn the schedule on or off, or give a running one new times.
@@ -1646,79 +2404,168 @@ async fn roll_back(ui: &U) {
     }
 }
 
+/// The symbolic icon shown for a part.
+fn part_icon(instance: &str) -> &'static str {
+    match instance {
+        targets::APPEARANCE => "preferences-color-symbolic",
+        targets::SHELL => "video-display-symbolic",
+        targets::ICONS => "folder-symbolic",
+        targets::CURSORS => "input-mouse-symbolic",
+        targets::OUTLINE => "focus-windows-symbolic",
+        targets::KITTY | targets::GHOSTTY | targets::PTYXIS => "utilities-terminal-symbolic",
+        targets::TMUX => "view-grid-symbolic",
+        targets::STARSHIP => "starred-symbolic",
+        targets::GTK4 => "applications-system-symbolic",
+        targets::GTK3 => "application-x-executable-symbolic",
+        targets::TEXT_EDITOR => "text-editor-symbolic",
+        targets::FIREFOX => "web-browser-symbolic",
+        targets::FLATPAK => "application-x-addon-symbolic",
+        _ => "text-x-generic-symbolic",
+    }
+}
+
+/// A short word beside a part's name, with more in its tooltip.
+fn tag(text: &str, icon: Option<&str>, more: Option<&str>) -> gtk::Box {
+    let tag = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .spacing(4)
+        .valign(gtk::Align::Center)
+        .css_classes(["velatura-tag"])
+        .build();
+    if let Some(icon) = icon {
+        tag.append(&gtk::Image::builder().icon_name(icon).pixel_size(12).build());
+    }
+    tag.append(
+        &gtk::Label::builder()
+            .label(text)
+            .css_classes(["caption"])
+            .build(),
+    );
+    if let Some(more) = more {
+        tag.set_tooltip_text(Some(more));
+        tag.update_property(&[gtk::accessible::Property::Description(more)]);
+    }
+    tag
+}
+
+/// True if a part can be themed now, whether or not it is turned on.
+fn available(row: &data::AppRow) -> bool {
+    !matches!(row.state, RowState::Unavailable(_))
+}
+
 /// One app or desktop part, or template, with its switch.
 /// `place` is where a template's output goes, said under its name.
+/// Narrow, a part that cannot be themed keeps only its words and button.
 fn part_row(
     ui: &U,
     snap: &Snapshot,
+    page: &Column,
     row: &data::AppRow,
-    title: String,
+    title: &str,
     place: Option<&str>,
-) -> adw::SwitchRow {
-    let (subtitle, available) = match &row.state {
-        RowState::Themed if row.included => (tr("Themed"), true),
+) -> adw::ActionRow {
+    // The switch says whether a part follows the theme; a line under the
+    // name only says what the switch cannot.
+    let subtitle = match &row.state {
+        RowState::Themed if row.included => None,
         RowState::Themed if row.instance == targets::OUTLINE => {
-            (tr("Taken away at the next apply"), true)
+            Some(tr("Taken away at the next apply"))
         }
-        RowState::Themed => (tr("Themed, and left out of the next apply"), true),
-        RowState::Ready if row.included => (tr("Included in the next apply"), true),
+        RowState::Themed => Some(tr("Themed, and left out of the next apply")),
+        RowState::Ready if row.included => Some(tr("Included in the next apply")),
         // Off until turned on, so the row says what turning on does.
-        RowState::Ready if row.instance == targets::ICONS => (
-            tr(
-                "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in",
-            ),
-            true,
-        ),
-        RowState::Ready if row.instance == targets::CURSORS => (
-            tr("Gives the cursor in use the theme's colors: its body and outline, and its accent"),
-            true,
-        ),
-        RowState::Ready if row.instance == targets::OUTLINE => (
-            tr(
-                "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
-            ),
-            true,
-        ),
-        RowState::Ready if row.instance == targets::FIREFOX => (
-            tr(
-                "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
-            ),
-            true,
-        ),
-        RowState::Ready if row.instance == targets::FLATPAK => (
-            tr(
-                "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",
-            ),
-            true,
-        ),
-        RowState::Ready => (tr("Left out"), true),
-        RowState::Shadowed(note) => (
-            format!(
-                "{}. {}",
-                tr("Set up, but not taking effect"),
-                velatura_text::note(note, &snap.home)
-            ),
-            true,
-        ),
-        RowState::Unavailable(why) => (words::reason(&velatura_text::skip(why, &snap.home)), false),
+        RowState::Ready if row.instance == targets::ICONS => Some(tr(
+            "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in",
+        )),
+        RowState::Ready if row.instance == targets::CURSORS => Some(tr(
+            "Gives the cursor in use the theme's colors: its body and outline, and its accent",
+        )),
+        RowState::Ready if row.instance == targets::OUTLINE => Some(tr(
+            "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
+        )),
+        RowState::Ready if row.instance == targets::FIREFOX => Some(tr(
+            "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
+        )),
+        RowState::Ready if row.instance == targets::FLATPAK => Some(tr(
+            "Lets every Flatpak app read the two GTK settings folders, so the colors reach them",
+        )),
+        RowState::Ready => None,
+        RowState::Shadowed(note) => Some(format!(
+            "{}. {}",
+            tr("Set up, but not taking effect"),
+            velatura_text::note(note, &snap.home)
+        )),
+        RowState::Unavailable(why) => Some(words::reason(&velatura_text::skip(why, &snap.home))),
     };
+    let can = available(row);
+    let subtitle = match (subtitle, place.filter(|p| !p.is_empty())) {
+        (Some(s), Some(p)) => Some(format!("{s} · {p}")),
+        (s, p) => s.or(p.map(str::to_owned)),
+    };
+    let action = adw::ActionRow::builder()
+        .title(glib::markup_escape_text(title))
+        .subtitle(glib::markup_escape_text(&subtitle.unwrap_or_default()))
+        .subtitle_lines(0)
+        .build();
+    action.add_prefix(
+        &gtk::Image::builder()
+            .icon_name(part_icon(&row.instance))
+            .valign(gtk::Align::Center)
+            .css_classes(["velatura-tile"])
+            .build(),
+    );
     let unofficial = match row.instance.as_str() {
         targets::GTK4 | targets::GTK3 | targets::SHELL => {
-            Some(tr("Unofficial: may stop working after a GNOME update"))
+            Some(tr("May stop working after a GNOME update"))
         }
-        targets::FIREFOX => Some(tr("Unofficial: may stop working after a Firefox update")),
-        _ => place.filter(|p| !p.is_empty()).map(str::to_owned),
+        targets::FIREFOX => Some(tr("May stop working after a Firefox update")),
+        _ => None,
     };
-    let switch = adw::SwitchRow::builder()
-        .title(title)
-        .subtitle(match unofficial.filter(|_| available) {
-            Some(unofficial) => format!("{subtitle} · {unofficial}"),
-            None => subtitle,
-        })
-        .subtitle_lines(0)
-        .active(row.included && available)
-        .sensitive(available)
+    if let Some(more) = unofficial.filter(|_| can) {
+        action.add_suffix(&tag(
+            &tr("Unofficial"),
+            Some("dialog-warning-symbolic"),
+            Some(&more),
+        ));
+    }
+    if let RowState::Unavailable(why) = &row.state {
+        action.add_css_class("velatura-unavailable");
+        if matches!(why, Skip::NotInstalled | Skip::NeedsAdwGtk3) {
+            let missing = tag(&tr("Not installed"), None, None);
+            page.when_narrowest(&missing, "visible", false);
+            action.add_suffix(&missing);
+        }
+        if matches!(why, Skip::NeedsAdwGtk3) {
+            let how = gtk::Button::builder()
+                .label(tr("_How to Install"))
+                .use_underline(true)
+                .valign(gtk::Align::Center)
+                .build();
+            let weak = Rc::downgrade(ui);
+            how.connect_clicked(move |_| {
+                if let Some(ui) = weak.upgrade() {
+                    gtk::UriLauncher::new(ADW_GTK3).launch(
+                        Some(&ui.window),
+                        None::<&gio::Cancellable>,
+                        |_| {},
+                    );
+                }
+            });
+            action.add_suffix(&how);
+        }
+    }
+    let switch = gtk::Switch::builder()
+        .active(row.included && can)
+        .sensitive(can)
+        .valign(gtk::Align::Center)
         .build();
+    switch.update_property(&[gtk::accessible::Property::Label(title)]);
+    action.add_suffix(&switch);
+    if can {
+        action.set_activatable_widget(Some(&switch));
+    } else {
+        page.when_narrowest(&switch, "visible", false);
+    }
     let weak = Rc::downgrade(ui);
     let instance = row.instance.clone();
     switch.connect_active_notify(move |switch| {
@@ -1734,20 +2581,48 @@ fn part_row(
             });
         }
     });
-    switch
+    action
+}
+
+/// Where adw-gtk3 is found, with how to install it.
+const ADW_GTK3: &str = "https://github.com/lassekongo83/adw-gtk3";
+
+/// A titled group of parts, with how many of them follow the theme.
+fn parts_group(
+    title: &str,
+    description: Option<&str>,
+    rows: &[&data::AppRow],
+) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder().title(title).build();
+    group.set_description(description);
+    let can: Vec<_> = rows.iter().filter(|r| available(r)).collect();
+    if !can.is_empty() {
+        let on = can.iter().filter(|r| r.included).count();
+        group.set_header_suffix(Some(
+            &gtk::Label::builder()
+                .label(
+                    plural("{on} of {n} themed", "{on} of {n} themed", can.len())
+                        .replace("{on}", &on.to_string()),
+                )
+                .valign(gtk::Align::End)
+                .css_classes(["caption", "dim-label", "numeric"])
+                .build(),
+        ));
+    }
+    group
 }
 
 fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
-    let page = adw::PreferencesPage::new();
+    let page = Column::new();
     let groups = [
         (
             tr("Desktop"),
             vec![
-                targets::APPEARANCE,
                 targets::SHELL,
+                targets::OUTLINE,
+                targets::APPEARANCE,
                 targets::ICONS,
                 targets::CURSORS,
-                targets::OUTLINE,
             ],
         ),
         (
@@ -1769,6 +2644,24 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             ],
         ),
     ];
+    // How many of the parts that can be themed follow the theme.
+    let can: Vec<_> = snap.rows.iter().filter(|r| available(r)).collect();
+    let on = can.iter().filter(|r| r.included).count();
+    page.append(
+        &gtk::Label::builder()
+            .label(
+                plural(
+                    "{on} of {n} part of the desktop and apps follows the theme",
+                    "{on} of {n} parts of the desktop and apps follow the theme",
+                    can.len(),
+                )
+                .replace("{on}", &on.to_string()),
+            )
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["dim-label"])
+            .build(),
+    );
     // Turning a part on or off takes effect with the next apply: offer it
     // here, where the switches are.
     if let Some(label) = snap.applied.as_deref().filter(|_| pending(snap)) {
@@ -1788,44 +2681,56 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             }
         });
         group.add(&row);
-        page.add(&group);
+        page.append(&group);
     }
     for (title, members) in groups {
-        let group = adw::PreferencesGroup::builder().title(title).build();
-        for row in snap
-            .rows
+        // In the group's order, not the engine's.
+        let rows: Vec<&data::AppRow> = members
             .iter()
-            .filter(|r| members.contains(&r.instance.as_str()))
-        {
+            .filter_map(|m| snap.rows.iter().find(|r| r.instance == *m))
+            .collect();
+        let group = parts_group(&title, None, &rows);
+        for row in rows {
             group.add(&part_row(
                 ui,
                 snap,
+                &page,
                 row,
-                velatura_text::instance(&row.instance),
+                &velatura_text::instance(&row.instance),
                 None,
             ));
         }
-        page.add(&group);
+        page.append(&group);
     }
 
     // The user's own templates, shown only when there are some.
     if !snap.templates.is_empty() {
-        let group = adw::PreferencesGroup::builder()
-            .title(tr("Templates"))
-            .description(tr(
+        let rows: Vec<(&data::AppRow, &String, &String)> = snap
+            .templates
+            .iter()
+            .filter_map(|(instance, name, place)| {
+                Some((
+                    snap.rows.iter().find(|r| &r.instance == instance)?,
+                    name,
+                    place,
+                ))
+            })
+            .collect();
+        let group = parts_group(
+            &tr("Templates"),
+            Some(&tr(
                 "Files written from the templates in ~/.local/share/velatura/templates. Added and removed with: velatura template",
-            ))
-            .build();
-        for (instance, name, place) in &snap.templates {
-            if let Some(row) = snap.rows.iter().find(|r| &r.instance == instance) {
-                group.add(&part_row(ui, snap, row, name.clone(), Some(place)));
-            }
+            )),
+            &rows.iter().map(|(r, ..)| *r).collect::<Vec<_>>(),
+        );
+        for (row, name, place) in rows {
+            group.add(&part_row(ui, snap, &page, row, name, Some(place)));
         }
-        page.add(&group);
+        page.append(&group);
     }
 
-    page.add(&extension_group(ui, snap));
-    page.add(&look_group(ui, snap));
+    page.append(&extension_group(ui, snap));
+    page.append(&look_group(ui, snap));
 
     // Shown only while there is something of Velatura's to remove.
     if snap.applied.is_some() || !snap.history.is_empty() {
@@ -1841,9 +2746,9 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             }
         });
         group.add(&remove);
-        page.add(&group);
+        page.append(&group);
     }
-    page.upcast()
+    page.done()
 }
 
 /// Velatura's own Shell extension: what it is for, where it stands, and
@@ -2057,63 +2962,150 @@ fn history_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             .build()
             .upcast();
     }
-    let page = adw::PreferencesPage::new();
-    let group = adw::PreferencesGroup::builder()
-        .description(tr(
-            "Restoring goes back to how things were just before that change",
-        ))
-        .build();
-    for m in &snap.history {
-        let what = match (m.cause.as_str(), &m.theme) {
-            ("apply", Some(label)) => {
-                tr("Applied {theme}").replace("{theme}", &theme_name(snap, label))
-            }
-            ("scheduled", Some(label)) => {
-                tr("Switched to {theme} on schedule").replace("{theme}", &theme_name(snap, label))
-            }
-            ("select", _) => {
-                let what = m.records.iter().find_map(|r| match r {
-                    velatura_engine::store::Record::Setting { key, .. } => {
-                        Some(velatura_text::setting_title(key))
-                    }
-                    _ => None,
-                });
-                tr("Changed {what}").replace("{what}", &what.unwrap_or_default())
-            }
-            ("restore-original", _) => tr("Removed everything Velatura added"),
-            _ => tr("Change"),
-        };
-        let when = glib::DateTime::from_unix_local(m.time as i64)
-            .and_then(|d| d.format("%x %H:%M"))
-            .map(String::from)
-            .unwrap_or_default();
-        let row = adw::ActionRow::builder()
-            .title(glib::markup_escape_text(&what))
-            .subtitle(if m.undone {
-                format!("{when} · {}", tr("Undone"))
-            } else {
-                when
-            })
-            .build();
-        if !m.undone {
-            let restore = gtk::Button::builder()
-                .label(tr("Restore…"))
-                .valign(gtk::Align::Center)
+    let page = Column::new();
+    page.append(
+        &gtk::Label::builder()
+            .label(tr(
+                "Restoring goes back to how things were just before that change",
+            ))
+            .xalign(0.0)
+            .wrap(true)
+            .css_classes(["dim-label"])
+            .build(),
+    );
+    // The newest change that stands is how things are now.
+    let current = snap.history.iter().find(|m| !m.undone).map(|m| m.id);
+    let shown = ui.history_shown.get();
+    // One group per day, newest first, as the changes come.
+    let mut day: Option<((i32, i32, i32), adw::PreferencesGroup)> = None;
+    for m in snap.history.iter().take(shown) {
+        let at = glib::DateTime::from_unix_local(m.time as i64).ok();
+        let key = at.as_ref().map_or((0, 0, 0), glib::DateTime::ymd);
+        if day.as_ref().is_none_or(|(k, _)| *k != key) {
+            let group = adw::PreferencesGroup::builder()
+                .title(at.as_ref().map(day_name).unwrap_or_default())
                 .build();
-            let weak = Rc::downgrade(ui);
-            let (id, label) = (m.id, what.clone());
-            restore.connect_clicked(move |_| {
-                if let Some(ui) = weak.upgrade() {
-                    let label = label.clone();
-                    glib::spawn_future_local(async move { restore_to(&ui, id, &label).await });
-                }
-            });
-            row.add_suffix(&restore);
+            page.append(&group);
+            day = Some((key, group));
         }
-        group.add(&row);
+        let Some((_, group)) = &day else {
+            continue;
+        };
+        group.add(&history_row(
+            ui,
+            snap,
+            m,
+            at.as_ref(),
+            current == Some(m.id),
+        ));
     }
-    page.add(&group);
-    page.upcast()
+    if snap.history.len() > shown {
+        let group = adw::PreferencesGroup::new();
+        let more = adw::ButtonRow::builder()
+            .title(tr("_Show Older Changes"))
+            .use_underline(true)
+            .build();
+        let weak = Rc::downgrade(ui);
+        more.connect_activated(move |_| {
+            if let Some(ui) = weak.upgrade() {
+                ui.history_shown.set(ui.history_shown.get() + HISTORY_PAGE);
+                let snap = ui.snap.borrow().clone();
+                ui.history.set_child(Some(&history_view(&ui, &snap)));
+            }
+        });
+        group.add(&more);
+        page.append(&group);
+    }
+    page.done()
+}
+
+/// One change: when, the colours it applied, what it was, and the way
+/// back to before it.
+fn history_row(
+    ui: &U,
+    snap: &Snapshot,
+    m: &velatura_engine::store::Manifest,
+    at: Option<&glib::DateTime>,
+    current: bool,
+) -> adw::ActionRow {
+    let what = match (m.cause.as_str(), &m.theme) {
+        ("apply", Some(label)) => {
+            tr("Applied {theme}").replace("{theme}", &theme_name(snap, label))
+        }
+        ("scheduled", Some(label)) => {
+            tr("Switched to {theme} on schedule").replace("{theme}", &theme_name(snap, label))
+        }
+        ("select", _) => {
+            let what = m.records.iter().find_map(|r| match r {
+                velatura_engine::store::Record::Setting { key, .. } => {
+                    Some(velatura_text::setting_title(key))
+                }
+                _ => None,
+            });
+            tr("Changed {what}").replace("{what}", &what.unwrap_or_default())
+        }
+        ("restore-original", _) => tr("Removed everything Velatura added"),
+        _ => tr("Change"),
+    };
+    let row = adw::ActionRow::builder()
+        .title(glib::markup_escape_text(&what))
+        .build();
+    if m.undone {
+        row.set_subtitle(&tr("Undone"));
+    }
+    let time = at
+        .and_then(|d| d.format("%H:%M").ok())
+        .map(String::from)
+        .unwrap_or_default();
+    let time = gtk::Label::builder()
+        .label(time)
+        .width_chars(5)
+        .xalign(0.0)
+        .css_classes(["dim-label", "numeric"])
+        .build();
+    // The colours of the theme it applied, or room for them, so the names
+    // line up.
+    let strip: gtk::Widget = m
+        .theme
+        .as_deref()
+        .and_then(|label| {
+            let (id, variant) = label.split_once('/')?;
+            let entry = snap.themes.iter().find(|e| e.theme.id == id)?;
+            Resolved::new(&entry.theme, Some(variant)).map(|r| widgets::strip(&r).upcast())
+        })
+        .unwrap_or_else(|| gtk::Box::builder().width_request(44).build().upcast());
+    // Each prefix goes before the ones already there.
+    row.add_prefix(&strip);
+    row.add_prefix(&time);
+    if current {
+        let now = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(4)
+            .valign(gtk::Align::Center)
+            .css_classes(["accent"])
+            .build();
+        now.append(&gtk::Image::from_icon_name("object-select-symbolic"));
+        now.append(
+            &gtk::Label::builder()
+                .label(tr("Current"))
+                .css_classes(["caption-heading"])
+                .build(),
+        );
+        row.add_suffix(&now);
+    } else if !m.undone {
+        let restore = icon_button("edit-undo-symbolic", &tr("Restore…"));
+        restore.add_css_class("flat");
+        let weak = Rc::downgrade(ui);
+        let (id, label) = (m.id, what.clone());
+        restore.connect_clicked(move |_| {
+            if let Some(ui) = weak.upgrade() {
+                let label = label.clone();
+                glib::spawn_future_local(async move { restore_to(&ui, id, &label).await });
+            }
+        });
+        row.add_suffix(&restore);
+    }
+    row
 }
 
 /// Several undo steps at once cannot be reversed with one Undo, so this
