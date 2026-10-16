@@ -36,7 +36,7 @@ pub const FILES: [(&str, &str); 2] = [
 ];
 
 /// The file the extension loads for the Shell's colours: with the next
-/// one, the whole contract between the two.
+/// two, the whole contract between the two.
 pub fn stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("gnome-shell.css")
 }
@@ -45,6 +45,12 @@ pub fn stylesheet(host: &Host<'_>) -> PathBuf {
 /// its colour. Without it the extension draws no outline.
 pub fn outline_stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("window-outline.css")
+}
+
+/// The file that draws the top bar as a full bar or as pills, and how
+/// opaque. Without it the bar is as the Shell part leaves it.
+pub fn top_bar_stylesheet(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("shell").join("top-bar.css")
 }
 
 fn user_dir(host: &Host<'_>) -> PathBuf {

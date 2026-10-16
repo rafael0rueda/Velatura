@@ -15,8 +15,9 @@ use velatura_engine::library;
 use velatura_engine::plan::{Change, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, SERVICE, TIMER, Times, WATCH};
 use velatura_engine::store::DayNight;
-use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, USER_THEMES};
+use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TOP_BAR, USER_THEMES};
 use velatura_theme::editor::Draft;
+use velatura_theme::shell::{BarStyle, TopBar};
 use velatura_theme::{Appearance, Color, Resolved, bundled};
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -195,9 +196,10 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
                 .contains(&version.into())
         );
     }
-    // The contract: two files read from the user's data folder, and the
+    // The contract: three files read from the user's data folder, and the
     // outline's style class.
     assert!(js.contains("['velatura', 'shell', 'gnome-shell.css']"));
+    assert!(js.contains("['velatura', 'shell', 'top-bar.css']"));
     assert!(js.contains("['velatura', 'shell', 'window-outline.css']"));
     assert!(js.contains(&format!("'{}'", velatura_theme::shell::OUTLINE_CLASS)));
     // What it must not do: start programs, reach the network, hold settings.
@@ -601,4 +603,129 @@ fn an_unchecked_shell_version_is_left_alone_unless_asked_for() {
         let shell = plan.targets.iter().find(|t| t.instance == SHELL).unwrap();
         assert_eq!(shell.skipped, None, "{version}");
     }
+}
+
+fn top_bar_plan(host: &Host<'_>, opts: &ApplyOpts) -> velatura_engine::plan::Plan {
+    let themes = bundled::themes();
+    let resolved = Resolved::new(&themes[0], None).unwrap();
+    engine::plan_apply(host, &no_env, &resolved, opts).unwrap()
+}
+
+#[test]
+fn the_top_bar_is_drawn_as_chosen_and_taken_away_once_turned_off() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    let css = companion::top_bar_stylesheet(&host);
+    assert_eq!(css, home.path(".local/share/velatura/shell/top-bar.css"));
+    let only = ApplyOpts {
+        only: vec![TOP_BAR.to_owned()],
+        ..ApplyOpts::default()
+    };
+    let part = |plan: &velatura_engine::plan::Plan| {
+        plan.targets
+            .iter()
+            .find(|t| t.instance == TOP_BAR)
+            .unwrap()
+            .clone()
+    };
+
+    // Off until turned on, and only Velatura's extension can show it.
+    assert_eq!(
+        part(&top_bar_plan(&host, &ApplyOpts::default())).skipped,
+        Some(Skip::NotSelected)
+    );
+    assert_eq!(
+        part(&top_bar_plan(&host, &only)).skipped,
+        Some(Skip::NeedsVelaturaExtension)
+    );
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+
+    // Turned on: pills at 60 %, the defaults.
+    assert_eq!(engine::top_bar(&host).unwrap(), TopBar::default());
+    engine::set_included(&host, TOP_BAR, true).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    assert!(part(&plan).skipped.is_none());
+    engine::execute(&host, &plan, &[]).unwrap();
+    let pills = fs::read_to_string(&css).unwrap();
+    assert!(pills.contains("top bar pills 60"));
+    assert!(pills.contains(".panel-button"));
+    assert!(
+        part(&top_bar_plan(&host, &ApplyOpts::default()))
+            .changes
+            .is_empty()
+    );
+
+    // A new choice is a change for the next apply, and is kept.
+    let bar = TopBar {
+        style: BarStyle::Bar,
+        opacity: 200,
+    };
+    engine::set_top_bar(&host, bar).unwrap();
+    assert_eq!(
+        engine::top_bar(&host).unwrap(),
+        TopBar {
+            style: BarStyle::Bar,
+            opacity: 100
+        }
+    );
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    assert!(!part(&plan).changes.is_empty());
+    engine::execute(&host, &plan, &[]).unwrap();
+    let full = fs::read_to_string(&css).unwrap();
+    assert!(full.contains("top bar bar 100") && !full.contains(".panel-button"));
+
+    // Undo brings the pills' file back; the choice stays as it was made.
+    let undo = engine::plan_undo(&host).unwrap();
+    engine::execute(&host, &undo, &[]).unwrap();
+    assert_eq!(fs::read_to_string(&css).unwrap(), pills);
+    assert_eq!(engine::top_bar(&host).unwrap().style, BarStyle::Bar);
+
+    // Turned off: a scheduled switch leaves the file, an apply by hand
+    // takes it away.
+    engine::set_included(&host, TOP_BAR, false).unwrap();
+    let scheduled = ApplyOpts {
+        unattended: true,
+        ..ApplyOpts::default()
+    };
+    assert_eq!(
+        part(&top_bar_plan(&host, &scheduled)).skipped,
+        Some(Skip::NotSelected)
+    );
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    assert!(part(&plan).changes.iter().any(|c| matches!(
+        c,
+        Change::Owned { path, content: None, .. } if *path == css
+    )));
+    engine::execute(&host, &plan, &[]).unwrap();
+    assert!(!css.exists());
+    assert_eq!(
+        part(&top_bar_plan(&host, &ApplyOpts::default())).skipped,
+        Some(Skip::NotSelected)
+    );
+}
+
+#[test]
+fn an_older_extension_cannot_show_the_top_bar() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let js = home.path(&format!(
+        ".local/share/gnome-shell/extensions/{UUID}/extension.js"
+    ));
+    // As the third version wrote it: no top bar's stylesheet.
+    let older = fs::read_to_string(&js)
+        .unwrap()
+        .replace("TOP_BAR_SHEET, ", "");
+    fs::write(&js, older).unwrap();
+    let only = ApplyOpts {
+        only: vec![TOP_BAR.to_owned()],
+        ..ApplyOpts::default()
+    };
+    let plan = top_bar_plan(&host, &only);
+    let part = plan.targets.iter().find(|t| t.instance == TOP_BAR).unwrap();
+    assert_eq!(part.skipped, Some(Skip::VelaturaExtensionOutdated));
 }

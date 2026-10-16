@@ -738,6 +738,37 @@ fn the_extension_from_the_command() {
     );
 }
 
+/// The top bar's two choices: shown, set, refused when out of range, and
+/// kept for the next apply. No settings store is needed.
+#[test]
+fn the_top_bar_from_the_command() {
+    let sb = Sandbox::named("top-bar");
+    let (code, out, _) = sb.velatura_without_session(&["top-bar"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("drawn as pills, 60% opaque"), "{out}");
+    assert!(out.contains("The part is off"), "{out}");
+
+    assert_eq!(
+        sb.velatura_without_session(&["top-bar", "style", "bar"]).0,
+        0
+    );
+    let (code, out, _) = sb.velatura_without_session(&["top-bar", "opacity", "85%"]);
+    assert_eq!(code, 0);
+    assert!(out.contains("next apply"), "{out}");
+    let (_, out, _) = sb.velatura_without_session(&["top-bar", "--json"]);
+    assert!(
+        out.contains("\"style\": \"bar\"") && out.contains("\"opacity\": 85"),
+        "{out}"
+    );
+
+    for bad in [["style", "pill"], ["opacity", "101"], ["opacity", "half"]] {
+        let (code, _, err) = sb.velatura_without_session(&["top-bar", bad[0], bad[1]]);
+        assert_eq!(code, 2, "{bad:?}: {err}");
+    }
+    let (_, out, _) = sb.velatura_without_session(&["top-bar"]);
+    assert!(out.contains("drawn as a full bar, 85% opaque"), "{out}");
+}
+
 /// Ptyxis and Text Editor against the real settings store, in a private
 /// session: a profile's settings live at a path of their own, which only
 /// the real store can show to work.

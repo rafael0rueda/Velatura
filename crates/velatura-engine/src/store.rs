@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value, json};
 use velatura_theme::sha256_hex;
+use velatura_theme::shell::{BarStyle, TopBar};
 
 use crate::host::{Host, Kind};
 use crate::plan::Change;
@@ -284,6 +285,8 @@ pub struct Prefs {
     pub included: BTreeSet<String>,
     /// Width and height of the app window when it was last closed.
     pub window: Option<(i32, i32)>,
+    /// How the Top Bar part draws the bar.
+    pub top_bar: TopBar,
 }
 
 impl Prefs {
@@ -311,10 +314,26 @@ impl Prefs {
                     .collect()
             })
             .unwrap_or_default();
+        // Missing or unreadable, the top bar's choices are the defaults.
+        let bar = v.get("top_bar");
+        let default = TopBar::default();
+        let top_bar = TopBar {
+            style: bar
+                .and_then(|b| b.get("style"))
+                .and_then(Value::as_str)
+                .and_then(BarStyle::from_id)
+                .unwrap_or(default.style),
+            opacity: bar
+                .and_then(|b| b.get("opacity"))
+                .and_then(Value::as_u64)
+                .filter(|o| *o <= 100)
+                .map_or(default.opacity, |o| o as u8),
+        };
         Ok(Self {
             excluded,
             included,
             window: size("window_width").zip(size("window_height")),
+            top_bar,
         })
     }
 
@@ -328,6 +347,10 @@ impl Prefs {
                 "included": self.included,
                 "window_width": self.window.map(|w| w.0),
                 "window_height": self.window.map(|w| w.1),
+                "top_bar": {
+                    "style": self.top_bar.style.id(),
+                    "opacity": self.top_bar.opacity,
+                },
             })),
             0o600,
         )

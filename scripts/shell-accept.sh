@@ -4,6 +4,8 @@
 # and the panel's computed colours, and the accent of a checked quick
 # settings toggle, are compared with the theme's. A second
 # theme is then applied while the Shell runs, to check that it reloads.
+# Last, through Velatura's own extension, the Top Bar Style part draws
+# the bar as pills and then as a full bar, and is taken away.
 #
 # Nothing of the real session is touched: private session bus, private
 # settings database, private folders. The installed User Themes extension is
@@ -32,6 +34,14 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     dbus-run-session -- bash -c '
     exec 2>/dev/null
     panel() { cat "$VEL_OUT/panel.txt" 2>/dev/null || true; }
+    top_bar() { cat "$VEL_OUT/top-bar.txt" 2>/dev/null || true; }
+    wait_bar() { # panel, button and clock fills, label
+        for _ in $(seq 60); do
+            [ "$(top_bar)" = "$1" ] && { echo "ok: $2: top bar is $1"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2: expected $1, top bar is $(top_bar)"; return 1
+    }
     wait_for() { # colours, label
         for _ in $(seq 60); do
             [ "$(panel)" = "$1" ] && { echo "ok: $2: panel is $1"; return 0; }
@@ -78,4 +88,22 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     wait_for "#123456 #fedcba #3584e4" "the other extension again after undoing both" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
     grep -i -E "velatura.*(error|warn|critical)" "$VEL_OUT/shell3.log" && status=1
+
+    # The top bar: pills at 60 %, then a full bar at 80 %, both in
+    # Aetherius (surface #1e2438, bar #0d101a), then taken away.
+    rm -f "$VEL_OUT/panel.txt" "$VEL_OUT/top-bar.txt"
+    gsettings set org.gnome.shell enabled-extensions "['"'"'velatura@rafael0rueda.github.io'"'"', '"'"'velatura-accept@test'"'"']"
+    both="--only gnome:shell --only gnome:top-bar"
+    "$BIN" apply aetherius $both --yes >/dev/null || status=1
+    VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell4.log" 2>&1 &
+    shell=$!
+    wait_bar "#00000000 #1e243899 #1e243899" "pills at 60 %, the clock'"'"'s label too" || status=1
+    "$BIN" top-bar style bar >/dev/null && "$BIN" top-bar opacity 80 >/dev/null || status=1
+    "$BIN" apply aetherius $both --yes >/dev/null || status=1
+    wait_bar "#0d101acc #00000000 none" "a full bar at 80 %, the buttons left alone" || status=1
+    # Not turned on in this home, so an apply by hand takes it away.
+    "$BIN" apply aetherius --yes >/dev/null || status=1
+    wait_bar "#0d101aff #00000000 none" "the bar as the Shell part leaves it, once taken away" || status=1
+    kill $shell 2>/dev/null; wait $shell 2>/dev/null
+    grep -i -E "velatura.*(error|warn|critical)" "$VEL_OUT/shell4.log" && status=1
     exit $status' 2>/dev/null

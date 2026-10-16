@@ -31,6 +31,7 @@ pub const GTK3: &str = "gtk3:default";
 pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
 pub const OUTLINE: &str = "gnome:outline";
+pub const TOP_BAR: &str = "gnome:top-bar";
 pub const FLATPAK: &str = "flatpak:global";
 pub const TMUX: &str = "tmux:default";
 pub const NVIM: &str = "nvim:default";
@@ -42,7 +43,7 @@ pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 16] = [
+pub const INSTANCES: [&str; 17] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -55,6 +56,7 @@ pub const INSTANCES: [&str; 16] = [
     FIREFOX,
     FLATPAK,
     SHELL,
+    TOP_BAR,
     OUTLINE,
     APPEARANCE,
     ICONS,
@@ -63,7 +65,12 @@ pub const INSTANCES: [&str; 16] = [
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours, or use a way in that is not supported.
-pub const OPT_IN: [&str; 5] = [FLATPAK, ICONS, FIREFOX, CURSORS, OUTLINE];
+pub const OPT_IN: [&str; 6] = [FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, OUTLINE];
+
+/// Parts whose output is taken away at the next apply by hand once they
+/// are turned off: left in place, it would stay on screen with no way to
+/// take it away but undo.
+pub const TAKEN_AWAY_WHEN_OFF: [&str; 2] = [TOP_BAR, OUTLINE];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1513,24 +1520,52 @@ pub fn plan_outline(
     theme: &Resolved<'_>,
     state: &State,
 ) -> TargetPlan {
+    let css = crate::companion::outline_stylesheet(host);
+    plan_extension_sheet(OUTLINE, host, env, state, css, shell::outline(theme))
+}
+
+/// The top bar as a full bar or as pills, as opaque as chosen: a
+/// stylesheet Velatura's own extension loads after the Shell part's.
+pub fn plan_top_bar(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+) -> TargetPlan {
+    let bar = crate::store::Prefs::load(host)
+        .map(|p| p.top_bar)
+        .unwrap_or_default();
+    let css = crate::companion::top_bar_stylesheet(host);
+    plan_extension_sheet(TOP_BAR, host, env, state, css, shell::top_bar(theme, &bar))
+}
+
+/// A stylesheet of a part only Velatura's extension can show, written in
+/// place at `css`.
+fn plan_extension_sheet(
+    instance: &str,
+    host: &Host<'_>,
+    env: Env<'_>,
+    state: &State,
+    css: PathBuf,
+    wanted: String,
+) -> TargetPlan {
     let status = crate::companion::status(host, env);
     if !status.active() {
-        return TargetPlan::skip(OUTLINE, Skip::NeedsVelaturaExtension);
+        return TargetPlan::skip(instance, Skip::NeedsVelaturaExtension);
     }
     if status.outdated {
-        return TargetPlan::skip(OUTLINE, Skip::VelaturaExtensionOutdated);
+        return TargetPlan::skip(instance, Skip::VelaturaExtensionOutdated);
     }
-    let css = crate::companion::outline_stylesheet(host);
-    let wanted = shell::outline(theme).into_bytes();
+    let wanted = wanted.into_bytes();
     let current = read_opt(host, &css).ok().flatten();
     let pre = current.as_deref().map(sha256_hex);
     if pre.is_some() && !state.owned.contains_key(&path_str(&css)) {
-        return TargetPlan::skip(OUTLINE, Skip::ForeignFile(css));
+        return TargetPlan::skip(instance, Skip::ForeignFile(css));
     }
     if !inside_home(host, &host.dirs.data) {
-        return TargetPlan::skip(OUTLINE, Skip::OutsideHome(css));
+        return TargetPlan::skip(instance, Skip::OutsideHome(css));
     }
-    let mut plan = TargetPlan::new(OUTLINE);
+    let mut plan = TargetPlan::new(instance);
     if let Some(dir) = css.parent().filter(|dir| !exists(host, dir)) {
         plan.changes.push(Change::CreateDir {
             path: dir.to_path_buf(),
@@ -1546,13 +1581,17 @@ pub fn plan_outline(
     plan
 }
 
-/// The outline taken away, once it is turned off: its stylesheet goes,
-/// and with it the extension's outline. Nothing else of the Shell's.
-pub fn plan_outline_off(host: &Host<'_>, state: &State) -> TargetPlan {
-    let css = crate::companion::outline_stylesheet(host);
-    let mut plan = TargetPlan::new(OUTLINE);
+/// A part of [`TAKEN_AWAY_WHEN_OFF`] taken away, once it is turned off:
+/// its stylesheet goes, and with it what the extension shows. Nothing
+/// else of the Shell's.
+pub fn plan_sheet_off(instance: &str, host: &Host<'_>, state: &State) -> TargetPlan {
+    let css = match instance {
+        TOP_BAR => crate::companion::top_bar_stylesheet(host),
+        _ => crate::companion::outline_stylesheet(host),
+    };
+    let mut plan = TargetPlan::new(instance);
     let Some(written) = state.owned.get(&path_str(&css)) else {
-        return TargetPlan::skip(OUTLINE, Skip::NotSelected);
+        return TargetPlan::skip(instance, Skip::NotSelected);
     };
     match read_opt(host, &css)
         .ok()
@@ -1569,7 +1608,7 @@ pub fn plan_outline_off(host: &Host<'_>, state: &State) -> TargetPlan {
         None => {}
     }
     if plan.changes.is_empty() && plan.notes.is_empty() {
-        return TargetPlan::skip(OUTLINE, Skip::NotSelected);
+        return TargetPlan::skip(instance, Skip::NotSelected);
     }
     plan
 }
@@ -1724,6 +1763,7 @@ pub fn plan(
         }
         FLATPAK => plan_flatpak(host, env, state),
         OUTLINE => plan_outline(host, env, theme, state),
+        TOP_BAR => plan_top_bar(host, env, theme, state),
         SHELL => plan_shell(
             host,
             env,
