@@ -100,6 +100,14 @@ pub fn plan_apply(
     for instance in targets::INSTANCES {
         plans.push(if selected(instance) {
             targets::plan(instance, host, env, theme, &state, opts)
+        } else if instance == targets::OUTLINE
+            && opts.only.is_empty()
+            && !matches(instance, &opts.except)
+            && !opts.unattended
+        {
+            // Turned off: the outline goes at the next apply by hand, or a
+            // switch would leave it on screen with no way to take it away.
+            targets::plan_outline_off(host, &state)
         } else {
             TargetPlan::skip(instance, Skip::NotSelected)
         });
@@ -113,6 +121,21 @@ pub fn plan_apply(
                 templates::plan_template(host, theme, &state, opts.replace_changed, &entry)
             }
             Err(why) => templates::invalid(&id, why),
+        });
+    }
+    // Two parts can write into one folder that is not there yet, as the
+    // Shell's colours and the window outline do: the first makes it. Only
+    // a part that asks nothing counts, since one that asks may not run.
+    let mut made = std::collections::BTreeSet::new();
+    for plan in &mut plans {
+        let sure = plan.skipped.is_none() && !plan.needs_consent;
+        plan.changes.retain(|c| match c {
+            Change::CreateDir { path } if made.contains(path) => false,
+            Change::CreateDir { path } if sure => {
+                made.insert(path.clone());
+                true
+            }
+            _ => true,
         });
     }
     let low = theme.colors.ui.fg.contrast(theme.colors.ui.bg) < CONTRAST_FLOOR;

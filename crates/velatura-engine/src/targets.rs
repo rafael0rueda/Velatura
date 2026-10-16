@@ -30,6 +30,7 @@ pub const GTK4: &str = "gtk4:default";
 pub const GTK3: &str = "gtk3:default";
 pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
+pub const OUTLINE: &str = "gnome:outline";
 pub const FLATPAK: &str = "flatpak:global";
 pub const TMUX: &str = "tmux:default";
 pub const NVIM: &str = "nvim:default";
@@ -41,7 +42,7 @@ pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 15] = [
+pub const INSTANCES: [&str; 16] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -54,6 +55,7 @@ pub const INSTANCES: [&str; 15] = [
     FIREFOX,
     FLATPAK,
     SHELL,
+    OUTLINE,
     APPEARANCE,
     ICONS,
     CURSORS,
@@ -61,7 +63,7 @@ pub const INSTANCES: [&str; 15] = [
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours, or use a way in that is not supported.
-pub const OPT_IN: [&str; 4] = [FLATPAK, ICONS, FIREFOX, CURSORS];
+pub const OPT_IN: [&str; 5] = [FLATPAK, ICONS, FIREFOX, CURSORS, OUTLINE];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1502,6 +1504,76 @@ fn clear_generated(host: &Host<'_>, state: &State, keep: Option<&Path>, plan: &m
 /// The Shell through Velatura's own extension: one stylesheet at a fixed
 /// place, replaced in place. The extension sees the change and loads it,
 /// so there is no folder per theme and no setting to flip.
+/// The outline around the focused window: a stylesheet of one rule that
+/// Velatura's own extension reads, giving the outline it draws the
+/// theme's accent. Only that extension draws it.
+pub fn plan_outline(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+) -> TargetPlan {
+    let status = crate::companion::status(host, env);
+    if !status.active() {
+        return TargetPlan::skip(OUTLINE, Skip::NeedsVelaturaExtension);
+    }
+    if status.outdated {
+        return TargetPlan::skip(OUTLINE, Skip::VelaturaExtensionOutdated);
+    }
+    let css = crate::companion::outline_stylesheet(host);
+    let wanted = shell::outline(theme).into_bytes();
+    let current = read_opt(host, &css).ok().flatten();
+    let pre = current.as_deref().map(sha256_hex);
+    if pre.is_some() && !state.owned.contains_key(&path_str(&css)) {
+        return TargetPlan::skip(OUTLINE, Skip::ForeignFile(css));
+    }
+    if !inside_home(host, &host.dirs.data) {
+        return TargetPlan::skip(OUTLINE, Skip::OutsideHome(css));
+    }
+    let mut plan = TargetPlan::new(OUTLINE);
+    if let Some(dir) = css.parent().filter(|dir| !exists(host, dir)) {
+        plan.changes.push(Change::CreateDir {
+            path: dir.to_path_buf(),
+        });
+    }
+    if current.as_deref() != Some(wanted.as_slice()) {
+        plan.changes.push(Change::Owned {
+            path: css,
+            content: Some(wanted),
+            pre,
+        });
+    }
+    plan
+}
+
+/// The outline taken away, once it is turned off: its stylesheet goes,
+/// and with it the extension's outline. Nothing else of the Shell's.
+pub fn plan_outline_off(host: &Host<'_>, state: &State) -> TargetPlan {
+    let css = crate::companion::outline_stylesheet(host);
+    let mut plan = TargetPlan::new(OUTLINE);
+    let Some(written) = state.owned.get(&path_str(&css)) else {
+        return TargetPlan::skip(OUTLINE, Skip::NotSelected);
+    };
+    match read_opt(host, &css)
+        .ok()
+        .flatten()
+        .as_deref()
+        .map(sha256_hex)
+    {
+        Some(hash) if hash == *written => plan.changes.push(Change::Owned {
+            path: css,
+            content: None,
+            pre: Some(hash),
+        }),
+        Some(_) => plan.notes.push(Note::KeptFile { path: css }),
+        None => {}
+    }
+    if plan.changes.is_empty() && plan.notes.is_empty() {
+        return TargetPlan::skip(OUTLINE, Skip::NotSelected);
+    }
+    plan
+}
+
 fn plan_shell_companion(
     host: &Host<'_>,
     env: Env<'_>,
@@ -1651,6 +1723,7 @@ pub fn plan(
             crate::cursor_set::plan_cursors(host, env, theme, state, !opts.unattended, opts.probe)
         }
         FLATPAK => plan_flatpak(host, env, state),
+        OUTLINE => plan_outline(host, env, theme, state),
         SHELL => plan_shell(
             host,
             env,

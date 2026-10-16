@@ -195,8 +195,11 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
                 .contains(&version.into())
         );
     }
-    // The contract: the one file, read from the user's data folder.
+    // The contract: two files read from the user's data folder, and the
+    // outline's style class.
     assert!(js.contains("['velatura', 'shell', 'gnome-shell.css']"));
+    assert!(js.contains("['velatura', 'shell', 'window-outline.css']"));
+    assert!(js.contains(&format!("'{}'", velatura_theme::shell::OUTLINE_CLASS)));
     // What it must not do: start programs, reach the network, hold settings.
     for forbidden in [
         "Subprocess",
@@ -211,6 +214,7 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
     // Everything it connects or schedules in enable() it undoes in disable().
     assert!(js.contains("source_remove") && js.contains("this._monitor.cancel()"));
     assert!(js.contains("this._monitor.disconnect(this._changedId)"));
+    assert!(js.contains("object.disconnect(id)") && js.contains("this._widget.destroy()"));
 }
 
 #[test]

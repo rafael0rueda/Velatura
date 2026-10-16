@@ -593,6 +593,9 @@ msgstr ""
 msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
 msgstr ""
 
+msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
+msgstr ""
+
 msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
 msgstr ""
 
@@ -881,6 +884,9 @@ msgstr ""
 msgid "Style and Accent Color"
 msgstr ""
 
+msgid "Window Outline"
+msgstr ""
+
 msgid "Flatpak Apps"
 msgstr ""
 
@@ -1056,6 +1062,12 @@ msgid "Left out: High Contrast is on, and recoloring would lower contrast"
 msgstr ""
 
 msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too"
+msgstr ""
+
+msgid "Left out: the outline is drawn by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in"
+msgstr ""
+
+msgid "Left out: Velatura's extension is an older copy that cannot draw the outline. It is brought up to date with: velatura extension install, and draws it after signing out and in"
 msgstr ""
 
 #, rust-format

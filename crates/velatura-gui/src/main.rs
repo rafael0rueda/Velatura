@@ -1665,6 +1665,12 @@ fn part_row(
             tr("Gives the cursor in use the theme's colors: its body and outline, and its accent"),
             true,
         ),
+        RowState::Ready if row.instance == targets::OUTLINE => (
+            tr(
+                "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
+            ),
+            true,
+        ),
         RowState::Ready if row.instance == targets::FIREFOX => (
             tr(
                 "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile",
@@ -1733,6 +1739,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 targets::SHELL,
                 targets::ICONS,
                 targets::CURSORS,
+                targets::OUTLINE,
             ],
         ),
         (
