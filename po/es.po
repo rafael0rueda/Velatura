@@ -591,6 +591,9 @@ msgstr "Da a las carpetas y demás iconos marcados del tema de iconos en uso el 
 msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
 msgstr "Da al cursor en uso los colores del tema: su cuerpo y su contorno, y su acento"
 
+msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
+msgstr "Dibuja una línea fina del color de acento del tema alrededor de la ventana en uso, salvo cuando está maximizada o a pantalla completa"
+
 msgid "Gives the window of Firefox the theme's colors, through a stylesheet in its default profile"
 msgstr "Da a la ventana de Firefox los colores del tema, mediante una hoja de estilo en su perfil predeterminado"
 
@@ -879,6 +882,9 @@ msgstr "Barra superior y vista de actividades"
 msgid "Style and Accent Color"
 msgstr "Estilo y color de acento"
 
+msgid "Window Outline"
+msgstr "Contorno de la ventana"
+
 msgid "Flatpak Apps"
 msgstr "Aplicaciones Flatpak"
 
@@ -1055,6 +1061,12 @@ msgstr "Se omite: el contraste alto está activado, y recolorear lo reduciría"
 
 msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too"
 msgstr "Se omite: la barra superior y la vista de actividades se recolorean mediante una extensión, y no hay ninguna activada. La propia de Velatura se instala con: velatura extension install. La extensión User Themes también sirve"
+
+msgid "Left out: the outline is drawn by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in"
+msgstr "Se omite: el contorno lo dibuja la extensión propia de Velatura, que no está activada. Se instala con: velatura extension install, y se activa tras cerrar sesión y volver a entrar"
+
+msgid "Left out: Velatura's extension is an older copy that cannot draw the outline. It is brought up to date with: velatura extension install, and draws it after signing out and in"
+msgstr "Se omite: la extensión de Velatura es una copia anterior que no puede dibujar el contorno. Se actualiza con: velatura extension install, y lo dibuja tras cerrar sesión y volver a entrar"
 
 #, rust-format
 msgid "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell"
@@ -1393,4 +1405,3 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
-

@@ -105,6 +105,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <ul>
 <li>A minimal extension owned by this project loads one stylesheet written by the app and reloads it when the file changes. Because it competes at the same priority as other extensions, it can theme areas that Method A loses to them.</li>
 <li>Published on extensions.gnome.org it installs without a logout. Installed from a local file, it needs a logout on install and on every update, since the Shell cannot restart under Wayland. All changing content therefore lives in the stylesheet, never in the extension's code.</li>
+<li><strong>Window outline</strong> (off until turned on; <a href="decisions.html#d71">D71</a>). The extension keeps a frame with no colour of its own just outside the focused window and stacked right above it, and leaves it out for maximized and full-screen windows, in the overview and for windows that are not normal windows or dialogs. While the part is on, the app writes a second stylesheet, <code>~/.local/share/velatura/shell/window-outline.css</code>, that gives the frame a 2 px border in the theme's accent; the frame is sized from that border, so with no stylesheet there is nothing to see. Turned off, the stylesheet is taken away at the next apply by hand. The outline has square corners, so beside a window with rounded ones the desktop shows through in the corners. It needs the extension's second version: an older copy is reported, and updated with <code>velatura extension install</code> and a sign-out.</li>
 </ul>
 <h3>Limitations</h3>
 <ul>

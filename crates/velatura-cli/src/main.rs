@@ -322,6 +322,8 @@ fn skip_code(s: &Skip) -> &'static str {
         Skip::HighContrast => "high-contrast",
         Skip::NeedsAdwGtk3 => "needs-adw-gtk3",
         Skip::NeedsUserThemes => "needs-user-themes",
+        Skip::NeedsVelaturaExtension => "needs-velatura-extension",
+        Skip::VelaturaExtensionOutdated => "velatura-extension-outdated",
         Skip::UntestedShell(_) => "untested-shell",
         Skip::UnusualPath(_) => "unusual-path",
         Skip::IconsNotRecolorable(_) => "icons-not-recolorable",
@@ -591,6 +593,12 @@ impl Cx<'_> {
                 "Recolored Cursor (off until turned on)",
                 "official",
                 p(h.dirs.data.join("icons")),
+            ),
+            (
+                "gnome:outline",
+                "Window Outline (off until turned on)",
+                "official",
+                p(velatura_engine::companion::outline_stylesheet(h)),
             ),
             (
                 "flatpak:global",

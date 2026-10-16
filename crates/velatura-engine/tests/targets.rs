@@ -183,6 +183,7 @@ fn all_five_apply_and_undo_to_the_exact_start() {
         [
             &(targets::FIREFOX.to_owned(), Skip::NotSelected),
             &(FLATPAK.to_owned(), Skip::NotSelected),
+            &(targets::OUTLINE.to_owned(), Skip::NotSelected),
             &(targets::ICONS.to_owned(), Skip::NotSelected),
             &(targets::CURSORS.to_owned(), Skip::NotSelected)
         ]
@@ -647,6 +648,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
             GHOSTTY,
             targets::FIREFOX,
             FLATPAK,
+            targets::OUTLINE,
             targets::ICONS,
             targets::CURSORS
         ]
@@ -669,7 +671,13 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
     assert_eq!(engine::window_size(&host), Some((900, 640)));
     assert_eq!(
         engine::excluded(&host).unwrap(),
-        [targets::FIREFOX, FLATPAK, targets::ICONS, targets::CURSORS]
+        [
+            targets::FIREFOX,
+            FLATPAK,
+            targets::OUTLINE,
+            targets::ICONS,
+            targets::CURSORS
+        ]
     );
 }
 

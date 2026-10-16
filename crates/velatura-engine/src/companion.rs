@@ -35,9 +35,16 @@ pub const FILES: [(&str, &str); 2] = [
     ),
 ];
 
-/// The one file the extension loads: the whole contract between the two.
+/// The file the extension loads for the Shell's colours: with the next
+/// one, the whole contract between the two.
 pub fn stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("gnome-shell.css")
+}
+
+/// The file that gives the extension's outline around the focused window
+/// its colour. Without it the extension draws no outline.
+pub fn outline_stylesheet(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("shell").join("window-outline.css")
 }
 
 fn user_dir(host: &Host<'_>) -> PathBuf {

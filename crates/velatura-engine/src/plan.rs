@@ -77,6 +77,11 @@ pub enum Skip {
     /// The Shell can only load a stylesheet through the User Themes
     /// extension, which is not installed.
     NeedsUserThemes,
+    /// The outline around the focused window is drawn by Velatura's own
+    /// extension, which is not installed or not turned on.
+    NeedsVelaturaExtension,
+    /// Velatura's extension is an older copy that cannot draw the outline.
+    VelaturaExtensionOutdated,
     /// A GNOME Shell version Velatura has not been checked with.
     UntestedShell(String),
     /// The path would have to be written into a settings file and has
