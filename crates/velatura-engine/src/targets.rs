@@ -1565,9 +1565,11 @@ fn plan_shell_companion(
 
 pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>, keep_style: bool) -> TargetPlan {
     let mut plan = TargetPlan::new(APPEARANCE);
+    // Light is asked for outright: with `default` the Shell of a normal
+    // session stays dark, under a stylesheet made from its light one.
     let scheme = match theme.colors.appearance {
         Appearance::Dark => "prefer-dark",
-        Appearance::Light => "default",
+        Appearance::Light => "prefer-light",
     };
     let accent = nearest_accent(theme.colors.ui.accent);
     let wanted = [
@@ -1740,5 +1742,42 @@ mod tests {
             "/* #panel { color: red; } */ .widget { color: red; }"
         ));
         assert!(!colors_shell("#panel { color: red; "), "not closed");
+    }
+
+    /// A light theme asks for light outright: with `default` the Shell of a
+    /// normal session stays dark.
+    #[test]
+    fn the_style_is_asked_for_outright_both_ways() {
+        use crate::host::{Dirs, Host, MemSettings, StdFs};
+        use crate::plan::Change;
+        use velatura_theme::{Appearance, Resolved, bundled};
+        fn env(k: &str) -> Option<std::ffi::OsString> {
+            (k == "HOME").then(|| "/nonexistent".into())
+        }
+        let dirs = Dirs::from_env(env).unwrap();
+        let settings = MemSettings::gnome();
+        let host = Host {
+            dirs: &dirs,
+            fs: &StdFs,
+            settings: &settings,
+            now: 0,
+        };
+        let mut theme = bundled::themes().remove(0);
+        for (appearance, wanted) in [
+            (Appearance::Dark, "prefer-dark"),
+            (Appearance::Light, "prefer-light"),
+        ] {
+            for v in theme.variants.values_mut() {
+                v.appearance = appearance;
+            }
+            let plan = super::plan_appearance(&host, &Resolved::new(&theme, None).unwrap(), false);
+            assert!(
+                plan.changes.iter().any(|c| matches!(c,
+                    Change::Setting { key, value: Some(v), .. }
+                        if key == "color-scheme" && v == wanted)),
+                "{wanted}: {:?}",
+                plan.changes
+            );
+        }
     }
 }
