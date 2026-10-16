@@ -575,7 +575,7 @@ pub fn note(n: &Note, home: &Path) -> String {
         Note::GtkRestart => t("Apps that are already open keep their colors until reopened"),
         Note::FirefoxRestart => t("Firefox shows the change after it is restarted"),
         Note::IconsReopen => t(
-            "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere",
+            "Open apps show the recolored icons once they are reopened. Signing out and in shows them everywhere. Icons that apps keep in the top bar, such as Solaar's, change once the AppIndicator extension is turned off and on again, or after signing out and in",
         ),
         Note::CursorReopen => t(
             "Open apps may keep the old cursor until they are reopened. Signing out and in shows the new one everywhere",
