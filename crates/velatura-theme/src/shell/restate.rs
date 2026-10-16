@@ -233,10 +233,26 @@ fn stock_color(rules: &[(String, String)], selector: &str, property: &str) -> Op
     rules
         .iter()
         .filter(|(s, _)| s == selector)
-        .flat_map(|(_, body)| body.split(';'))
+        .flat_map(|(_, body)| declarations(body))
+        .rfind(|(p, _)| *p == property)
+        .and_then(|(_, v)| parse(v))
+}
+
+/// The declarations of one rule as CSS reads them: where a property is
+/// declared more than once, only the last counts, in its place. The
+/// Shell's stylesheet does that on purpose, as in `background-color:
+/// #222226; background-color: transparent;`.
+fn declarations(body: &str) -> Vec<(&str, &str)> {
+    let all: Vec<(&str, &str)> = body
+        .split(';')
         .filter_map(|d| d.split_once(':'))
-        .find(|(p, _)| p.trim() == property)
-        .and_then(|(_, v)| parse(v.trim()))
+        .map(|(p, v)| (p.trim(), v.trim()))
+        .collect();
+    all.iter()
+        .enumerate()
+        .filter(|(i, (p, _))| !all[i + 1..].iter().any(|(q, _)| q == p))
+        .map(|(_, d)| *d)
+        .collect()
 }
 
 /// `.a:hover .b` as `.a:hover.a:hover .b`: one step heavier, for the
@@ -285,18 +301,15 @@ pub fn restate(theme: &Resolved<'_>, stock: &str, heavy: bool) -> Option<String>
         if selectors.starts_with('@') || selectors.is_empty() {
             continue;
         }
-        let mut declarations = Vec::new();
-        for declaration in body.split(';') {
-            let Some((property, value)) = declaration.split_once(':') else {
-                continue;
-            };
+        let mut kept_here = Vec::new();
+        for (property, value) in declarations(body) {
             let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
             let (value, changed) = recolor(&value, &ramp, accent_fg);
             if changed {
-                declarations.push(format!("{}: {value}", property.trim()));
+                kept_here.push(format!("{property}: {value}"));
             }
         }
-        if declarations.is_empty() {
+        if kept_here.is_empty() {
             continue;
         }
         let selectors = if heavy {
@@ -308,7 +321,7 @@ pub fn restate(theme: &Resolved<'_>, stock: &str, heavy: bool) -> Option<String>
         } else {
             selectors.clone()
         };
-        let _ = writeln!(out, "{selectors} {{ {}; }}", declarations.join("; "));
+        let _ = writeln!(out, "{selectors} {{ {}; }}", kept_here.join("; "));
         kept += 1;
     }
     if kept == 0 {
@@ -479,5 +492,30 @@ mod tests {
         assert_eq!(parse("#ffff"), None);
         assert_eq!(parse("transparent"), None);
         assert_eq!(parse("grayish"), None);
+    }
+
+    /// A property declared twice counts by its last declaration, as in the
+    /// Shell's own tiles of the dash and app grid, which are transparent.
+    #[test]
+    fn a_property_declared_twice_counts_by_the_last() {
+        let theme = ember();
+        let r = Resolved::new(&theme, None).unwrap();
+        let stock = "stage { color: #ffffff; }\n#overviewGroup { background-color: #222226; }\n\
+            .overview-tile, .grid-search-result {\n  color: #fafafb;\n  background-color: #222226;\n  background-color: transparent;\n  border-radius: 24px; }\n\
+            .later { background-color: transparent; background-color: #222226; }\n";
+        let out = restate(&r, stock, false).unwrap();
+        let tile = out
+            .lines()
+            .find(|l| l.starts_with(".overview-tile"))
+            .unwrap();
+        assert!(!tile.contains("background-color"), "{tile}");
+        assert!(tile.contains("color: #"), "{tile}");
+        assert!(
+            out.contains(&format!(
+                ".later {{ background-color: {}; }}",
+                r.colors.ui.bg.hex()
+            )),
+            "{out}"
+        );
     }
 }

@@ -20,7 +20,9 @@ pub use restate::restate;
 
 /// Bumped whenever the rules change. Part of the theme folder's name, so a
 /// new format makes the Shell load the new file.
-pub const FORMAT: u32 = 2;
+/// 3: a property declared twice in one rule is read as CSS reads it, by its
+/// last declaration.
+pub const FORMAT: u32 = 3;
 
 /// Every selector the overrides use. A test checks each one exists in the
 /// stock stylesheet of every supported Shell version.
@@ -291,7 +293,7 @@ mod tests {
         let a = folder(&Resolved::new(&themes[0], None).unwrap());
         let b = folder(&Resolved::new(&themes[1], None).unwrap());
         assert_ne!(a, b);
-        assert!(a.starts_with("Velatura-") && a.ends_with("-2"));
+        assert!(a.starts_with("Velatura-") && a.ends_with(&format!("-{FORMAT}")));
         assert!(a.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-'));
     }
 }
