@@ -57,6 +57,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <ul>
 <li>Apps that ignore the workaround below show the nearest system accent, not the exact theme accent. Since Phase 4b the Shell shows the exact one (<a href="#shell">section 5</a>).</li>
 <li>Browsers and Electron apps read these two settings through the desktop portal, so they follow the dark style and system accent with no further work.</li>
+<li>A light theme sets <code>prefer-light</code>, not <code>default</code> (<a href="decisions.html#d70">D70</a>). In a normal session the Shell keeps its dark stylesheet unless light is asked for, and so do extensions that follow it, such as Blur my Shell's automatic style: with <code>default</code>, its menus kept white text over the theme's light background.</li>
 <li>The legacy file <code>gtk-3.0/settings.ini</code> may force a dark preference (it does on this machine) and would fight a light theme; the app reports it.</li>
 </ul>
 
