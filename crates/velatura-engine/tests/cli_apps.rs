@@ -18,6 +18,7 @@ static COUNTER: AtomicU32 = AtomicU32::new(0);
 
 const TMUX_CONF: &str = "set -g mouse on\nset -g status-style \"fg=red\"\n";
 const INIT_LUA: &str = "vim.o.number = true\n";
+const NVIM_LINE: &str = "vim.api.nvim_create_autocmd(\"VimEnter\", { once = true, nested = true, command = \"colorscheme velatura\" })";
 const STARSHIP_TOML: &str = "# The prompt.\nformat = \"[$directory](accent)$character\"\n\n[character]\nsuccess_symbol = \"[>](bold green)\"";
 
 struct Home {
@@ -196,7 +197,11 @@ fn all_three_apply_twice_and_undo_to_the_exact_start() {
         home.read(".config/nvim/lua/velatura/palette.lua")
             .contains("  accent = \"#e0914f\",")
     );
-    assert_eq!(home.read(".config/nvim/init.lua"), INIT_LUA);
+    // The settings choose no colourscheme, so one line chooses Velatura's.
+    assert_eq!(
+        home.read(".config/nvim/init.lua"),
+        format!("{INIT_LUA}-- >>> velatura nvim 1 >>>\n{NVIM_LINE}\n-- <<< velatura nvim 1 <<<\n")
+    );
     let starship = home.read(".config/starship.toml");
     assert!(starship.starts_with(
         "# >>> velatura starship 1 >>>\npalette = \"velatura\"\npalettes.velatura.bg = \"#191316\"\n"
@@ -224,7 +229,14 @@ fn all_three_apply_twice_and_undo_to_the_exact_start() {
                 conf: home.path(".config/tmux/tmux.conf"),
             },
         ),
-        (NVIM, Note::NeovimSelect),
+        (
+            NVIM,
+            Note::NeovimOtherScheme {
+                name: None,
+                path: home.path(".config/nvim/init.lua"),
+            },
+        ),
+        (NVIM, Note::NeovimReload),
         (STARSHIP, Note::StarshipNames),
     ] {
         assert!(
@@ -550,4 +562,102 @@ fn starship_settings_are_found_where_the_environment_says() {
         target(&p, STARSHIP).skipped,
         Some(Skip::OutsideHome(outside))
     );
+}
+
+#[test]
+fn neovim_settings_that_choose_another_colorscheme_get_a_line_asked_for() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    // Settings that choose Velatura's colourscheme themselves are left as
+    // they are; Neovim is agreed to with that first apply.
+    home.write(
+        ".config/nvim/lua/me/scheme.lua",
+        "-- a colorscheme is set here\nvim.cmd.colorscheme(\"velatura\")\n",
+    );
+    let start = home.snapshot();
+    let p = plan(&host, &t[1]);
+    assert!(
+        !target(&p, NVIM)
+            .notes
+            .iter()
+            .any(|n| matches!(n, Note::NeovimOtherScheme { .. }))
+    );
+    engine::execute(&host, &p, &opts().only).unwrap();
+    assert_eq!(home.read(".config/nvim/init.lua"), INIT_LUA);
+
+    // Now they choose another, as a plugin's settings do. The ColorScheme
+    // event, comments and a list of schemes to install are not choices.
+    home.write(
+        ".config/nvim/lua/me/scheme.lua",
+        "require(\"lazy\").setup({ install = { colorscheme = { \"habamax\" } } })\n\
+         vim.api.nvim_create_autocmd(\"ColorScheme\", { callback = f }) -- the colorscheme is set below\n\
+         vim.cmd(\"colorscheme kanagawa-wave\")\n",
+    );
+    let p = plan(&host, &t[0]);
+    let nvim = target(&p, NVIM);
+    assert!(
+        nvim.notes.contains(&Note::NeovimOtherScheme {
+            name: Some("kanagawa-wave".to_owned()),
+            path: home.path(".config/nvim/init.lua"),
+        }),
+        "{:?}",
+        nvim.notes
+    );
+    // Agreed to before, but a line in the user's file is asked for anew;
+    // with no one there to agree, Neovim is left alone and the rest goes on.
+    assert_eq!(p.needing_consent(), [NVIM]);
+    let colors = home.read(".config/nvim/colors/velatura.lua");
+    let alone = engine::execute(&host, &p, &[]).unwrap();
+    assert!(!alone.changes.is_empty());
+    assert_eq!(home.read(".config/nvim/init.lua"), INIT_LUA);
+    assert_eq!(home.read(".config/nvim/colors/velatura.lua"), colors);
+    let p = plan(&host, &t[0]);
+    assert_eq!(p.needing_consent(), [NVIM]);
+    engine::execute(&host, &p, &opts().only).unwrap();
+    assert!(
+        home.read(".config/nvim/init.lua")
+            .ends_with(&format!("{NVIM_LINE}\n-- <<< velatura nvim 1 <<<\n"))
+    );
+    // The line it added is not read as the user's own choice: the next
+    // theme changes the colours and asks nothing.
+    let p = plan(&host, &t[1]);
+    assert!(p.needing_consent().is_empty());
+    assert!(
+        target(&p, NVIM)
+            .changes
+            .iter()
+            .all(|c| !matches!(c, Change::Block { .. }))
+    );
+
+    undo(&host);
+    undo(&host);
+    undo(&host);
+    home.write(
+        ".config/nvim/lua/me/scheme.lua",
+        "-- a colorscheme is set here\nvim.cmd.colorscheme(\"velatura\")\n",
+    );
+    assert_eq!(home.snapshot(), start);
+}
+
+#[test]
+fn neovim_settings_in_vim_script_get_a_vim_line() {
+    let t = bundled::themes();
+    let home = Home::full();
+    fs::remove_file(home.path(".config/nvim/init.lua")).unwrap();
+    home.write(".config/nvim/init.vim", "colorscheme desert\n");
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let p = plan(&host, &t[0]);
+    assert!(target(&p, NVIM).notes.contains(&Note::NeovimOtherScheme {
+        name: Some("desert".to_owned()),
+        path: home.path(".config/nvim/init.vim"),
+    }));
+    engine::execute(&host, &p, &opts().only).unwrap();
+    assert_eq!(
+        home.read(".config/nvim/init.vim"),
+        "colorscheme desert\n\" >>> velatura nvim-vim 1 >>>\nautocmd VimEnter * ++once ++nested colorscheme velatura\n\" <<< velatura nvim-vim 1 <<<\n"
+    );
+    assert!(!home.path(".config/nvim/init.lua").exists());
 }

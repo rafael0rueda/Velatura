@@ -158,14 +158,16 @@ fn build(
     for f in &folders {
         let dir = base_dir.join(&f.name);
         let mut any = false;
-        let ext = match way {
-            Way::Drawn(_) => ".svg",
-            Way::Pictures(_) => ".png",
+        // A theme drawn in pictures can have drawn icons too, as for the
+        // top bar; they are moved by the same family.
+        let wanted = |n: &str| match way {
+            Way::Drawn(_) => n.ends_with(".svg"),
+            Way::Pictures(_) => n.ends_with(".png") || n.ends_with(".svg"),
         };
         for entry in host.fs.list(&dir).unwrap_or_default() {
             let Some(file) = entry
                 .to_str()
-                .filter(|n| n.ends_with(ext) && !n.starts_with('.'))
+                .filter(|n| wanted(n) && !n.starts_with('.') && !icons::symbolic(n))
             else {
                 continue;
             };
@@ -174,6 +176,7 @@ fn build(
             };
             let out = match &way {
                 Way::Drawn(r) => r.apply(&content),
+                Way::Pictures(r) if file.ends_with(".svg") => r.apply_svg(&content),
                 Way::Pictures(r) => png::decode(&content)
                     .and_then(|mut image| r.apply(&mut image).then(|| png::encode(&image))),
             };

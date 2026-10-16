@@ -125,9 +125,15 @@ pub enum Note {
     TmuxReload {
         conf: PathBuf,
     },
-    /// Neovim shows the colourscheme once it is selected, which is the
-    /// user's to do in their own settings.
-    NeovimSelect,
+    /// Neovim's settings choose another colourscheme (`name`, where it
+    /// could be read), and a line at the end of `path` is to choose
+    /// Velatura's instead.
+    NeovimOtherScheme {
+        name: Option<String>,
+        path: PathBuf,
+    },
+    /// An open Neovim takes the new colours the next time it is focused.
+    NeovimReload,
     /// The prompt shows the palette's colours only where its settings name
     /// them.
     StarshipNames,

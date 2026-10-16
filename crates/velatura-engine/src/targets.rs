@@ -670,9 +670,11 @@ pub fn plan_text_editor(
     }
 }
 
-/// Neovim: a colourscheme of Velatura's own in the settings folder, and
-/// the same colours as a table for a colourscheme the user keeps. Nothing
-/// of the user's is edited: choosing the colourscheme is theirs to do.
+/// Neovim: a colourscheme of Velatura's own in the settings folder, the
+/// same colours as a table for a colourscheme the user keeps, and, unless
+/// the user's settings already choose it, one line at the end of
+/// `init.lua` (or `init.vim`) that chooses it once Neovim has started.
+/// Everything else in the settings stays as it is, and runs as before.
 pub fn plan_nvim(
     host: &Host<'_>,
     env: Env<'_>,
@@ -687,6 +689,7 @@ pub fn plan_nvim(
     let colors = dir.join("colors");
     let lua = dir.join("lua");
     let module = lua.join(nvim::NAME);
+    let (init, block, body) = nvim_init(host, &dir);
     let mut plan = TargetPlan::new(NVIM);
     let mut fill = || {
         place(host, &[&dir, &colors], &mut plan)?;
@@ -706,21 +709,164 @@ pub fn plan_nvim(
             module.join("palette.lua"),
             nvim::render_palette(theme).as_bytes(),
             &mut plan,
-        )
+        )?;
+        let existing = read_opt(host, &init).ok().flatten();
+        let ours = existing
+            .as_deref()
+            .is_some_and(|b| matches!(block::find(b, block), block::Found::Present { .. }));
+        let chosen = nvim_chosen(host, &dir);
+        if ours || !chosen.velatura {
+            let (current, _) = connect(host, state, (NVIM, block), &init, body, &mut plan)?;
+            // Choosing the colourscheme in a file the user keeps is asked
+            // the first time, even where Neovim was agreed to before.
+            let adding = current.is_some() && !ours;
+            if adding {
+                plan.notes.push(Note::NeovimOtherScheme {
+                    name: chosen.other,
+                    path: init.clone(),
+                });
+            }
+            return Ok(adding && !state.blocks.contains_key(&path_str(&init)));
+        }
+        Ok(false)
     };
     match fill() {
-        Ok(()) => {
+        Ok(asks) => {
             if !plan.changes.is_empty() {
-                // No line is added to a file of the user's, but the folder
-                // is theirs: the first files go in only when agreed to, and
-                // so never in a run with no one present.
-                plan.needs_consent = exists(host, &dir) && first_time(state, NVIM, &dir);
-                plan.notes.push(Note::NeovimSelect);
+                // The folder is the user's: the first files go in only when
+                // agreed to, and so never in a run with no one present.
+                plan.needs_consent = asks || (exists(host, &dir) && first_time(state, NVIM, &dir));
+                plan.notes.push(Note::NeovimReload);
             }
             plan
         }
         Err(why) => TargetPlan::skip(NVIM, why),
     }
+}
+
+/// The settings file the line goes in, the block's name there, and the line.
+fn nvim_init(host: &Host<'_>, dir: &Path) -> (PathBuf, &'static str, &'static str) {
+    let vim = dir.join("init.vim");
+    if !exists(host, &dir.join("init.lua")) && exists(host, &vim) {
+        return (
+            vim,
+            block::NVIM_VIM,
+            "autocmd VimEnter * ++once ++nested colorscheme velatura",
+        );
+    }
+    (
+        dir.join("init.lua"),
+        block::NVIM_LUA,
+        "vim.api.nvim_create_autocmd(\"VimEnter\", { once = true, nested = true, command = \"colorscheme velatura\" })",
+    )
+}
+
+/// What Neovim's settings choose, as far as reading them tells.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct NvimChosen {
+    /// They choose Velatura's colourscheme themselves.
+    pub velatura: bool,
+    /// The first other colourscheme they choose, for saying so.
+    pub other: Option<String>,
+}
+
+/// Read the files of Neovim's settings for the colourscheme they choose:
+/// `init.lua` or `init.vim` and what `lua`, `plugin` and `after` hold.
+/// Velatura's own files and blocks are left out. Bounded, and reads only.
+pub fn nvim_chosen(host: &Host<'_>, dir: &Path) -> NvimChosen {
+    const MAX_FILES: usize = 2000;
+    const MAX_BYTES: usize = 512 * 1024;
+    const MAX_DEPTH: usize = 8;
+    let mut files = vec![dir.join("init.lua"), dir.join("init.vim")];
+    let mut stack: Vec<(PathBuf, usize)> = ["lua", "plugin", "after"]
+        .iter()
+        .map(|d| (dir.join(d), 0))
+        .collect();
+    let skip = dir.join("lua").join(nvim::NAME);
+    while let Some((folder, depth)) = stack.pop() {
+        if folder == skip || depth > MAX_DEPTH || files.len() > MAX_FILES {
+            continue;
+        }
+        let mut names = host.fs.list(&folder).unwrap_or_default();
+        names.sort();
+        for name in names {
+            let path = folder.join(&name);
+            match host.fs.kind(&path) {
+                Ok(Some(Kind::Dir)) => stack.push((path, depth + 1)),
+                // A linked file is read where it leads; a linked folder is
+                // not followed, so a loop cannot keep the walk going.
+                Ok(Some(Kind::File | Kind::Symlink)) => {
+                    let n = name.to_string_lossy();
+                    if n.ends_with(".lua") || n.ends_with(".vim") {
+                        files.push(path);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut out = NvimChosen::default();
+    for path in files.iter().take(MAX_FILES) {
+        let Some(bytes) = read_opt(host, path).ok().flatten() else {
+            continue;
+        };
+        if bytes.len() > MAX_BYTES {
+            continue;
+        }
+        let mut text = bytes;
+        for b in [block::NVIM_LUA, block::NVIM_VIM] {
+            if let block::Found::Present { start, end, .. } = block::find(&text, b) {
+                text.drain(start..end);
+            }
+        }
+        for (name, command) in colorschemes(&String::from_utf8_lossy(&text)) {
+            if name == nvim::NAME {
+                out.velatura = true;
+            } else if command && out.other.is_none() {
+                out.other = Some(name);
+            }
+        }
+    }
+    out
+}
+
+/// The colourschemes a Lua or Vim script names, each with whether it is
+/// named in a command (`colorscheme x`, `vim.cmd.colorscheme("x")`) rather
+/// than as a setting (`colorscheme = "x"`, as LazyVim takes it). Comments
+/// are passed over; `ColorScheme`, the event, is another word.
+fn colorschemes(text: &str) -> Vec<(String, bool)> {
+    let mut out = Vec::new();
+    for line in text.lines() {
+        let line = line.split_once("--").map_or(line, |(code, _)| code);
+        if line.trim_start().starts_with('"') {
+            continue;
+        }
+        let mut rest = line;
+        while let Some(at) = rest.find("colorscheme") {
+            let before = rest[..at].chars().next_back();
+            rest = &rest[at + "colorscheme".len()..];
+            if before.is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            let after = rest.trim_start_matches([' ', '\t']);
+            let setting = after.starts_with(['=', ':']);
+            let command = !setting
+                && (after.len() < rest.len() || after.starts_with('(') || after.starts_with('!'));
+            if !setting && !command {
+                continue;
+            }
+            let name: String = after
+                .trim_start_matches(['=', ':', '(', '!', '{', '[', ' ', '\t', '"', '\''])
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+                .take(64)
+                .collect();
+            if !name.is_empty() {
+                out.push((name, command));
+            }
+        }
+    }
+    out
 }
 
 /// Starship's settings file: `STARSHIP_CONFIG`, or `starship.toml` in the

@@ -1153,8 +1153,16 @@ msgstr "Para actualizar las ventanas abiertas de Ghostty, pulse Ctrl+Mayús+Coma
 msgid "tmux sessions that are running keep their colors until this is run in one of them: tmux source-file {1}"
 msgstr "Las sesiones de tmux en marcha conservan sus colores hasta que se ejecute esto en una de ellas: tmux source-file {1}"
 
-msgid "Neovim shows the theme once its settings select the colorscheme named velatura. To try it in an open Neovim: :colorscheme velatura"
-msgstr "Neovim muestra el tema cuando su configuración selecciona el esquema de colores llamado velatura. Para probarlo en un Neovim abierto: :colorscheme velatura"
+#, rust-format
+msgid "Neovim's settings choose the colorscheme {1}. The line Velatura adds at the end of {2}, once agreed to, chooses the theme's after Neovim starts. The rest of the settings stay as they are"
+msgstr "La configuración de Neovim elige el esquema de colores {1}. La línea que Velatura añade al final de {2}, una vez aceptada, elige el del tema cuando Neovim arranca. El resto de la configuración queda como está"
+
+#, rust-format
+msgid "Neovim's settings do not choose the theme's colorscheme. The line Velatura adds at the end of {1}, once agreed to, chooses it after Neovim starts. The rest of the settings stay as they are"
+msgstr "La configuración de Neovim no elige el esquema de colores del tema. La línea que Velatura añade al final de {1}, una vez aceptada, lo elige cuando Neovim arranca. El resto de la configuración queda como está"
+
+msgid "Open Neovim windows take the new colors the next time they are focused, or with :colorscheme velatura"
+msgstr "Las ventanas abiertas de Neovim toman los colores nuevos la próxima vez que reciben el foco, o con :colorscheme velatura"
 
 msgid "The prompt shows the theme's colors where Starship's settings name them, such as accent, surface or directory"
 msgstr "El indicador muestra los colores del tema donde la configuración de Starship los nombra, como accent, surface o directory"

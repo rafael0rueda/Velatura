@@ -128,3 +128,9 @@ warning = "@ronin_yellow"
 info    = "@dragon_blue"
 hint    = "@wave_aqua_1"
 ok      = "@spring_green"
+
+# The prompt's segments as the Kanagawa prompt had them: directory, git, language.
+[variants.default.slots.starship]
+directory = "@crystal_blue"
+git       = "@sakura_pink"
+language  = "@wave_aqua_2"

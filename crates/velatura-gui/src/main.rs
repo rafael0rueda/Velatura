@@ -1412,6 +1412,17 @@ async fn confirm(
     for tool in tools {
         body = format!("{body}\n\n{}.", velatura_text::other_tool(tool, home));
     }
+    // Neovim's settings choosing another colourscheme is a question of its
+    // own: say what the added line does, not only that a line is added.
+    for note in plan
+        .targets
+        .iter()
+        .filter(|t| t.skipped.is_none() && t.needs_consent)
+        .flat_map(|t| &t.notes)
+        .filter(|n| matches!(n, Note::NeovimOtherScheme { .. }))
+    {
+        body = format!("{body}\n\n{}.", velatura_text::note(note, home));
+    }
     if low {
         body = format!(
             "{}\n\n{body}",
