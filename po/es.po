@@ -493,6 +493,9 @@ msgstr "No instalado"
 msgid "Use"
 msgstr "Usar"
 
+msgid "Apply _Changes"
+msgstr "Aplicar _cambios"
+
 msgid "Applied"
 msgstr "Aplicado"
 
@@ -579,6 +582,9 @@ msgstr "No se revirtió del todo"
 msgid "Themed"
 msgstr "Con el tema"
 
+msgid "Taken away at the next apply"
+msgstr "Se quita en la próxima aplicación"
+
 msgid "Themed, and left out of the next apply"
 msgstr "Con el tema, y fuera de la próxima aplicación"
 
@@ -623,6 +629,10 @@ msgstr "Aplicaciones de línea de órdenes"
 
 msgid "Apps"
 msgstr "Aplicaciones"
+
+#, rust-format
+msgid "Apply _Changes to {theme}"
+msgstr "Aplicar _cambios a {theme}"
 
 msgid "Templates"
 msgstr "Plantillas"
