@@ -1135,14 +1135,19 @@ fn open_theme(ui: &U, id: &str, variant: &str) {
         facts.add(&row);
     }
 
+    // The theme in use can be applied again when a part was turned on or
+    // off since, which is the only way that change takes effect.
+    let pending = used && pending(&snap);
     let apply = gtk::Button::builder()
-        .label(if used {
+        .label(if pending {
+            tr("Apply _Changes")
+        } else if used {
             tr("Applied")
         } else {
             tr("_Apply Theme")
         })
         .use_underline(true)
-        .sensitive(!used)
+        .sensitive(!used || pending)
         .halign(gtk::Align::Center)
         .build();
     apply.add_css_class("pill");
@@ -1652,6 +1657,9 @@ fn part_row(
 ) -> adw::SwitchRow {
     let (subtitle, available) = match &row.state {
         RowState::Themed if row.included => (tr("Themed"), true),
+        RowState::Themed if row.instance == targets::OUTLINE => {
+            (tr("Taken away at the next apply"), true)
+        }
         RowState::Themed => (tr("Themed, and left out of the next apply"), true),
         RowState::Ready if row.included => (tr("Included in the next apply"), true),
         // Off until turned on, so the row says what turning on does.
@@ -1761,6 +1769,27 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             ],
         ),
     ];
+    // Turning a part on or off takes effect with the next apply: offer it
+    // here, where the switches are.
+    if let Some(label) = snap.applied.as_deref().filter(|_| pending(snap)) {
+        let group = adw::PreferencesGroup::new();
+        let row = adw::ButtonRow::builder()
+            .title(tr("Apply _Changes to {theme}").replace("{theme}", &theme_name(snap, label)))
+            .use_underline(true)
+            .build();
+        row.add_css_class("suggested-action");
+        let weak = Rc::downgrade(ui);
+        let spec = label
+            .split_once('/')
+            .map(|(id, v)| (id.to_owned(), v.to_owned()));
+        row.connect_activated(move |_| {
+            if let (Some(ui), Some((id, variant))) = (weak.upgrade(), spec.clone()) {
+                glib::spawn_future_local(async move { apply_theme(&ui, id, variant).await });
+            }
+        });
+        group.add(&row);
+        page.add(&group);
+    }
     for (title, members) in groups {
         let group = adw::PreferencesGroup::builder().title(title).build();
         for row in snap
@@ -1998,6 +2027,18 @@ async fn remove_all(ui: &U) {
 
 /// The display name for a stored `theme/variant`, or the label itself if
 /// that theme is no longer in the library.
+/// A part turned on and not applied yet, or the window outline turned off
+/// while it is still there: the next apply of the theme in use changes
+/// something.
+fn pending(snap: &Snapshot) -> bool {
+    snap.applied.is_some()
+        && snap.rows.iter().any(|r| match r.state {
+            RowState::Ready => r.included,
+            RowState::Themed => !r.included && r.instance == targets::OUTLINE,
+            _ => false,
+        })
+}
+
 fn theme_name(snap: &Snapshot, label: &str) -> String {
     let (id, variant) = label.split_once('/').unwrap_or((label, ""));
     snap.themes

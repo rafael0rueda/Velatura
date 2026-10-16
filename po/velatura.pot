@@ -495,6 +495,9 @@ msgstr ""
 msgid "Use"
 msgstr ""
 
+msgid "Apply _Changes"
+msgstr ""
+
 msgid "Applied"
 msgstr ""
 
@@ -581,6 +584,9 @@ msgstr ""
 msgid "Themed"
 msgstr ""
 
+msgid "Taken away at the next apply"
+msgstr ""
+
 msgid "Themed, and left out of the next apply"
 msgstr ""
 
@@ -624,6 +630,10 @@ msgid "Command-Line Apps"
 msgstr ""
 
 msgid "Apps"
+msgstr ""
+
+#, rust-format
+msgid "Apply _Changes to {theme}"
 msgstr ""
 
 msgid "Templates"
