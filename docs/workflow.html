@@ -55,8 +55,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h2 id="release">4. Releasing</h2>
 <ol>
 <li>A pull request sets the new version in <code>Cargo.toml</code> (with <code>Cargo.lock</code>), and the changelog says what the release holds. On such a pull request the release workflow builds and checks everything, and publishes nothing.</li>
-<li>Once it is merged, <code>main</code> is tagged <code>v&lt;version&gt;</code> and the tag is pushed. The workflow refuses a tag that is not the version in <code>Cargo.toml</code>.</li>
-<li>The workflow builds the release on Fedora 41, installs and runs it, builds the source offline, and publishes the release with its files and <code>SHA256SUMS</code>.</li>
+<li>Once it is merged, <code>main</code> is tagged <code>v&lt;version&gt;</code> and the tag is pushed. The workflow refuses a tag that is not the version in <code>Cargo.toml</code>, or that is not on <code>main</code>.</li>
+<li>The workflow runs the whole gate on Fedora 41, with the toolchain it then builds with, so what is published is what was checked; then it builds the release there, installs and runs it, builds the source offline, and publishes the release with its files and <code>SHA256SUMS</code>.</li>
 <li><code>scripts/release.sh</code> builds the same files locally, into <code>dist/</code>, for a look before tagging.</li>
 </ol>
 <p>Pushing a tag publishes: it is done by the owner, or with the owner's go-ahead (<a href="decisions.html#d65">D65</a>).</p>
