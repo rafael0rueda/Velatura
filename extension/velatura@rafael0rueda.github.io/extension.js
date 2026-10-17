@@ -9,24 +9,49 @@
 // once a stylesheet gives it a border: the app writes that one while its
 // Window Outline part is on. Maximized and full-screen windows get none.
 //
-// It starts no programs, holds no settings and patches nothing in the
-// Shell.
+// While the app's UPS part is on, it shows the watts a UPS draws in the
+// top bar, with a menu of its state. It reads them every few seconds from
+// Network UPS Tools on this computer, speaking NUT's own text protocol,
+// and shows nothing while no UPS answers. The look is in the app's file.
+//
+// It starts no programs, reaches nothing beyond this computer, holds no
+// settings and patches nothing in the Shell.
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-// The contract with the app: three files, and the outline's style class.
+// The contract with the app: four files, and two style classes.
 const STYLESHEET = ['velatura', 'shell', 'gnome-shell.css'];
 const TOP_BAR_SHEET = ['velatura', 'shell', 'top-bar.css'];
+const UPS_SHEET = ['velatura', 'shell', 'ups.css'];
 const OUTLINE_SHEET = ['velatura', 'shell', 'window-outline.css'];
 const OUTLINE_CLASS = 'velatura-window-outline';
+const UPS_CLASS = 'velatura-ups';
+
+// NUT's server on this computer, and how often it is asked.
+const NUT_HOST = 'localhost';
+const NUT_PORT = 3493;
+const POLL_SECONDS = 5;
+
+// GNOME 48 gave St.BoxLayout an orientation in place of `vertical`.
+const VERTICAL = GObject.Object.find_property.call(St.BoxLayout, 'orientation')
+    ? {orientation: Clutter.Orientation.VERTICAL} : {vertical: true};
+
+Gio._promisify(Gio.SocketClient.prototype, 'connect_to_host_async');
+Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
+// As the Shell itself does: the line comes as bytes.
+Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async');
 
 const OUTLINED = [
     Meta.WindowType.NORMAL,
@@ -34,11 +59,13 @@ const OUTLINED = [
     Meta.WindowType.MODAL_DIALOG,
 ];
 
-// One stylesheet the app writes, loaded while it is there.
+// One stylesheet the app writes, loaded while it is there. `changed` is
+// told after each load whether the file is loaded.
 class Sheet {
-    constructor(parts) {
+    constructor(parts, changed = null) {
         this._file = Gio.File.new_for_path(
             GLib.build_filenamev([GLib.get_user_data_dir(), ...parts]));
+        this._changed = changed;
         this._loaded = false;
         this._pending = 0;
         this._monitor = this._file.monitor_file(Gio.FileMonitorFlags.NONE, null);
@@ -67,6 +94,7 @@ class Sheet {
         this._monitor = null;
         this._unload();
         this._file = null;
+        this._changed = null;
     }
 
     _theme() {
@@ -82,16 +110,17 @@ class Sheet {
 
     _reload() {
         this._unload();
-        if (!this._file.query_exists(null))
-            return;
-        try {
-            this._theme().load_stylesheet(this._file);
-            this._loaded = true;
-        } catch (e) {
-            // One syntax error rejects the whole file; the Shell keeps its
-            // own look and carries on.
-            console.error(`Velatura: ${this._file.get_path()} was not loaded: ${e.message}`);
+        if (this._file.query_exists(null)) {
+            try {
+                this._theme().load_stylesheet(this._file);
+                this._loaded = true;
+            } catch (e) {
+                // One syntax error rejects the whole file; the Shell keeps
+                // its own look and carries on.
+                console.error(`Velatura: ${this._file.get_path()} was not loaded: ${e.message}`);
+            }
         }
+        this._changed?.(this._loaded);
     }
 }
 
@@ -202,13 +231,225 @@ class Outline {
     }
 }
 
+// A line of NUT's protocol as its words: spaces part them, double quotes
+// hold spaces, and a backslash keeps the character after it.
+function words(line) {
+    const out = [];
+    let word = null;
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '\\' && i + 1 < line.length) {
+            word = (word ?? '') + line[++i];
+        } else if (ch === '"') {
+            quoted = !quoted;
+            word ??= '';
+        } else if (ch === ' ' && !quoted) {
+            if (word !== null)
+                out.push(word);
+            word = null;
+        } else {
+            word = (word ?? '') + ch;
+        }
+    }
+    if (word !== null)
+        out.push(word);
+    return out;
+}
+
+// What NUT says of the first UPS it lists, as name to value, or null if
+// there is none. One connection per reading, closed at the end.
+async function readUps(cancellable) {
+    const client = new Gio.SocketClient({timeout: 3});
+    const connection = await client.connect_to_host_async(NUT_HOST, NUT_PORT, cancellable);
+    try {
+        const input = new Gio.DataInputStream({
+            base_stream: connection.get_input_stream(),
+            newline_type: Gio.DataStreamNewlineType.ANY,
+        });
+        const output = connection.get_output_stream();
+        // One question, and the lines of its answer up to its END line.
+        const ask = async question => {
+            await output.write_bytes_async(new GLib.Bytes(new TextEncoder().encode(`${question}\n`)),
+                GLib.PRIORITY_DEFAULT, cancellable);
+            const lines = [];
+            for (;;) {
+                const [bytes] = await input.read_line_async(GLib.PRIORITY_DEFAULT, cancellable);
+                if (bytes === null)
+                    throw new Error('NUT closed the connection');
+                const line = new TextDecoder().decode(bytes);
+                if (line.startsWith('ERR '))
+                    throw new Error(`NUT answered ${line}`);
+                if (line.startsWith('END '))
+                    return lines.map(words);
+                if (lines.length > 1000)
+                    throw new Error('NUT answered too much');
+                lines.push(line);
+            }
+        };
+        // A UPS name is letters, figures and a few marks; anything else
+        // is not asked about.
+        const name = (await ask('LIST UPS')).find(w => w[0] === 'UPS')?.[1];
+        if (!name || !/^[A-Za-z0-9_.-]+$/.test(name))
+            return null;
+        const vars = {};
+        for (const w of await ask(`LIST VAR ${name}`)) {
+            if (w[0] === 'VAR' && w.length >= 4)
+                vars[w[2]] = w[3];
+        }
+        return vars;
+    } finally {
+        connection.close(null);
+    }
+}
+
+function formatRuntime(seconds) {
+    const minutes = Math.round(seconds / 60);
+    return minutes < 60 ? `${minutes} min`
+        : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+// The UPS in the top bar: its icon and the watts it draws, and a menu
+// with its model, state, load, battery, runtime and input. Hidden until
+// NUT answers with a reading of power.
+const UpsIndicator = GObject.registerClass(
+class UpsIndicator extends PanelMenu.Button {
+    _init() {
+        super._init(0.5, 'UPS');
+        this.add_style_class_name(UPS_CLASS);
+        const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
+        box.add_child(new St.Icon({
+            icon_name: 'uninterruptible-power-supply-symbolic',
+            style_class: 'system-status-icon',
+        }));
+        this._watts = new St.Label({
+            style_class: `${UPS_CLASS}-watts`,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(this._watts);
+        this.add_child(box);
+
+        this.menu.box.add_style_class_name(`${UPS_CLASS}-menu`);
+        const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
+        const card = new St.BoxLayout({
+            style_class: `${UPS_CLASS}-card`,
+            ...VERTICAL,
+            x_expand: true,
+        });
+        item.add_child(card);
+        this.menu.addMenuItem(item);
+        this._model = new St.Label({style_class: `${UPS_CLASS}-title`});
+        card.add_child(this._model);
+        const rows = new St.BoxLayout({style_class: `${UPS_CLASS}-rows`, ...VERTICAL});
+        card.add_child(rows);
+        const row = key => {
+            const line = new St.BoxLayout({style_class: `${UPS_CLASS}-row`});
+            line.add_child(new St.Label({text: key, style_class: `${UPS_CLASS}-key`, x_expand: true}));
+            const value = new St.Label({style_class: `${UPS_CLASS}-value`});
+            line.add_child(value);
+            rows.add_child(line);
+            return value;
+        };
+        this._status = row('Status');
+        this._load = row('Load');
+        this._battery = row('Battery');
+        this._runtime = row('Runtime');
+        this._input = row('Input');
+
+        this._cancel = new Gio.Cancellable();
+        this._busy = false;
+        this._poll();
+        this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, POLL_SECONDS, () => {
+            this._poll();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    async _poll() {
+        if (this._busy)
+            return;
+        this._busy = true;
+        let vars = null;
+        try {
+            vars = await readUps(this._cancel);
+        } catch (e) {
+            if (e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                return;
+        } finally {
+            this._busy = false;
+        }
+        // Taken away while NUT was being read.
+        if (!this._cancel.is_cancelled())
+            this._show(vars);
+    }
+
+    _show(v) {
+        const watts = Number(v?.['ups.realpower'] ?? v?.['ups.power']);
+        this.container.visible = Number.isFinite(watts);
+        if (!this.container.visible) {
+            this.menu.close();
+            return;
+        }
+        const flags = (v['ups.status'] ?? '').split(' ');
+        const low = flags.includes('LB');
+        const battery = flags.includes('OB');
+        this.remove_style_class_name('on-battery');
+        this.remove_style_class_name('low-battery');
+        if (low)
+            this.add_style_class_name('low-battery');
+        else if (battery)
+            this.add_style_class_name('on-battery');
+        const status = low ? 'Battery low' : battery ? 'On battery' : 'On AC power';
+        const shown = `${Math.round(watts)} W`;
+        this._watts.text = shown;
+        this.accessible_name = `UPS: ${status}, ${shown}`;
+
+        this._model.text = v['device.model'] ?? v['ups.model'] ?? 'UPS';
+        this._status.text = status;
+        const max = v['ups.realpower.nominal'];
+        this._load.text = shown + (max ? ` of ${max} W` : '') +
+            (v['ups.load'] ? `  ·  ${v['ups.load']}%` : '');
+        this._battery.text = v['battery.charge'] ? `${v['battery.charge']}%` : '—';
+        this._runtime.text = v['battery.runtime'] ? formatRuntime(Number(v['battery.runtime'])) : '—';
+        this._input.text = v['input.voltage'] ? `${v['input.voltage']} V` : '—';
+    }
+
+    destroy() {
+        GLib.source_remove(this._timer);
+        this._timer = 0;
+        this._cancel.cancel();
+        super.destroy();
+    }
+});
+
 export default class Velatura extends Extension {
     enable() {
-        this._sheets = [STYLESHEET, TOP_BAR_SHEET, OUTLINE_SHEET].map(parts => new Sheet(parts));
+        this._ups = null;
+        this._sheets = [
+            new Sheet(STYLESHEET),
+            new Sheet(TOP_BAR_SHEET),
+            new Sheet(UPS_SHEET, loaded => this._showUps(loaded)),
+            new Sheet(OUTLINE_SHEET),
+        ];
         this._outline = new Outline();
     }
 
+    // The UPS indicator lives while its stylesheet is there: in the left
+    // of the bar, after the workspaces. Hidden until NUT answers.
+    _showUps(loaded) {
+        if (loaded && !this._ups) {
+            this._ups = new UpsIndicator();
+            Main.panel.addToStatusArea(UPS_CLASS, this._ups, 1, 'left');
+            this._ups.container.hide();
+        } else if (!loaded && this._ups) {
+            this._ups.destroy();
+            this._ups = null;
+        }
+    }
+
     disable() {
+        this._ups?.destroy();
+        this._ups = null;
         this._outline.destroy();
         this._outline = null;
         for (const sheet of this._sheets)

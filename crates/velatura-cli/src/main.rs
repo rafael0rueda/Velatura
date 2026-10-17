@@ -605,6 +605,12 @@ impl Cx<'_> {
                 p(velatura_engine::companion::top_bar_stylesheet(h)),
             ),
             (
+                "gnome:ups",
+                "UPS Indicator (off until turned on)",
+                "official",
+                p(velatura_engine::companion::ups_stylesheet(h)),
+            ),
+            (
                 "gnome:outline",
                 "Window Outline (off until turned on)",
                 "official",

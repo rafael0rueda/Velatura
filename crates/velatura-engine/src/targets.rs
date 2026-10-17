@@ -32,6 +32,7 @@ pub const SHELL: &str = "gnome:shell";
 pub const APPEARANCE: &str = "gnome:appearance";
 pub const OUTLINE: &str = "gnome:outline";
 pub const TOP_BAR: &str = "gnome:top-bar";
+pub const UPS: &str = "gnome:ups";
 pub const FLATPAK: &str = "flatpak:global";
 pub const TMUX: &str = "tmux:default";
 pub const NVIM: &str = "nvim:default";
@@ -43,7 +44,7 @@ pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 17] = [
+pub const INSTANCES: [&str; 18] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -57,6 +58,7 @@ pub const INSTANCES: [&str; 17] = [
     FLATPAK,
     SHELL,
     TOP_BAR,
+    UPS,
     OUTLINE,
     APPEARANCE,
     ICONS,
@@ -65,12 +67,12 @@ pub const INSTANCES: [&str; 17] = [
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours, or use a way in that is not supported.
-pub const OPT_IN: [&str; 6] = [FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, OUTLINE];
+pub const OPT_IN: [&str; 7] = [FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, UPS, OUTLINE];
 
 /// Parts whose output is taken away at the next apply by hand once they
 /// are turned off: left in place, it would stay on screen with no way to
 /// take it away but undo.
-pub const TAKEN_AWAY_WHEN_OFF: [&str; 2] = [TOP_BAR, OUTLINE];
+pub const TAKEN_AWAY_WHEN_OFF: [&str; 3] = [TOP_BAR, UPS, OUTLINE];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1539,6 +1541,13 @@ pub fn plan_top_bar(
     plan_extension_sheet(TOP_BAR, host, env, state, css, shell::top_bar(theme, &bar))
 }
 
+/// The UPS indicator in the top bar: Velatura's extension shows it while
+/// its stylesheet is there, and reads the UPS from Network UPS Tools.
+pub fn plan_ups(host: &Host<'_>, env: Env<'_>, theme: &Resolved<'_>, state: &State) -> TargetPlan {
+    let css = crate::companion::ups_stylesheet(host);
+    plan_extension_sheet(UPS, host, env, state, css, shell::ups(theme))
+}
+
 /// A stylesheet of a part only Velatura's extension can show, written in
 /// place at `css`.
 fn plan_extension_sheet(
@@ -1587,6 +1596,7 @@ fn plan_extension_sheet(
 pub fn plan_sheet_off(instance: &str, host: &Host<'_>, state: &State) -> TargetPlan {
     let css = match instance {
         TOP_BAR => crate::companion::top_bar_stylesheet(host),
+        UPS => crate::companion::ups_stylesheet(host),
         _ => crate::companion::outline_stylesheet(host),
     };
     let mut plan = TargetPlan::new(instance);
@@ -1764,6 +1774,7 @@ pub fn plan(
         FLATPAK => plan_flatpak(host, env, state),
         OUTLINE => plan_outline(host, env, theme, state),
         TOP_BAR => plan_top_bar(host, env, theme, state),
+        UPS => plan_ups(host, env, theme, state),
         SHELL => plan_shell(
             host,
             env,

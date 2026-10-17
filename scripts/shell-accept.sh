@@ -5,7 +5,9 @@
 # settings toggle, are compared with the theme's. A second
 # theme is then applied while the Shell runs, to check that it reloads.
 # Last, through Velatura's own extension, the Top Bar Style part draws
-# the bar as pills and then as a full bar, and is taken away.
+# the bar as pills and then as a full bar, and is taken away; and the UPS
+# indicator follows a stand-in for NUT's server on its usual port, which
+# is skipped if something already listens there.
 #
 # Nothing of the real session is touched: private session bus, private
 # settings database, private folders. The installed User Themes extension is
@@ -31,10 +33,19 @@ ln -s "$PWD/scripts/shell-accept/velatura-rival@test" "$ext/"
 
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8 \
     GSETTINGS_BACKEND=dconf VEL_OUT="$root/out" BIN="$PWD/target/debug/velatura" UT="$ut" \
+    FAKE_UPSD="$PWD/scripts/shell-accept/fake-upsd.py" \
     dbus-run-session -- bash -c '
     exec 2>/dev/null
     panel() { cat "$VEL_OUT/panel.txt" 2>/dev/null || true; }
     top_bar() { cat "$VEL_OUT/top-bar.txt" 2>/dev/null || true; }
+    ups() { cat "$VEL_OUT/ups.txt" 2>/dev/null || true; }
+    wait_ups() { # shown, watts, state, colour of the watts, label
+        for _ in $(seq 60); do
+            [ "$(ups)" = "$1" ] && { echo "ok: $2: UPS is $1"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2: expected $1, UPS is $(ups)"; return 1
+    }
     wait_bar() { # panel, button and clock fills, label
         for _ in $(seq 60); do
             [ "$(top_bar)" = "$1" ] && { echo "ok: $2: top bar is $1"; return 0; }
@@ -106,4 +117,27 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     wait_bar "#0d101aff #00000000 none" "the bar as the Shell part leaves it, once taken away" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
     grep -i -E "velatura.*(error|warn|critical)" "$VEL_OUT/shell4.log" && status=1
+
+    # The UPS, in Aetherius (text #d3d9ee, warning #eba868, error #e5625e).
+    if python3 -I -c "import socket; socket.create_server((\"127.0.0.1\", 3493)).close()"; then
+        echo "OL CHRG" > "$VEL_OUT/ups-status"
+        python3 -I "$FAKE_UPSD" 3493 "$VEL_OUT/ups-status" &
+        upsd=$!
+        "$BIN" apply aetherius --only gnome:ups --yes >/dev/null || status=1
+        VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell5.log" 2>&1 &
+        shell=$!
+        wait_ups "shown 245W normal #d3d9ee" "the watts NUT reports, on AC power" || status=1
+        echo "OB DISCHRG" > "$VEL_OUT/ups-status"
+        wait_ups "shown 245W on-battery #eba868" "on battery, in the warning colour" || status=1
+        echo "OB LB" > "$VEL_OUT/ups-status"
+        wait_ups "shown 245W low-battery #e5625e" "battery low, in the error colour" || status=1
+        kill $upsd 2>/dev/null; wait $upsd 2>/dev/null
+        wait_ups "hidden 245W low-battery #e5625e" "hidden once NUT stops answering" || status=1
+        "$BIN" apply aetherius --yes >/dev/null || status=1
+        wait_ups "none" "gone once the part is taken away" || status=1
+        kill $shell 2>/dev/null; wait $shell 2>/dev/null
+        grep -i -E "velatura.*(error|warn|critical)|JS ERROR" "$VEL_OUT/shell5.log" && status=1
+    else
+        echo "NOT RUN: the UPS round, as something listens on port 3493"
+    fi
     exit $status' 2>/dev/null

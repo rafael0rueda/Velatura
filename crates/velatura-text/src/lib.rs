@@ -168,6 +168,7 @@ pub fn instance(id: &str) -> String {
         "gnome:shell" => t("Top Bar and Overview"),
         "gnome:appearance" => t("Style and Accent Color"),
         "gnome:top-bar" => t("Top Bar Style"),
+        "gnome:ups" => t("UPS Indicator"),
         "gnome:outline" => t("Window Outline"),
         "flatpak:global" => t("Flatpak Apps"),
         "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),

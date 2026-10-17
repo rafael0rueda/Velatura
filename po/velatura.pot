@@ -675,6 +675,9 @@ msgstr ""
 msgid "Draws the top bar as one full bar or as a pill per button, in the theme's colors and as opaque as chosen"
 msgstr ""
 
+msgid "Shows in the top bar the watts a UPS draws, with its battery and runtime in a menu. It reads Network UPS Tools on this computer, and stays hidden while no UPS answers"
+msgstr ""
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr ""
 
@@ -1010,6 +1013,9 @@ msgid "Style and Accent Color"
 msgstr ""
 
 msgid "Top Bar Style"
+msgstr ""
+
+msgid "UPS Indicator"
 msgstr ""
 
 msgid "Window Outline"
