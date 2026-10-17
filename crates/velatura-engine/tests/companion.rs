@@ -15,7 +15,7 @@ use velatura_engine::library;
 use velatura_engine::plan::{Change, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, SERVICE, TIMER, Times, WATCH};
 use velatura_engine::store::DayNight;
-use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TOP_BAR, USER_THEMES};
+use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TOP_BAR, UPS, USER_THEMES};
 use velatura_theme::editor::Draft;
 use velatura_theme::shell::{BarStyle, TopBar};
 use velatura_theme::{Appearance, Color, Resolved, bundled};
@@ -196,13 +196,20 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
                 .contains(&version.into())
         );
     }
-    // The contract: three files read from the user's data folder, and the
-    // outline's style class.
+    // The contract: four files read from the user's data folder, and the
+    // outline's and the UPS indicator's style classes.
     assert!(js.contains("['velatura', 'shell', 'gnome-shell.css']"));
     assert!(js.contains("['velatura', 'shell', 'top-bar.css']"));
+    assert!(js.contains("['velatura', 'shell', 'ups.css']"));
+    assert!(js.contains(&format!("'{}'", velatura_theme::shell::UPS_CLASS)));
+    // The one thing it connects to: NUT's server, on this computer.
+    assert!(js.contains("const NUT_HOST = 'localhost';"));
+    assert_eq!(js.matches("connect_to_host_async(").count(), 1);
+    assert!(js.contains("connect_to_host_async(NUT_HOST, NUT_PORT"));
     assert!(js.contains("['velatura', 'shell', 'window-outline.css']"));
     assert!(js.contains(&format!("'{}'", velatura_theme::shell::OUTLINE_CLASS)));
-    // What it must not do: start programs, reach the network, hold settings.
+    // What it must not do: start programs, reach beyond this computer,
+    // hold settings.
     for forbidden in [
         "Subprocess",
         "spawn",
@@ -217,6 +224,7 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
     assert!(js.contains("source_remove") && js.contains("this._monitor.cancel()"));
     assert!(js.contains("this._monitor.disconnect(this._changedId)"));
     assert!(js.contains("object.disconnect(id)") && js.contains("this._widget.destroy()"));
+    assert!(js.contains("this._cancel.cancel()") && js.contains("this._ups?.destroy()"));
 }
 
 #[test]
@@ -716,10 +724,11 @@ fn an_older_extension_cannot_show_the_top_bar() {
     let js = home.path(&format!(
         ".local/share/gnome-shell/extensions/{UUID}/extension.js"
     ));
-    // As the third version wrote it: no top bar's stylesheet.
+    // Any other copy, as an earlier version is: here, one line less.
     let older = fs::read_to_string(&js)
         .unwrap()
-        .replace("TOP_BAR_SHEET, ", "");
+        .replace("        new Sheet(TOP_BAR_SHEET),\n", "");
+    assert_ne!(older, fs::read_to_string(&js).unwrap());
     fs::write(&js, older).unwrap();
     let only = ApplyOpts {
         only: vec![TOP_BAR.to_owned()],
@@ -728,4 +737,37 @@ fn an_older_extension_cannot_show_the_top_bar() {
     let plan = top_bar_plan(&host, &only);
     let part = plan.targets.iter().find(|t| t.instance == TOP_BAR).unwrap();
     assert_eq!(part.skipped, Some(Skip::VelaturaExtensionOutdated));
+}
+
+#[test]
+fn the_ups_indicator_has_its_stylesheet_while_on() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    let css = companion::ups_stylesheet(&host);
+    assert_eq!(css, home.path(".local/share/velatura/shell/ups.css"));
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let part = |plan: &velatura_engine::plan::Plan| {
+        plan.targets
+            .iter()
+            .find(|t| t.instance == UPS)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(
+        part(&top_bar_plan(&host, &ApplyOpts::default())).skipped,
+        Some(Skip::NotSelected)
+    );
+    engine::set_included(&host, UPS, true).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    let written = fs::read_to_string(&css).unwrap();
+    assert!(written.contains(".velatura-ups.on-battery"));
+
+    // Turned off, the file goes, and with it the indicator.
+    engine::set_included(&host, UPS, false).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    assert!(!css.exists());
 }

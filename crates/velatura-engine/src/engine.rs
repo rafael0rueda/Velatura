@@ -106,8 +106,8 @@ pub fn plan_apply(
             && !matches(instance, &opts.except)
             && !opts.unattended
         {
-            // Turned off: the outline or the top bar's style goes at the
-            // next apply by hand, or a switch would leave it on screen
+            // Turned off: the outline, the top bar's style or the UPS goes
+            // at the next apply by hand, or a switch would leave it on screen
             // with no way to take it away.
             targets::plan_sheet_off(instance, host, &state)
         } else {

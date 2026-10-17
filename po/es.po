@@ -673,6 +673,9 @@ msgstr "Da al cursor en uso los colores del tema: su cuerpo y su contorno, y su 
 msgid "Draws the top bar as one full bar or as a pill per button, in the theme's colors and as opaque as chosen"
 msgstr "Dibuja la barra superior como una barra completa o como una píldora por botón, con los colores del tema y tan opaca como se elija"
 
+msgid "Shows in the top bar the watts a UPS draws, with its battery and runtime in a menu. It reads Network UPS Tools on this computer, and stays hidden while no UPS answers"
+msgstr "Muestra en la barra superior los vatios que consume un SAI, con su batería y autonomía en un menú. Lee Network UPS Tools en este equipo, y se oculta mientras ningún SAI responde"
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr "Dibuja una línea fina del color de acento del tema alrededor de la ventana en uso, salvo cuando está maximizada o a pantalla completa"
 
@@ -1009,6 +1012,9 @@ msgstr "Estilo y color de acento"
 
 msgid "Top Bar Style"
 msgstr "Estilo de la barra superior"
+
+msgid "UPS Indicator"
+msgstr "Indicador del SAI"
 
 msgid "Window Outline"
 msgstr "Contorno de la ventana"
@@ -1533,5 +1539,3 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
-
-

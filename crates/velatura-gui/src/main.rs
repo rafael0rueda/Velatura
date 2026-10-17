@@ -2420,6 +2420,7 @@ fn part_icon(instance: &str) -> &'static str {
         targets::ICONS => "folder-symbolic",
         targets::CURSORS => "input-mouse-symbolic",
         targets::TOP_BAR => "focus-top-bar-symbolic",
+        targets::UPS => "uninterruptible-power-supply-symbolic",
         targets::OUTLINE => "focus-windows-symbolic",
         targets::KITTY | targets::GHOSTTY | targets::PTYXIS => "utilities-terminal-symbolic",
         targets::TMUX => "view-grid-symbolic",
@@ -2491,6 +2492,9 @@ fn part_row(
         )),
         RowState::Ready if row.instance == targets::TOP_BAR => Some(tr(
             "Draws the top bar as one full bar or as a pill per button, in the theme's colors and as opaque as chosen",
+        )),
+        RowState::Ready if row.instance == targets::UPS => Some(tr(
+            "Shows in the top bar the watts a UPS draws, with its battery and runtime in a menu. It reads Network UPS Tools on this computer, and stays hidden while no UPS answers",
         )),
         RowState::Ready if row.instance == targets::OUTLINE => Some(tr(
             "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
@@ -2734,6 +2738,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             vec![
                 targets::SHELL,
                 targets::TOP_BAR,
+                targets::UPS,
                 targets::OUTLINE,
                 targets::APPEARANCE,
                 targets::ICONS,

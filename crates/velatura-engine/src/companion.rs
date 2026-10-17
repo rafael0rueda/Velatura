@@ -36,7 +36,7 @@ pub const FILES: [(&str, &str); 2] = [
 ];
 
 /// The file the extension loads for the Shell's colours: with the next
-/// two, the whole contract between the two.
+/// three, the whole contract between the two.
 pub fn stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("gnome-shell.css")
 }
@@ -51,6 +51,12 @@ pub fn outline_stylesheet(host: &Host<'_>) -> PathBuf {
 /// opaque. Without it the bar is as the Shell part leaves it.
 pub fn top_bar_stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("top-bar.css")
+}
+
+/// The UPS indicator's look. The extension shows the indicator only
+/// while this file is there.
+pub fn ups_stylesheet(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("shell").join("ups.css")
 }
 
 fn user_dir(host: &Host<'_>) -> PathBuf {

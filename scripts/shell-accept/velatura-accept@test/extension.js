@@ -3,7 +3,8 @@
 // compute, so the script can tell whether the generated theme was loaded
 // and applied, and whether the toggle has the theme's accent itself.
 // For the top bar's style, also the panel's background with its alpha,
-// and the fill of the quick settings button and of the clock's label.
+// and the fill of the quick settings button and of the clock's label;
+// and how the UPS indicator stands.
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
@@ -37,6 +38,15 @@ export default class Probe extends Extension {
                 // transparent; asked to, the probe leaves it.
                 if (GLib.getenv('VEL_NO_OVERVIEW') && Main.overview.visible)
                     Main.overview.hide();
+                // The UPS indicator: shown or not, its watts, its state,
+                // and the colour of its watts.
+                const ups = Main.panel.statusArea['velatura-ups'];
+                const watts = ups?.first_child?.get_children().find(a => a instanceof St.Label);
+                const state = ['on-battery', 'low-battery'].find(c => ups?.has_style_class_name(c)) ?? 'normal';
+                GLib.file_set_contents(`${out}/ups.txt`, ups
+                    ? `${ups.container.visible ? 'shown' : 'hidden'} ${watts?.text.replace(' ', '') || '-'} ${state} ` +
+                      `${watts ? hex(watts.get_theme_node().get_foreground_color()) : '-'}\n`
+                    : 'none\n');
                 const clock = Main.panel.statusArea.dateMenu?._clockDisplay;
                 GLib.file_set_contents(`${out}/top-bar.txt`,
                     `${hexa(node.get_background_color())} ` +

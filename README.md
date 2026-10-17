@@ -40,6 +40,7 @@ GNOME or Firefox update.
 | Style and accent color | GNOME's own settings | Official |
 | Top bar and overview | The User Themes extension, or Velatura's own Shell extension | Unofficial |
 | Top bar style | The bar as one full bar or as a pill per button, as opaque as chosen, through Velatura's extension | Unofficial |
+| UPS indicator | The watts a UPS draws, in the top bar, read from Network UPS Tools by Velatura's extension | Unofficial |
 | Window outline | A line in the accent around the window in use, drawn by Velatura's extension | Unofficial |
 | Apps (GTK 4 and libadwaita) | Color overrides in `~/.config/gtk-4.0/gtk.css` | Unofficial |
 | Older apps (GTK 3) | The same, through the adw-gtk3 theme | Unofficial |
