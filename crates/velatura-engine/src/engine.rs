@@ -29,6 +29,17 @@ pub enum Error {
     Store(StoreError),
     Io(String),
     NothingToUndo,
+    /// A backup newer than the one an undo would reverse cannot be read,
+    /// damaged or written by a newer version. It may hold the change to
+    /// undo first, so nothing older is undone past it.
+    UnreadableBackup(PathBuf),
+    /// The backup an undo would reverse names `names`, which is outside
+    /// this home folder: a run with another home wrote it into these
+    /// backups. Undoing it would put back that run's state record here.
+    ForeignBackup {
+        backup: PathBuf,
+        names: PathBuf,
+    },
     /// An earlier interrupted run could not be fully rolled back. Nothing
     /// new is changed until it is.
     Recovery(Rollback),
@@ -223,6 +234,33 @@ fn unblock(
     Ok(())
 }
 
+/// Put the block's earlier `body` back into the file as it is now.
+fn reblock(
+    (file, target): (&Path, &str),
+    current: Option<&[u8]>,
+    body: &str,
+    (added_eol, created_file): (bool, bool),
+    out: &mut TargetPlan,
+) {
+    let before = current.unwrap_or_default();
+    match block::upsert(before, target, body) {
+        None => out.notes.push(Note::KeptFile {
+            path: file.to_owned(),
+        }),
+        Some(up) if up.content == before => {}
+        Some(up) => out.changes.push(Change::Block {
+            path: file.to_owned(),
+            target: target.to_owned(),
+            pre: hash_opt(current),
+            content: Some(up.content),
+            body_before: up.before,
+            body_after: Some(body.to_owned()),
+            added_eol,
+            created_file,
+        }),
+    }
+}
+
 fn current_setting(host: &Host<'_>, schema: &str, key: &str) -> Option<Option<String>> {
     host.settings
         .read(schema, key)
@@ -246,12 +284,50 @@ fn kept_setting(host: &Host<'_>, schema: &str, key: &str, wanted: &Option<String
     }
 }
 
+/// The backup an undo reverses: the newest one not undone yet. A backup
+/// file newer than it that cannot be read stops the search, since passing
+/// over it would undo an older change than the last one.
+fn last_backup(host: &Host<'_>) -> Result<Manifest, Error> {
+    let (all, bad) = io(store::manifests(host))?;
+    let last = all.into_iter().rev().find(|m| !m.undone);
+    // Backup files are named by their id in six digits, so names sort as ids.
+    let floor = last.as_ref().map(|m| Manifest::path(host, m.id));
+    if let Some(newer) = bad.into_iter().filter(|p| Some(p) > floor.as_ref()).max() {
+        return Err(Error::UnreadableBackup(newer));
+    }
+    last.ok_or(Error::NothingToUndo)
+}
+
+/// True if `path` is in this home folder: below it as written, or once
+/// the links of the nearest part of it still there are followed.
+fn in_this_home(host: &Host<'_>, path: &Path) -> bool {
+    path.starts_with(&host.dirs.home)
+        || path
+            .ancestors()
+            .find(|p| host.fs.kind(p).ok().flatten().is_some())
+            .is_some_and(|p| targets::inside_home(host, p))
+}
+
+/// The first path a backup names outside this home folder, if any.
+fn outside_home<'m>(host: &Host<'_>, manifest: &'m Manifest) -> Option<&'m Path> {
+    manifest.records.iter().find_map(|r| match r {
+        Record::CreateDir { path }
+        | Record::RemoveDir { path }
+        | Record::Owned { path, .. }
+        | Record::Block { path, .. } => Some(Path::new(path)).filter(|p| !in_this_home(host, p)),
+        Record::Setting { .. } => None,
+    })
+}
+
 /// What undoing the most recent change would do. Reads only.
 pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
-    let (all, _) = io(store::manifests(host))?;
-    let Some(last) = all.iter().rev().find(|m| !m.undone) else {
-        return Err(Error::NothingToUndo);
-    };
+    let last = last_backup(host)?;
+    if let Some(names) = outside_home(host, &last) {
+        return Err(Error::ForeignBackup {
+            backup: Manifest::path(host, last.id),
+            names: names.to_owned(),
+        });
+    }
     let mut out = TargetPlan::new("");
     for record in last.records.iter().rev() {
         match record {
@@ -294,7 +370,7 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
                 created_file,
                 ..
             } => match body_before {
-                None => unblock(
+                None if target == targets::FLATPAK_SPAN => unblock(
                     host,
                     path,
                     target,
@@ -308,23 +384,44 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
                         path: PathBuf::from(path),
                     });
                 }
-                Some(body) => {
+                _ => {
                     let file = PathBuf::from(path);
                     let current = io(read_opt(host, &file))?;
-                    let before = current.clone().unwrap_or_default();
-                    match block::upsert(&before, target, body) {
+                    // `None` for markers that are out of order.
+                    let now = match current.as_deref().map(|c| block::find(c, target)) {
+                        None | Some(block::Found::Absent) => Some(None),
+                        Some(block::Found::Present { body, .. }) => Some(Some(body)),
+                        Some(block::Found::Malformed) => None,
+                    };
+                    let same = |a: &Option<String>, b: &Option<String>| match (a, b) {
+                        (Some(a), Some(b)) => a.lines().eq(b.lines()),
+                        (a, b) => a.is_none() && b.is_none(),
+                    };
+                    match now {
+                        Some(now) if same(&now, body_before) => {}
+                        // A block taken out, changed or put back by hand
+                        // since this change stays as it is.
+                        Some(now) if !same(&now, body_after) => {
+                            out.notes.push(Note::KeptFile { path: file });
+                        }
                         None => out.notes.push(Note::KeptFile { path: file }),
-                        Some(up) if up.content == before => {}
-                        Some(up) => out.changes.push(Change::Block {
-                            path: file,
-                            target: target.clone(),
-                            pre: hash_opt(current.as_deref()),
-                            content: Some(up.content),
-                            body_before: up.before,
-                            body_after: Some(body.clone()),
-                            added_eol: *added_eol,
-                            created_file: *created_file,
-                        }),
+                        Some(_) => match body_before {
+                            None => unblock(
+                                host,
+                                path,
+                                target,
+                                (*added_eol, *created_file),
+                                body_after.as_deref(),
+                                &mut out,
+                            )?,
+                            Some(body) => reblock(
+                                (&file, target),
+                                current.as_deref(),
+                                body,
+                                (*added_eol, *created_file),
+                                &mut out,
+                            ),
+                        },
                     }
                 }
             },
@@ -349,7 +446,7 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
         cause: Cause::Undo,
         theme: last.theme.clone().map(|t| (t, String::new())),
         undo_of: Some(last.id),
-        scheduled: store::is_scheduled(last),
+        scheduled: store::is_scheduled(&last),
         targets: vec![out],
     })
 }
@@ -530,12 +627,13 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
             // A scheduled switch on top of a scheduled switch becomes one
             // backup with it, so the schedule never takes more than one
             // place between two changes of the user's.
+            // A backup that cannot be read or is another home's is not
+            // added to: the switch gets one of its own.
             let earlier = if plan.cause == Cause::Scheduled {
-                let (all, _) = io(store::manifests(host))?;
-                all.into_iter()
-                    .rev()
-                    .find(|m| !m.undone)
+                last_backup(host)
+                    .ok()
                     .filter(store::is_scheduled)
+                    .filter(|m| outside_home(host, m).is_none())
             } else {
                 None
             };
@@ -587,10 +685,18 @@ pub fn execute(host: &Host<'_>, plan: &Plan, consented: &[String]) -> Result<Rep
             }
         }
         Cause::Undo => {
-            let (all, _) = io(store::manifests(host))?;
-            let Some(mut manifest) = all.into_iter().find(|m| Some(m.id) == plan.undo_of) else {
-                return Err(Error::NothingToUndo);
+            // The preview holds only if, under the lock, it is still what
+            // undoing would do: an apply, a scheduled switch merged into
+            // the backup, or another undo in between, and it does not.
+            let stale = || Error::Failed(Failure::Stale(path_str(&host.backups_dir())));
+            let now = match plan_undo(host) {
+                Err(Error::NothingToUndo) => return Err(stale()),
+                other => other?,
             };
+            if now.undo_of != plan.undo_of || now.targets != plan.targets {
+                return Err(stale());
+            }
+            let mut manifest = last_backup(host)?;
             new_state = match &manifest.state_before {
                 Some(sha) => State::from_bytes(&io(get_blob(host, sha))?)
                     .ok_or_else(|| Error::Io("backup content is damaged".to_owned()))?,

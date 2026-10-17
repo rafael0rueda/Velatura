@@ -1500,6 +1500,14 @@ msgid "Backups are in ~/.local/share/velatura/backups. To try again: velatura re
 msgstr ""
 
 #, rust-format
+msgid "Nothing was undone: the backup {1} cannot be read, and it may hold the change to undo first. Moving that file out of the backups folder lets older changes be undone."
+msgstr ""
+
+#, rust-format
+msgid "Nothing was undone: the backup {1} names {2}, which is outside this home folder, so it was made for another one. Moving that file out of the backups folder lets older changes be undone."
+msgstr ""
+
+#, rust-format
 msgid "\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
 msgstr ""
 

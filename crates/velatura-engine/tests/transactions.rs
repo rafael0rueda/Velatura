@@ -831,3 +831,160 @@ fn a_damaged_backup_is_reported_not_trusted() {
         Err(Error::Store(store::StoreError::Newer(_)))
     ));
 }
+
+#[test]
+fn a_backup_another_home_wrote_into_these_backups_is_not_undone() {
+    let t = themes();
+    let home = Home::with_kitty(CONFS[0]);
+    let start = home.user_files();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    apply(&host, &t[0]);
+
+    // A run with a home of its own but this home's data folder, as a
+    // sandbox that kept XDG_DATA_HOME has: its backup lands among these.
+    let other = Home::with_kitty(CONFS[1]);
+    let mixed = Dirs {
+        data: home.dirs.data.clone(),
+        ..other.dirs.clone()
+    };
+    let other_settings = MemSettings::gnome();
+    let other_host = Host {
+        dirs: &mixed,
+        ..other.host(&StdFs, &other_settings)
+    };
+    apply(&other_host, &t[1]);
+    let stray = store::Manifest::path(&host, 2);
+    assert!(stray.exists());
+
+    // Undoing it would have put the other run's state record in place of
+    // this home's: refused, with nothing changed.
+    let before = (home.snapshot(), settings.snapshot());
+    match engine::plan_undo(&host) {
+        Err(Error::ForeignBackup { backup, names }) => {
+            assert_eq!(backup, stray);
+            assert!(names.starts_with(&other.dirs.home), "{names:?}");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(matches!(
+        engine::undo_last(&host),
+        Err(Error::ForeignBackup { .. })
+    ));
+    assert_eq!((home.snapshot(), settings.snapshot()), before);
+
+    // Moved out of the way, this home's own change is undone as ever.
+    fs::remove_file(&stray).unwrap();
+    undo(&host);
+    assert_eq!(home.user_files(), start);
+}
+
+#[test]
+fn a_newer_backup_that_cannot_be_read_stops_the_undo() {
+    let t = themes();
+    let home = Home::with_kitty(CONFS[0]);
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    apply(&host, &t[0]);
+    apply(&host, &t[1]);
+    let blobs = || -> Vec<_> {
+        let mut names: Vec<_> = fs::read_dir(host.backups_dir().join("blobs"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        names.sort();
+        names
+    };
+    let stored = blobs();
+
+    // Passing over it would undo the first theme while the second is on.
+    for broken in [&b"{not json"[..], b"{\"version\": 99}"] {
+        let newest = store::Manifest::path(&host, 2);
+        let kept = fs::read(&newest).unwrap();
+        fs::write(&newest, broken).unwrap();
+        let before = (home.snapshot(), settings.snapshot());
+        match engine::plan_undo(&host) {
+            Err(Error::UnreadableBackup(path)) => assert_eq!(path, newest),
+            other => panic!("{other:?}"),
+        }
+        assert!(engine::undo_last(&host).is_err());
+        assert!(engine::restore_to(&host, 1).is_err());
+        assert_eq!((home.snapshot(), settings.snapshot()), before);
+
+        // Nor does tidying up after an apply drop what it may need.
+        apply(&host, &t[0]);
+        assert!(stored.iter().all(|b| blobs().contains(b)));
+        undo(&host);
+        fs::write(&newest, kept).unwrap();
+    }
+    undo(&host);
+    undo(&host);
+    assert!(matches!(
+        engine::plan_undo(&host),
+        Err(Error::NothingToUndo)
+    ));
+}
+
+#[test]
+fn an_undo_preview_that_no_longer_holds_is_not_carried_out() {
+    let t = themes();
+    let home = Home::with_kitty(CONFS[0]);
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    apply(&host, &t[0]);
+    apply(&host, &t[1]);
+
+    // Another apply after the preview: the preview undoes the wrong one.
+    let preview = engine::plan_undo(&host).unwrap();
+    apply(&host, &t[0]);
+    let before = (home.snapshot(), settings.snapshot());
+    assert!(matches!(
+        engine::execute(&host, &preview, &[]),
+        Err(Error::Failed(Failure::Stale(_)))
+    ));
+    assert_eq!((home.snapshot(), settings.snapshot()), before);
+
+    // Another undo after the preview: it would undo a second time.
+    let preview = engine::plan_undo(&host).unwrap();
+    undo(&host);
+    let before = (home.snapshot(), settings.snapshot());
+    assert!(matches!(
+        engine::execute(&host, &preview, &[]),
+        Err(Error::Failed(Failure::Stale(_)))
+    ));
+    assert_eq!((home.snapshot(), settings.snapshot()), before);
+
+    // A fresh preview still works.
+    undo(&host);
+    assert_eq!(engine::plan_undo(&host).unwrap().undo_of, Some(1));
+
+    // A preview with nothing left to write has no file to find changed:
+    // carried out after another apply, it marked the wrong backup undone
+    // and put back the state record from before it.
+    let home = Home::with_kitty(CONFS[0]);
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let kitty = |theme: &Theme, replace_changed: bool| {
+        let opts = ApplyOpts {
+            only: vec![KITTY.to_owned()],
+            replace_changed,
+            ..ApplyOpts::default()
+        };
+        let resolved = Resolved::new(theme, None).unwrap();
+        let plan = engine::plan_apply(&host, &no_env, &resolved, &opts).unwrap();
+        engine::execute(&host, &plan, &yes()).unwrap();
+    };
+    kitty(&t[0], false);
+    kitty(&t[1], false);
+    fs::write(home.kitty().join("velatura.conf"), b"# mine\n").unwrap();
+    let preview = engine::plan_undo(&host).unwrap();
+    assert!(preview.targets.iter().all(|t| t.changes.is_empty()));
+    kitty(&t[0], true);
+    let before = (home.snapshot(), settings.snapshot());
+    assert!(matches!(
+        engine::execute(&host, &preview, &[]),
+        Err(Error::Failed(Failure::Stale(_)))
+    ));
+    assert_eq!((home.snapshot(), settings.snapshot()), before);
+    assert_eq!(engine::plan_undo(&host).unwrap().undo_of, Some(3));
+}

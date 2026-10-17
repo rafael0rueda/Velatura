@@ -1970,6 +1970,9 @@ fn error_text(e: &Error) -> String {
     match e {
         Error::Busy => tr("Another Velatura is making changes"),
         Error::NothingToUndo => tr("Nothing to undo"),
+        Error::UnreadableBackup(_) | Error::ForeignBackup { .. } => {
+            velatura_text::backup_refused(e).unwrap_or_default()
+        }
         Error::Failed(f) => velatura_text::failure(f),
         Error::Recovery(r) => format!(
             "{}\n{}",
