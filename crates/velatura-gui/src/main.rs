@@ -25,6 +25,7 @@ use velatura_engine::plan::{Note, Plan, Skip};
 use velatura_engine::schedule::{self, Refused, Times};
 use velatura_engine::store::DayNight;
 use velatura_engine::targets;
+use velatura_theme::shell::{BarStyle, TopBar};
 use velatura_theme::{Resolved, nearest_accent};
 
 use data::{RowState, Snapshot};
@@ -59,6 +60,11 @@ struct Ui {
     filter: Rc<Cell<Filter>>,
     /// How many changes History lists before "Show Older".
     history_shown: Cell<usize>,
+    /// Apps & Desktop's "Apply Changes", shown while something is waiting
+    /// for the next apply; kept to show it without rebuilding the page.
+    apply_changes: RefCell<Option<adw::PreferencesGroup>>,
+    /// The top bar's opacity waiting to be saved while the slider moves.
+    opacity_pending: Cell<Option<glib::SourceId>>,
 }
 
 type U = Rc<Ui>;
@@ -223,6 +229,8 @@ fn build(app: &adw::Application) -> U {
         banner_rolls_back: Cell::new(false),
         filter: Rc::default(),
         history_shown: Cell::new(HISTORY_PAGE),
+        apply_changes: RefCell::new(None),
+        opacity_pending: Cell::new(None),
     });
     // Every handler holds the state weakly; the window holds the one strong
     // reference, and lets go of it when it is destroyed. Without it the
@@ -2411,6 +2419,7 @@ fn part_icon(instance: &str) -> &'static str {
         targets::SHELL => "video-display-symbolic",
         targets::ICONS => "folder-symbolic",
         targets::CURSORS => "input-mouse-symbolic",
+        targets::TOP_BAR => "focus-top-bar-symbolic",
         targets::OUTLINE => "focus-windows-symbolic",
         targets::KITTY | targets::GHOSTTY | targets::PTYXIS => "utilities-terminal-symbolic",
         targets::TMUX => "view-grid-symbolic",
@@ -2468,7 +2477,7 @@ fn part_row(
     // name only says what the switch cannot.
     let subtitle = match &row.state {
         RowState::Themed if row.included => None,
-        RowState::Themed if row.instance == targets::OUTLINE => {
+        RowState::Themed if targets::TAKEN_AWAY_WHEN_OFF.contains(&row.instance.as_str()) => {
             Some(tr("Taken away at the next apply"))
         }
         RowState::Themed => Some(tr("Themed, and left out of the next apply")),
@@ -2479,6 +2488,9 @@ fn part_row(
         )),
         RowState::Ready if row.instance == targets::CURSORS => Some(tr(
             "Gives the cursor in use the theme's colors: its body and outline, and its accent",
+        )),
+        RowState::Ready if row.instance == targets::TOP_BAR => Some(tr(
+            "Draws the top bar as one full bar or as a pill per button, in the theme's colors and as opaque as chosen",
         )),
         RowState::Ready if row.instance == targets::OUTLINE => Some(tr(
             "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
@@ -2584,6 +2596,108 @@ fn part_row(
     action
 }
 
+/// The Top Bar Style part's two choices: one full bar or a pill per
+/// button, and how opaque. Saved at once; the next apply draws them.
+fn top_bar_rows(ui: &U, page: &Column, bar: TopBar) -> [adw::PreferencesRow; 2] {
+    let ways = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .css_classes(["linked"])
+        .valign(gtk::Align::Center)
+        .build();
+    ways.update_property(&[gtk::accessible::Property::Label(&tr("Top Bar Shape"))]);
+    let mut first: Option<gtk::ToggleButton> = None;
+    for (style, label) in [
+        (BarStyle::Bar, tr("Complete _Bar")),
+        (BarStyle::Pills, tr("_Pills")),
+    ] {
+        let button = gtk::ToggleButton::builder()
+            .label(label)
+            .use_underline(true)
+            .active(bar.style == style)
+            .build();
+        match &first {
+            Some(group) => button.set_group(Some(group)),
+            None => first = Some(button.clone()),
+        }
+        let weak = Rc::downgrade(ui);
+        button.connect_toggled(move |button| {
+            let Some(ui) = weak.upgrade().filter(|_| button.is_active()) else {
+                return;
+            };
+            glib::spawn_future_local(async move {
+                save_top_bar(&ui, move |bar| bar.style = style).await;
+            });
+        });
+        ways.append(&button);
+    }
+    let shape = adw::ActionRow::builder().title(tr("Shape")).build();
+    shape.add_suffix(&ways);
+
+    let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 100.0, 5.0);
+    scale.set_value(f64::from(bar.opacity));
+    scale.set_draw_value(true);
+    scale.set_value_pos(gtk::PositionType::Left);
+    scale.set_digits(0);
+    scale.set_format_value_func(|_, value| format!("{value:.0}%"));
+    scale.set_hexpand(true);
+    scale.set_valign(gtk::Align::Center);
+    scale.set_size_request(200, -1);
+    scale.update_property(&[gtk::accessible::Property::Label(&tr("Top Bar Opacity"))]);
+    page.when_narrowest(&scale, "width-request", 120);
+    let weak = Rc::downgrade(ui);
+    scale.connect_value_changed(move |scale| {
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
+        // Steps of 5, saved once the slider rests.
+        let opacity = ((scale.value() / 5.0).round() * 5.0).clamp(0.0, 100.0) as u8;
+        if scale.value() != f64::from(opacity) {
+            // Dragging does not snap to the step by itself; this comes
+            // back here with the snapped value.
+            scale.set_value(f64::from(opacity));
+            return;
+        }
+        if let Some(waiting) = ui.opacity_pending.take() {
+            waiting.remove();
+        }
+        let weak = Rc::downgrade(&ui);
+        let id = glib::timeout_add_local_once(std::time::Duration::from_millis(400), move || {
+            if let Some(ui) = weak.upgrade() {
+                ui.opacity_pending.set(None);
+                glib::spawn_future_local(async move {
+                    save_top_bar(&ui, move |bar| bar.opacity = opacity).await;
+                });
+            }
+        });
+        ui.opacity_pending.set(Some(id));
+    });
+    let opacity = adw::ActionRow::builder().title(tr("Opacity")).build();
+    opacity.add_suffix(&scale);
+    [shape.upcast(), opacity.upcast()]
+}
+
+/// Save a change to the top bar's choices, then show "Apply Changes" if
+/// the theme in use now draws it differently. The page is not rebuilt, so
+/// the slider stays where the pointer has it.
+async fn save_top_bar(ui: &U, change: impl FnOnce(&mut TopBar) + Send + 'static) {
+    let saved = data::run(move |host| {
+        let mut bar = engine::top_bar(host)?;
+        change(&mut bar);
+        engine::set_top_bar(host, bar)
+    })
+    .await;
+    if !matches!(saved, Some(Ok(()))) {
+        toast(ui, &tr("The choice could not be saved"));
+        return;
+    }
+    if let Some(snap) = data::run(data::snapshot).await {
+        if let Some(group) = ui.apply_changes.borrow().as_ref() {
+            group.set_visible(pending(&snap));
+        }
+        *ui.snap.borrow_mut() = snap;
+    }
+}
+
 /// Where adw-gtk3 is found, with how to install it.
 const ADW_GTK3: &str = "https://github.com/lassekongo83/adw-gtk3";
 
@@ -2619,6 +2733,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             tr("Desktop"),
             vec![
                 targets::SHELL,
+                targets::TOP_BAR,
                 targets::OUTLINE,
                 targets::APPEARANCE,
                 targets::ICONS,
@@ -2664,8 +2779,11 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     );
     // Turning a part on or off takes effect with the next apply: offer it
     // here, where the switches are.
-    if let Some(label) = snap.applied.as_deref().filter(|_| pending(snap)) {
-        let group = adw::PreferencesGroup::new();
+    *ui.apply_changes.borrow_mut() = None;
+    if let Some(label) = snap.applied.as_deref() {
+        let group = adw::PreferencesGroup::builder()
+            .visible(pending(snap))
+            .build();
         let row = adw::ButtonRow::builder()
             .title(tr("Apply _Changes to {theme}").replace("{theme}", &theme_name(snap, label)))
             .use_underline(true)
@@ -2682,6 +2800,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
         });
         group.add(&row);
         page.append(&group);
+        *ui.apply_changes.borrow_mut() = Some(group);
     }
     for (title, members) in groups {
         // In the group's order, not the engine's.
@@ -2699,6 +2818,12 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 &velatura_text::instance(&row.instance),
                 None,
             ));
+            // The top bar's choices, under its switch while it is on.
+            if row.instance == targets::TOP_BAR && row.included && available(row) {
+                for choice in top_bar_rows(ui, &page, snap.top_bar) {
+                    group.add(&choice);
+                }
+            }
         }
         page.append(&group);
     }
@@ -2932,14 +3057,16 @@ async fn remove_all(ui: &U) {
 
 /// The display name for a stored `theme/variant`, or the label itself if
 /// that theme is no longer in the library.
-/// A part turned on and not applied yet, or the window outline turned off
-/// while it is still there: the next apply of the theme in use changes
-/// something.
+/// A part turned on and not applied yet, or the window outline or top bar
+/// style turned off while it is still there: the next apply of the theme
+/// in use changes something.
 fn pending(snap: &Snapshot) -> bool {
     snap.applied.is_some()
         && snap.rows.iter().any(|r| match r.state {
             RowState::Ready => r.included,
-            RowState::Themed => !r.included && r.instance == targets::OUTLINE,
+            RowState::Themed => {
+                !r.included && targets::TAKEN_AWAY_WHEN_OFF.contains(&r.instance.as_str())
+            }
             _ => false,
         })
 }

@@ -2,6 +2,8 @@
 // Reports what the panel and a checked quick settings toggle actually
 // compute, so the script can tell whether the generated theme was loaded
 // and applied, and whether the toggle has the theme's accent itself.
+// For the top bar's style, also the panel's background with its alpha,
+// and the fill of the quick settings button and of the clock's label.
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
@@ -9,6 +11,12 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const hex = c => '#' + [c.red, c.green, c.blue].map(v => v.toString(16).padStart(2, '0')).join('');
+const hexa = c => hex(c) + c.alpha.toString(16).padStart(2, '0');
+// The inset fill a panel button is drawn with, or "none".
+const fill = actor => {
+    const shadow = actor?.get_theme_node().get_box_shadow();
+    return shadow ? hexa(shadow.color) : 'none';
+};
 
 export default class Probe extends Extension {
     enable() {
@@ -25,6 +33,14 @@ export default class Probe extends Extension {
                 GLib.file_set_contents(`${out}/panel.txt`,
                     `${hex(node.get_background_color())} ${hex(node.get_foreground_color())} ` +
                     `${hex(toggle.get_background_color())}\n`);
+                // The Shell starts in the overview, where the bar is
+                // transparent; asked to, the probe leaves it.
+                if (GLib.getenv('VEL_NO_OVERVIEW') && Main.overview.visible)
+                    Main.overview.hide();
+                const clock = Main.panel.statusArea.dateMenu?._clockDisplay;
+                GLib.file_set_contents(`${out}/top-bar.txt`,
+                    `${hexa(node.get_background_color())} ` +
+                    `${fill(Main.panel.statusArea.quickSettings)} ${fill(clock)}\n`);
             } catch (e) {
                 GLib.file_set_contents(`${out}/error.txt`, `${e}\n`);
             }

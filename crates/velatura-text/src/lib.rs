@@ -37,6 +37,9 @@ Usage:
   velatura schedule set            turn that on; with --day and --night, set the times
   velatura schedule off            turn it off and remove its timer
   velatura schedule follow         change with the desktop's light and dark style instead
+  velatura top-bar                 how the Top Bar Style part draws the top bar
+  velatura top-bar style <style>   bar for a full bar, pills for a pill per button
+  velatura top-bar opacity <0-100> how opaque, as a percentage
   velatura extension               whether Velatura's own Shell extension is installed
   velatura extension install       install it for this user (turning it on is left to you)
   velatura extension remove        remove the copy Velatura installed
@@ -164,6 +167,7 @@ pub fn instance(id: &str) -> String {
         "gtk3:default" => t("Older Apps (GTK 3)"),
         "gnome:shell" => t("Top Bar and Overview"),
         "gnome:appearance" => t("Style and Accent Color"),
+        "gnome:top-bar" => t("Top Bar Style"),
         "gnome:outline" => t("Window Outline"),
         "flatpak:global" => t("Flatpak Apps"),
         "gnome:look" => t("Icons, Cursor, Wallpaper and Fonts"),
@@ -439,10 +443,10 @@ pub fn skip(why: &Skip, home: &Path) -> String {
             "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too",
         ),
         Skip::NeedsVelaturaExtension => t(
-            "Left out: the outline is drawn by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in",
+            "Left out: this part is shown by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in",
         ),
         Skip::VelaturaExtensionOutdated => t(
-            "Left out: Velatura's extension is an older copy that cannot draw the outline. It is brought up to date with: velatura extension install, and draws it after signing out and in",
+            "Left out: Velatura's extension is an older copy that cannot show this part. It is brought up to date with: velatura extension install, and shows it after signing out and in",
         ),
         Skip::UntestedShell(version) => tf!(
             "Left out: Velatura has not been checked with GNOME Shell {1}, so the top bar and overview are left alone. To theme them all the same: velatura apply <theme> --only gnome:shell",

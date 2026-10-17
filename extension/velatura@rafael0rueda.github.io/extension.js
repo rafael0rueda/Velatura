@@ -1,7 +1,8 @@
 // Velatura's companion extension.
 //
 // It loads the stylesheets the Velatura app writes, and loads them again
-// when those files change. All colours are in the files; nothing here
+// when those files change: the Shell's colours, the top bar's style and
+// the window outline's colour. All colours are in the files; nothing here
 // changes with a theme, so the extension never needs updating for one.
 //
 // It also keeps an outline beside the focused window, which shows only
@@ -21,8 +22,9 @@ import St from 'gi://St';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-// The contract with the app: two files, and the outline's style class.
+// The contract with the app: three files, and the outline's style class.
 const STYLESHEET = ['velatura', 'shell', 'gnome-shell.css'];
+const TOP_BAR_SHEET = ['velatura', 'shell', 'top-bar.css'];
 const OUTLINE_SHEET = ['velatura', 'shell', 'window-outline.css'];
 const OUTLINE_CLASS = 'velatura-window-outline';
 
@@ -202,7 +204,7 @@ class Outline {
 
 export default class Velatura extends Extension {
     enable() {
-        this._sheets = [new Sheet(STYLESHEET), new Sheet(OUTLINE_SHEET)];
+        this._sheets = [STYLESHEET, TOP_BAR_SHEET, OUTLINE_SHEET].map(parts => new Sheet(parts));
         this._outline = new Outline();
     }
 

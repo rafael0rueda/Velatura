@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use velatura_theme::Resolved;
 use velatura_theme::model::CONTRAST_FLOOR;
+use velatura_theme::shell::TopBar;
 
 use crate::block;
 use crate::host::{Host, acquire_lock};
@@ -100,14 +101,15 @@ pub fn plan_apply(
     for instance in targets::INSTANCES {
         plans.push(if selected(instance) {
             targets::plan(instance, host, env, theme, &state, opts)
-        } else if instance == targets::OUTLINE
+        } else if targets::TAKEN_AWAY_WHEN_OFF.contains(&instance)
             && opts.only.is_empty()
             && !matches(instance, &opts.except)
             && !opts.unattended
         {
-            // Turned off: the outline goes at the next apply by hand, or a
-            // switch would leave it on screen with no way to take it away.
-            targets::plan_outline_off(host, &state)
+            // Turned off: the outline or the top bar's style goes at the
+            // next apply by hand, or a switch would leave it on screen
+            // with no way to take it away.
+            targets::plan_sheet_off(instance, host, &state)
         } else {
             TargetPlan::skip(instance, Skip::NotSelected)
         });
@@ -643,6 +645,26 @@ pub fn set_included(host: &Host<'_>, instance: &str, included: bool) -> Result<(
         (false, false) => prefs.excluded.insert(instance.to_owned()),
     };
     if changed {
+        io(prefs.save(host))?;
+    }
+    Ok(())
+}
+
+/// How the Top Bar part draws the bar.
+pub fn top_bar(host: &Host<'_>) -> Result<TopBar, Error> {
+    Ok(Prefs::load(host)?.top_bar)
+}
+
+/// Choose how the Top Bar part draws the bar, from the next apply on.
+/// Opacity above 100 is taken as 100.
+pub fn set_top_bar(host: &Host<'_>, bar: TopBar) -> Result<(), Error> {
+    let mut prefs = Prefs::load(host)?;
+    let bar = TopBar {
+        opacity: bar.opacity.min(100),
+        ..bar
+    };
+    if prefs.top_bar != bar {
+        prefs.top_bar = bar;
         io(prefs.save(host))?;
     }
     Ok(())

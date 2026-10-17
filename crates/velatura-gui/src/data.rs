@@ -68,6 +68,8 @@ pub struct Snapshot {
     pub window: Option<(i32, i32)>,
     pub day_night: DayNight,
     pub schedule: schedule::Status,
+    /// How the Top Bar Style part draws the bar.
+    pub top_bar: velatura_theme::shell::TopBar,
     /// Velatura's own Shell extension: there or not, on or off.
     pub extension: velatura_engine::companion::Status,
     /// Icons, cursor, wallpaper and fonts: what is in use, and what is
@@ -89,6 +91,7 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
         day_night: DayNight::load(host),
         schedule: schedule::status(host),
         extension: velatura_engine::companion::status(host, &env),
+        top_bar: engine::top_bar(host).unwrap_or_default(),
         command: self_command(Some("velatura")),
         ..Snapshot::default()
     };

@@ -21,6 +21,7 @@ use velatura_engine::targets;
 use velatura_engine::templates;
 use velatura_text as text;
 use velatura_theme::model::{ANSI_NAMES, clean_text};
+use velatura_theme::shell::BarStyle;
 use velatura_theme::{Color, Resolved, nearest_accent, parse_theme};
 
 const OK: u8 = 0;
@@ -186,6 +187,9 @@ fn main() -> ExitCode {
         ["schedule", "set"] => cx.schedule_set(),
         ["schedule", "off"] => cx.schedule_off(),
         ["schedule", "follow"] => cx.schedule_follow(),
+        ["top-bar"] => cx.top_bar_show(),
+        ["top-bar", "style", style] => cx.top_bar_set(Some(style), None),
+        ["top-bar", "opacity", percent] => cx.top_bar_set(None, Some(percent)),
         ["extension"] | ["extension", "status"] => cx.extension_show(),
         ["extension", "install"] => cx.extension_install(),
         ["extension", "remove"] => cx.extension_remove(),
@@ -593,6 +597,12 @@ impl Cx<'_> {
                 "Recolored Cursor (off until turned on)",
                 "official",
                 p(h.dirs.data.join("icons")),
+            ),
+            (
+                "gnome:top-bar",
+                "Top Bar Style (off until turned on)",
+                "official",
+                p(velatura_engine::companion::top_bar_stylesheet(h)),
             ),
             (
                 "gnome:outline",
@@ -1242,6 +1252,51 @@ They are kept in {}",
         println!(
             "From now on, applying a theme leaves the light or dark style as it is.\nTo turn it off: velatura schedule off"
         );
+        Ok(OK)
+    }
+
+    fn top_bar_show(&self) -> Outcome {
+        let bar = engine::top_bar(&self.host)?;
+        let on = !engine::excluded(&self.host)?
+            .iter()
+            .any(|i| i == targets::TOP_BAR);
+        if self.args.json {
+            self.emit(json!({"top_bar": {
+                "on": on, "style": bar.style.id(), "opacity": bar.opacity,
+            }}));
+            return Ok(OK);
+        }
+        let style = match bar.style {
+            BarStyle::Bar => "a full bar",
+            BarStyle::Pills => "pills",
+        };
+        println!("The top bar is drawn as {style}, {}% opaque.", bar.opacity);
+        if !on {
+            println!(
+                "The part is off: it is turned on in the app, or named for one apply with --only {}",
+                targets::TOP_BAR
+            );
+        }
+        println!("To choose: velatura top-bar style bar|pills, velatura top-bar opacity <0-100>");
+        Ok(OK)
+    }
+
+    fn top_bar_set(&self, style: Option<&str>, opacity: Option<&str>) -> Outcome {
+        let mut bar = engine::top_bar(&self.host)?;
+        if let Some(style) = style {
+            bar.style = BarStyle::from_id(style)
+                .ok_or_else(|| usage("the top bar's style is bar or pills"))?;
+        }
+        if let Some(opacity) = opacity {
+            bar.opacity = opacity
+                .trim_end_matches('%')
+                .parse::<u8>()
+                .ok()
+                .filter(|o| *o <= 100)
+                .ok_or_else(|| usage("the top bar's opacity is a percentage, from 0 to 100"))?;
+        }
+        engine::set_top_bar(&self.host, bar)?;
+        println!("Chosen. It takes effect with the next apply while the part is on.");
         Ok(OK)
     }
 

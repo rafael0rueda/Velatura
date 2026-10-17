@@ -672,6 +672,9 @@ msgstr ""
 msgid "Gives the cursor in use the theme's colors: its body and outline, and its accent"
 msgstr ""
 
+msgid "Draws the top bar as one full bar or as a pill per button, in the theme's colors and as opaque as chosen"
+msgstr ""
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr ""
 
@@ -694,6 +697,24 @@ msgid "Unofficial"
 msgstr ""
 
 msgid "_How to Install"
+msgstr ""
+
+msgid "Top Bar Shape"
+msgstr ""
+
+msgid "Complete _Bar"
+msgstr ""
+
+msgid "_Pills"
+msgstr ""
+
+msgid "Shape"
+msgstr ""
+
+msgid "Top Bar Opacity"
+msgstr ""
+
+msgid "Opacity"
 msgstr ""
 
 #, rust-format
@@ -988,6 +1009,9 @@ msgstr ""
 msgid "Style and Accent Color"
 msgstr ""
 
+msgid "Top Bar Style"
+msgstr ""
+
 msgid "Window Outline"
 msgstr ""
 
@@ -1171,10 +1195,10 @@ msgstr ""
 msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed with: velatura extension install. The User Themes extension works too"
 msgstr ""
 
-msgid "Left out: the outline is drawn by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in"
+msgid "Left out: this part is shown by Velatura's own extension, which is not turned on. It can be installed with: velatura extension install, and turned on after signing out and in"
 msgstr ""
 
-msgid "Left out: Velatura's extension is an older copy that cannot draw the outline. It is brought up to date with: velatura extension install, and draws it after signing out and in"
+msgid "Left out: Velatura's extension is an older copy that cannot show this part. It is brought up to date with: velatura extension install, and shows it after signing out and in"
 msgstr ""
 
 #, rust-format
