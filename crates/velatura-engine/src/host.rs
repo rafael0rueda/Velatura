@@ -244,6 +244,12 @@ pub trait Settings {
 
     /// Block until earlier writes have reached the store.
     fn sync(&self);
+
+    /// The keys `schema` has, in the same forms of schema as `read` takes.
+    /// Empty when the schema does not exist or the store cannot list them.
+    fn keys(&self, _schema: &str) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// Settings held in memory, for tests and for systems with no settings store.
@@ -322,6 +328,14 @@ impl Settings for MemSettings {
     }
 
     fn sync(&self) {}
+
+    fn keys(&self, schema: &str) -> Vec<String> {
+        self.defaults
+            .keys()
+            .filter(|(s, _)| s == schema)
+            .map(|(_, k)| k.clone())
+            .collect()
+    }
 }
 
 /// A settings store that is absent: every key reads as missing.
@@ -416,6 +430,9 @@ impl Settings for Faults<'_> {
     }
     fn sync(&self) {
         self.settings.sync();
+    }
+    fn keys(&self, schema: &str) -> Vec<String> {
+        self.settings.keys(schema)
     }
 }
 

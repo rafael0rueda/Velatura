@@ -59,17 +59,23 @@ impl GioSettings {
                 gio::Settings::new_full(&found, None::<&gio::SettingsBackend>, Some(path))
             });
         }
-        let found = match schema.split_once('@') {
-            Some((id, dir)) => {
-                gio::SettingsSchemaSource::from_directory(dir, Some(&default), false)
-                    .ok()?
-                    .lookup(id, false)?
-            }
-            None => default.lookup(schema, true)?,
-        };
+        let found = Self::schema(schema)?;
         found
             .has_key(key)
             .then(|| gio::Settings::new_full(&found, None::<&gio::SettingsBackend>, None))
+    }
+
+    /// A schema of its own place in the store, plain or `id@/folder`.
+    fn schema(schema: &str) -> Option<gio::SettingsSchema> {
+        let default = gio::SettingsSchemaSource::default()?;
+        match schema.split_once('@') {
+            Some((id, dir)) => {
+                gio::SettingsSchemaSource::from_directory(dir, Some(&default), false)
+                    .ok()?
+                    .lookup(id, false)
+            }
+            None => default.lookup(schema, true),
+        }
     }
 }
 
@@ -150,6 +156,15 @@ impl Settings for GioSettings {
 
     fn sync(&self) {
         gio::Settings::sync();
+    }
+
+    fn keys(&self, schema: &str) -> Vec<String> {
+        if self.usable().is_err() || schema.contains(':') {
+            return Vec::new();
+        }
+        Self::schema(schema)
+            .map(|found| found.list_keys().iter().map(|k| k.to_string()).collect())
+            .unwrap_or_default()
     }
 }
 

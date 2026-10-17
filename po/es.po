@@ -878,6 +878,10 @@ msgstr "Hay activado un temporizador que puede cambiar el tema"
 msgid "Found at {path}. It can overwrite changes made here"
 msgstr "Está en {path}. Puede sobrescribir los cambios hechos aquí"
 
+#, rust-format
+msgid "An extension with colors of its own in its settings ({keys}). They stay the same whatever theme is applied"
+msgstr "Una extensión con colores propios en su configuración ({keys}). No cambian con el tema que se aplique"
+
 msgid "None found"
 msgstr "No se encontró ninguna"
 
@@ -1388,6 +1392,10 @@ msgstr "Hay activado un temporizador que puede cambiar el tema: {1}"
 #, rust-format
 msgid "Settings files may be managed by {1} ({2}). It can overwrite changes made here"
 msgstr "Puede que {1} gestione los archivos de configuración ({2}). Puede sobrescribir los cambios hechos aquí"
+
+#, rust-format
+msgid "The extension {1} keeps colors of its own in its settings ({2}). They stay the same whatever theme is applied"
+msgstr "La extensión {1} guarda colores propios en su configuración ({2}). No cambian con el tema que se aplique"
 
 msgid "Scheduled switching is off"
 msgstr "El cambio según horario está desactivado"
