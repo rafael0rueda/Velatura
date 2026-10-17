@@ -6,6 +6,7 @@
 
 mod data;
 mod editor;
+mod keep;
 mod shots;
 mod stock;
 mod widgets;
@@ -93,7 +94,12 @@ fn main() -> glib::ExitCode {
     app.set_accels_for_action("window.close", &["<Control>w"]);
     app.set_accels_for_action("app.quit", &["<Control>q"]);
     let quit = gio::ActionEntry::builder("quit")
-        .activate(|app: &adw::Application, _, _| app.quit())
+        // Closed as the close button would, so unsaved work is asked about.
+        .activate(|app: &adw::Application, _, _| {
+            for window in app.windows() {
+                window.close();
+            }
+        })
         .build();
     app.add_action_entries([quit]);
     app.run()
@@ -240,6 +246,22 @@ fn build(app: &adw::Application) -> U {
         owner.take();
     });
     add_actions(&ui);
+    // GTK gives a key to the window's shortcuts before the widget with the
+    // focus: Ctrl+Z typed in a text field, or in the theme editor, would
+    // undo the last apply instead. Undo is off there, and the key goes on
+    // to the field.
+    let weak = Rc::downgrade(&ui);
+    ui.window.connect_focus_widget_notify(move |_| {
+        if let Some(ui) = weak.upgrade() {
+            sync_undo(&ui);
+        }
+    });
+    let weak = Rc::downgrade(&ui);
+    ui.nav.connect_visible_page_notify(move |_| {
+        if let Some(ui) = weak.upgrade() {
+            sync_undo(&ui);
+        }
+    });
     ui.window.set_help_overlay(Some(&shortcuts_window()));
 
     let weak = Rc::downgrade(&ui);
@@ -248,7 +270,17 @@ fn build(app: &adw::Application) -> U {
             glib::spawn_future_local(async move { roll_back(&ui).await });
         }
     });
-    ui.window.connect_close_request(|window| {
+    let weak = Rc::downgrade(&ui);
+    ui.window.connect_close_request(move |window| {
+        if let Some(ui) = weak.upgrade().filter(|_| editor::unsaved()) {
+            let window = window.clone();
+            glib::spawn_future_local(async move {
+                if editor::may_discard(&ui).await {
+                    window.close();
+                }
+            });
+            return glib::Propagation::Stop;
+        }
         if !window.is_maximized() {
             // Written here and not on a worker thread: the app quits as the
             // window closes, and would cut a write in progress short. One
@@ -366,6 +398,20 @@ fn add_actions(ui: &U) {
     ]);
 }
 
+/// Undo is there except while text is typed or a theme is edited.
+fn sync_undo(ui: &Ui) {
+    let typing = gtk::prelude::GtkWindowExt::focus(&ui.window)
+        .is_some_and(|w| w.is::<gtk::Editable>() || w.is::<gtk::TextView>());
+    let editing = ui.nav.visible_page().and_then(|p| p.tag()).as_deref() == Some("editor");
+    if let Some(undo) = ui
+        .window
+        .lookup_action("undo")
+        .and_downcast::<gio::SimpleAction>()
+    {
+        undo.set_enabled(!typing && !editing);
+    }
+}
+
 fn shortcuts_window() -> gtk::ShortcutsWindow {
     let row = |title: &str, accel: &str| {
         format!(
@@ -423,9 +469,9 @@ async fn refresh(ui: &U) {
     {
         ui.window.set_default_size(w.max(360), h.max(294));
     }
-    ui.themes.set_child(Some(&themes_view(ui, &snap)));
-    ui.apps.set_child(Some(&apps_view(ui, &snap)));
-    ui.history.set_child(Some(&history_view(ui, &snap)));
+    keep::replace(&ui.themes, &themes_view(ui, &snap));
+    keep::replace(&ui.apps, &apps_view(ui, &snap));
+    keep::replace(&ui.history, &history_view(ui, &snap));
 
     // A lasting state gets a banner; single events get toasts.
     ui.banner_rolls_back.set(snap.unfinished);
@@ -3145,7 +3191,7 @@ fn history_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
             if let Some(ui) = weak.upgrade() {
                 ui.history_shown.set(ui.history_shown.get() + HISTORY_PAGE);
                 let snap = ui.snap.borrow().clone();
-                ui.history.set_child(Some(&history_view(&ui, &snap)));
+                keep::replace(&ui.history, &history_view(&ui, &snap));
             }
         });
         group.add(&more);

@@ -228,7 +228,19 @@ msgstr ""
 msgid "_Save Theme"
 msgstr ""
 
+msgid "Discard Changes?"
+msgstr ""
+
+msgid "The changes to this theme have not been saved."
+msgstr ""
+
+msgid "_Cancel"
+msgstr ""
+
 msgid "_Name"
+msgstr ""
+
+msgid "Back"
 msgstr ""
 
 msgid "Edit Theme"
@@ -284,9 +296,6 @@ msgid "Import Theme"
 msgstr ""
 
 msgid "Save Theme"
-msgstr ""
-
-msgid "Back"
 msgstr ""
 
 msgid "Keyboard Shortcuts"
@@ -490,9 +499,6 @@ msgstr ""
 
 #, rust-format
 msgid "Another timer that may change the theme is turned on: {units}. Two schedules would work against each other."
-msgstr ""
-
-msgid "_Cancel"
 msgstr ""
 
 msgid "_Turn On"

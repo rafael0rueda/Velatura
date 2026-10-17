@@ -390,7 +390,7 @@ fn changed(s: &S) {
     let weak = Rc::downgrade(s);
     glib::idle_add_local_once(move || {
         if let Some(s) = weak.upgrade() {
-            s.body.set_child(Some(&build_body(&s)));
+            crate::keep::replace(&s.body, &build_body(&s));
         }
     });
 }
@@ -400,9 +400,60 @@ thread_local! {
     static CURRENT: RefCell<Option<S>> = const { RefCell::new(None) };
 }
 
+/// True while the open editor holds changes that are not saved.
+pub fn unsaved() -> bool {
+    CURRENT.with(|c| c.borrow().as_ref().is_some_and(|s| !s.page.can_pop()))
+}
+
+/// Whether the open editor's unsaved changes may go: asked, if there are
+/// any. Once they may, the editor no longer holds on to them.
+pub async fn may_discard(ui: &U) -> bool {
+    if !unsaved() {
+        return true;
+    }
+    let dialog = adw::AlertDialog::new(
+        Some(&tr("Discard Changes?")),
+        Some(&tr("The changes to this theme have not been saved.")),
+    );
+    dialog.add_responses(&[("cancel", &tr("_Cancel")), ("discard", &tr("_Discard"))]);
+    dialog.set_response_appearance("discard", adw::ResponseAppearance::Destructive);
+    dialog.set_close_response("cancel");
+    if dialog.choose_future(Some(&ui.window)).await != "discard" {
+        return false;
+    }
+    if let Some(s) = CURRENT.with(|c| c.borrow().clone()) {
+        s.page.set_can_pop(true);
+    }
+    true
+}
+
+/// Back to the themes, once unsaved changes may go.
+fn leave(ui: &U) {
+    let ui = ui.clone();
+    glib::spawn_future_local(async move {
+        if may_discard(&ui).await {
+            ui.nav.pop_to_tag("main");
+        }
+    });
+}
+
 /// Open the editor on `draft`. With `replaces`, saving writes over the
-/// theme of the user's that the draft was opened from.
+/// theme of the user's that the draft was opened from. An editor already
+/// open with unsaved changes asks first, as it is replaced.
 pub fn open(ui: &U, draft: Draft, replaces: bool) {
+    if !unsaved() {
+        open_now(ui, draft, replaces);
+        return;
+    }
+    let ui = ui.clone();
+    glib::spawn_future_local(async move {
+        if may_discard(&ui).await {
+            open_now(&ui, draft, replaces);
+        }
+    });
+}
+
+fn open_now(ui: &U, draft: Draft, replaces: bool) {
     let name = adw::EntryRow::builder()
         .title(tr("_Name"))
         .use_underline(true)
@@ -428,8 +479,17 @@ pub fn open(ui: &U, draft: Draft, replaces: bool) {
                 .build(),
         )
         .build();
+    // While there are changes to lose, the page cannot be left by
+    // accident: the header bar's own Back button goes, and this one asks.
+    let header = adw::HeaderBar::new();
+    let back = gtk::Button::builder()
+        .icon_name("go-previous-symbolic")
+        .tooltip_text(tr("Back"))
+        .build();
+    back.update_property(&[gtk::accessible::Property::Label(&tr("Back"))]);
+    header.pack_start(&back);
     let view = adw::ToolbarView::new();
-    view.add_top_bar(&adw::HeaderBar::new());
+    view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     let page = adw::NavigationPage::builder()
         .title(if replaces {
@@ -440,6 +500,30 @@ pub fn open(ui: &U, draft: Draft, replaces: bool) {
         .tag("editor")
         .child(&view)
         .build();
+    page.bind_property("can-pop", &back, "visible")
+        .invert_boolean()
+        .sync_create()
+        .build();
+    let weak = Rc::downgrade(ui);
+    back.connect_clicked(move |_| {
+        if let Some(ui) = weak.upgrade() {
+            leave(&ui);
+        }
+    });
+    // The keys that go back, which the page no longer answers to by itself.
+    let keys = gtk::ShortcutController::new();
+    let weak = Rc::downgrade(ui);
+    keys.add_shortcut(gtk::Shortcut::new(
+        gtk::ShortcutTrigger::parse_string("Escape|<Alt>Left"),
+        Some(gtk::CallbackAction::new(move |_, _| match weak.upgrade() {
+            Some(ui) if unsaved() => {
+                leave(&ui);
+                glib::Propagation::Stop
+            }
+            _ => glib::Propagation::Proceed,
+        })),
+    ));
+    page.add_controller(keys);
 
     let s = Rc::new(Session {
         ui: ui.clone(),

@@ -123,11 +123,12 @@ else
 fi
 if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
     shots=$(mktemp -d)
-    flow=$(scripts/gui-shots.sh "$shots" --flow 2>/dev/null | grep -E '^(FLOW|SANDBOX)' || true)
+    flow=$(scripts/gui-shots.sh "$shots" --flow 2>/dev/null | grep -E '^(FLOW|SANDBOX|SHOTS kept)' || true)
     rm -rf "$shots"
     echo "$flow"
     for want in 'FLOW confirmation shown' 'FLOW applied=Some("ember/default")' \
-        'FLOW undone applied=None' 'SANDBOX No theme applied.' 'SANDBOX kitty.conf: font_size 12|'; do
+        'FLOW undone applied=None' 'SANDBOX No theme applied.' 'SANDBOX kitty.conf: font_size 12|' \
+        'SHOTS kept apps=true'; do
         grep -qxF "$want" <<<"$flow" || { echo "app flow check failed, missing: $want"; exit 1; }
     done
     # With a theme applied to GTK apps, the app's own window keeps
@@ -150,12 +151,15 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
         grep -qF "$want" <<<"$sched" || { echo "schedule check failed, missing: $want"; exit 1; }
     done
     # A theme made in the editor: started, changed until something is hard
-    # to read, fixed, saved, and then listed by the command as the user's.
+    # to read, fixed, kept when the window is closed and Ctrl+Z pressed
+    # with the change unsaved, saved, and then listed by the command as
+    # the user's.
     shots=$(mktemp -d)
     made=$(scripts/gui-shots.sh "$shots" --editor 2>/dev/null | grep -E '^(SHOTS (editor|library)|SANDBOX themes)' || true)
     rm -rf "$shots"
     echo "$made"
-    for want in 'SHOTS editor problem=' 'SHOTS editor saved=new-theme' \
+    for want in 'SHOTS editor problem=' 'SHOTS editor undo=off' \
+        'SHOTS editor asks=Some("Discard Changes?")' 'SHOTS editor saved=new-theme' \
         'SHOTS library yours=["new-theme"]' 'new-theme light New Theme (yours)'; do
         grep -qF "$want" <<<"$made" || { echo "editor check failed, missing: $want"; exit 1; }
     done

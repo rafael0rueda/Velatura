@@ -226,8 +226,20 @@ msgstr "_Descartar"
 msgid "_Save Theme"
 msgstr "_Guardar tema"
 
+msgid "Discard Changes?"
+msgstr "¿Descartar los cambios?"
+
+msgid "The changes to this theme have not been saved."
+msgstr "Los cambios de este tema no se han guardado."
+
+msgid "_Cancel"
+msgstr "_Cancelar"
+
 msgid "_Name"
 msgstr "_Nombre"
+
+msgid "Back"
+msgstr "Atrás"
 
 msgid "Edit Theme"
 msgstr "Editar tema"
@@ -283,9 +295,6 @@ msgstr "Importar tema"
 
 msgid "Save Theme"
 msgstr "Guardar tema"
-
-msgid "Back"
-msgstr "Atrás"
 
 msgid "Keyboard Shortcuts"
 msgstr "Atajos del teclado"
@@ -489,9 +498,6 @@ msgstr "¿Activar el horario?"
 #, rust-format
 msgid "Another timer that may change the theme is turned on: {units}. Two schedules would work against each other."
 msgstr "Hay activado otro temporizador que puede cambiar el tema: {units}. Dos horarios se estorbarían entre sí."
-
-msgid "_Cancel"
-msgstr "_Cancelar"
 
 msgid "_Turn On"
 msgstr "_Activar"
@@ -1499,11 +1505,11 @@ msgstr "Las copias de seguridad están en ~/.local/share/velatura/backups. Para 
 
 #, rust-format
 msgid "Nothing was undone: the backup {1} cannot be read, and it may hold the change to undo first. Moving that file out of the backups folder lets older changes be undone."
-msgstr"No se deshizo nada: la copia de seguridad {1} no se puede leer, y puede contener el cambio que hay que deshacer primero. Sacar ese archivo de la carpeta de copias de seguridad permite deshacer los cambios anteriores."
+msgstr "No se deshizo nada: la copia de seguridad {1} no se puede leer, y puede contener el cambio que hay que deshacer primero. Sacar ese archivo de la carpeta de copias de seguridad permite deshacer los cambios anteriores."
 
 #, rust-format
 msgid "Nothing was undone: the backup {1} names {2}, which is outside this home folder, so it was made for another one. Moving that file out of the backups folder lets older changes be undone."
-msgstr"No se deshizo nada: la copia de seguridad {1} nombra {2}, que está fuera de esta carpeta personal, así que se hizo para otra. Sacar ese archivo de la carpeta de copias de seguridad permite deshacer los cambios anteriores."
+msgstr "No se deshizo nada: la copia de seguridad {1} nombra {2}, que está fuera de esta carpeta personal, así que se hizo para otra. Sacar ese archivo de la carpeta de copias de seguridad permite deshacer los cambios anteriores."
 
 #, rust-format
 msgid "\"{1}\" is a theme that comes with Velatura and cannot be replaced or removed"
