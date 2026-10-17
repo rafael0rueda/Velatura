@@ -411,6 +411,10 @@ msgstr "En uso"
 msgid "{name}, {style}, in use"
 msgstr "{name}, {style}, en uso"
 
+#, rust-format
+msgid "More for {name}"
+msgstr "Más para {name}"
+
 msgid "De_tails"
 msgstr "De_talles"
 

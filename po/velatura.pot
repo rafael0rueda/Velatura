@@ -413,6 +413,10 @@ msgstr ""
 msgid "{name}, {style}, in use"
 msgstr ""
 
+#, rust-format
+msgid "More for {name}"
+msgstr ""
+
 msgid "De_tails"
 msgstr ""
 

@@ -958,7 +958,7 @@ fn theme_card(
     variant: &str,
     resolved: &Resolved<'_>,
     used: bool,
-) -> gtk::Button {
+) -> gtk::Widget {
     let name = resolved.colors.name.clone();
     let style = appearance_word(entry, variant);
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
@@ -969,7 +969,8 @@ fn theme_card(
         .margin_top(10)
         .margin_bottom(10)
         .margin_start(12)
-        .margin_end(12)
+        // Room for the menu button laid over the card's corner.
+        .margin_end(48)
         .build();
     let words = gtk::Box::builder()
         .orientation(gtk::Orientation::Vertical)
@@ -1029,8 +1030,26 @@ fn theme_card(
             glib::spawn_future_local(async move { apply_theme(&ui, spec.0, spec.1).await });
         }
     });
-    card_menu(&button, &spec_of(&entry.theme.id, variant), entry.bundled);
-    button
+    let spec = spec_of(&entry.theme.id, variant);
+    card_menu(&button, &spec, entry.bundled);
+    // The same menu, in sight: on the card, but not inside its button,
+    // which applies the theme.
+    let more = gtk::MenuButton::builder()
+        .icon_name("view-more-symbolic")
+        .menu_model(&theme_menu(&spec, entry.bundled))
+        .tooltip_text(tr("More"))
+        .halign(gtk::Align::End)
+        .valign(gtk::Align::End)
+        .margin_end(6)
+        .margin_bottom(9)
+        .css_classes(["flat", "circular"])
+        .build();
+    more.update_property(&[gtk::accessible::Property::Label(
+        &tr("More for {name}").replace("{name}", &name),
+    )]);
+    let card = gtk::Overlay::builder().child(&button).build();
+    card.add_overlay(&more);
+    card.upcast()
 }
 
 /// What else can be done with a theme, given its `theme/variant`.
@@ -1057,8 +1076,9 @@ fn theme_menu(spec: &str, bundled: bool) -> gio::Menu {
     menu
 }
 
-/// The menu of a theme's card, opened with the secondary button, a long
-/// press, or the Menu key or Shift+F10.
+/// The menu of a theme's card, opened from the card itself as well as its
+/// menu button: with the secondary button, a long press, or the Menu key
+/// or Shift+F10.
 fn card_menu(button: &gtk::Button, spec: &str, bundled: bool) {
     let menu = theme_menu(spec, bundled);
     let show = Rc::new(move |button: &gtk::Widget, at: Option<(f64, f64)>| {
