@@ -3325,6 +3325,11 @@ async fn troubleshooting(ui: &U) {
                 tr("Found at {path}. It can overwrite changes made here")
                     .replace("{path}", &velatura_text::path(path, &home)),
             ),
+            targets::OtherTool::PinnedColors { name, keys } => (
+                name.clone(),
+                tr("An extension with colors of its own in its settings ({keys}). They stay the same whatever theme is applied")
+                    .replace("{keys}", &keys.join(", ")),
+            ),
         };
         others.add(
             &adw::ActionRow::builder()

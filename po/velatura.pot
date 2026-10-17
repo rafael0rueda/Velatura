@@ -880,6 +880,10 @@ msgstr ""
 msgid "Found at {path}. It can overwrite changes made here"
 msgstr ""
 
+#, rust-format
+msgid "An extension with colors of its own in its settings ({keys}). They stay the same whatever theme is applied"
+msgstr ""
+
 msgid "None found"
 msgstr ""
 
@@ -1389,6 +1393,10 @@ msgstr ""
 
 #, rust-format
 msgid "Settings files may be managed by {1} ({2}). It can overwrite changes made here"
+msgstr ""
+
+#, rust-format
+msgid "The extension {1} keeps colors of its own in its settings ({2}). They stay the same whatever theme is applied"
 msgstr ""
 
 msgid "Scheduled switching is off"

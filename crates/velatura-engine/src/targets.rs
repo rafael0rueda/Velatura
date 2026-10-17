@@ -1796,10 +1796,15 @@ pub enum OtherTool {
     Timer { unit: String },
     /// A dotfile manager that may write over Velatura's changes.
     Dotfiles { name: &'static str, path: PathBuf },
+    /// An enabled Shell extension keeps a colour in its own settings, set
+    /// there rather than left at the extension's default, so it stays the
+    /// same whatever theme is applied. `keys` are the settings that hold one.
+    PinnedColors { name: String, keys: Vec<String> },
 }
 
 /// Look for other tools that theme the desktop or manage the same files.
-/// Presence only: nothing is run and nothing is read beyond file names.
+/// Nothing is run. Files are looked for by name; of Shell extensions, the
+/// ones turned on, their description and their settings are read.
 pub fn other_tools(host: &Host<'_>) -> Vec<OtherTool> {
     let d = host.dirs;
     let known: [(&'static str, PathBuf); 7] = [
@@ -1841,12 +1846,126 @@ pub fn other_tools(host: &Host<'_>) -> Vec<OtherTool> {
             found.push(OtherTool::Dotfiles { name, path });
         }
     }
+    found.extend(pinned_colors(host));
     found
+}
+
+/// Enabled Shell extensions with a colour set in their own settings, as a
+/// border or a highlight of their own. Only values that were set count: a
+/// colour left at the extension's default may well follow the accent.
+fn pinned_colors(host: &Host<'_>) -> Vec<OtherTool> {
+    let Ok(Some(enabled)) = host.settings.read("org.gnome.shell", "enabled-extensions") else {
+        return Vec::new();
+    };
+    let mut dirs = vec![host.dirs.data.clone()];
+    dirs.extend(["/usr/local/share", "/usr/share"].map(PathBuf::from));
+    let mut found = Vec::new();
+    for uuid in listed(&enabled.effective) {
+        if uuid == crate::companion::UUID || uuid.contains('/') {
+            continue;
+        }
+        let Some(dir) = dirs
+            .iter()
+            .map(|d| d.join("gnome-shell/extensions").join(uuid))
+            .find(|d| exists(host, &d.join("metadata.json")))
+        else {
+            continue;
+        };
+        let Some(meta) = crate::icon_set::read_capped(host, &dir.join("metadata.json"), 64 * 1024)
+            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+        else {
+            continue;
+        };
+        let Some(id) = meta
+            .get("settings-schema")
+            .and_then(serde_json::Value::as_str)
+            .filter(|id| {
+                id.bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+            })
+        else {
+            continue;
+        };
+        let local = dir.join("schemas");
+        let schema = if exists(host, &local.join("gschemas.compiled")) {
+            format!("{id}@{}", local.display())
+        } else {
+            id.to_owned()
+        };
+        let mut keys: Vec<String> = host
+            .settings
+            .keys(&schema)
+            .into_iter()
+            .filter(|key| {
+                matches!(host.settings.read(&schema, key),
+                    Ok(Some(s)) if s.user.as_deref().is_some_and(is_color))
+            })
+            .collect();
+        keys.sort();
+        keys.truncate(8);
+        if !keys.is_empty() {
+            let name = meta
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or(uuid)
+                .to_owned();
+            found.push(OtherTool::PinnedColors { name, keys });
+        }
+    }
+    found
+}
+
+/// A setting's value that is a colour as extensions write them: `#rgb`,
+/// `#rrggbb` (with alpha too), `rgb(…)` or `rgba(…)`.
+fn is_color(value: &str) -> bool {
+    let v = value.trim().trim_matches(['\'', '"']).trim();
+    if let Some(hex) = v.strip_prefix('#') {
+        return matches!(hex.len(), 3 | 4 | 6 | 8) && hex.bytes().all(|b| b.is_ascii_hexdigit());
+    }
+    let inner = v
+        .strip_prefix("rgba(")
+        .or_else(|| v.strip_prefix("rgb("))
+        .and_then(|rest| rest.strip_suffix(')'));
+    inner.is_some_and(|args| {
+        let parts: Vec<&str> = args.split(',').map(str::trim).collect();
+        matches!(parts.len(), 3 | 4)
+            && parts.iter().all(|p| {
+                !p.is_empty()
+                    && p.bytes()
+                        .all(|b| b.is_ascii_digit() || b == b'.' || b == b'%')
+            })
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::colors_shell;
+    use super::{colors_shell, is_color};
+
+    #[test]
+    fn colours_are_told_from_other_values() {
+        for yes in [
+            "#8493d8",
+            "#FFF",
+            "#11223344",
+            "rgba(132, 147, 216, 1)",
+            "rgb(145,65,172)",
+            "'#abcdef'",
+        ] {
+            assert!(is_color(yes), "{yes}");
+        }
+        for no in [
+            "auto",
+            "auto-solid",
+            "",
+            "#12345",
+            "rgba(1, 2)",
+            "rgb(a, b, c)",
+            "4",
+            "true",
+        ] {
+            assert!(!is_color(no), "{no}");
+        }
+    }
 
     #[test]
     fn only_rules_that_start_on_a_shell_surface_and_set_a_colour_count() {

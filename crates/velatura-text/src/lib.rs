@@ -674,6 +674,11 @@ pub fn other_tool(tool: &OtherTool, home: &Path) -> String {
             name,
             path(p, home)
         ),
+        OtherTool::PinnedColors { name, keys } => tf!(
+            "The extension {1} keeps colors of its own in its settings ({2}). They stay the same whatever theme is applied",
+            clean_text(name, 80),
+            clean_text(&keys.join(", "), 300)
+        ),
     }
 }
 

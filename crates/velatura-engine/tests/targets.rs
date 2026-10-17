@@ -488,6 +488,84 @@ fn other_theming_tools_are_found_by_what_they_leave_behind() {
 }
 
 #[test]
+fn extensions_with_a_colour_set_in_their_settings_are_found() {
+    let home = Home::full();
+    let schema = |uuid: &str| {
+        format!(
+            "org.test.{uuid}@{}",
+            home.path(&format!(
+                ".local/share/gnome-shell/extensions/{uuid}/schemas"
+            ))
+            .display()
+        )
+    };
+    for uuid in [
+        "borders",
+        "hint",
+        "plain",
+        "off",
+        "velatura@rafael0rueda.github.io",
+    ] {
+        let dir = format!(".local/share/gnome-shell/extensions/{uuid}");
+        home.write(
+            &format!("{dir}/metadata.json"),
+            &format!("{{\"uuid\": \"{uuid}\", \"name\": \"Ext {uuid}\", \"settings-schema\": \"org.test.{uuid}\"}}"),
+        );
+        home.write(&format!("{dir}/schemas/gschemas.compiled"), "");
+    }
+    let (b, h, p, o, v) = (
+        schema("borders"),
+        schema("hint"),
+        schema("plain"),
+        schema("off"),
+        schema("velatura@rafael0rueda.github.io"),
+    );
+    let settings = MemSettings::new(&[
+        (
+            "org.gnome.shell",
+            "enabled-extensions",
+            "['borders', 'hint', 'plain', 'velatura@rafael0rueda.github.io']",
+        ),
+        (&b, "active-color", "auto"),
+        (&b, "inactive-color", "rgba(102, 102, 102, 0.2)"),
+        (&b, "width", "4"),
+        (&h, "hint-color", "rgb(145,65,172)"),
+        (&p, "mode", "auto"),
+        (&o, "color", "#000000"),
+        (&v, "color", "#000000"),
+    ]);
+    // Set by someone: P7 Borders' border, a hint's colour; a width and a
+    // mode are not colours; a colour left at its default is not counted.
+    settings
+        .write(&b, "active-color", Some("rgba(132, 147, 216, 1)"))
+        .unwrap();
+    settings.write(&b, "width", Some("2")).unwrap();
+    settings.write(&h, "hint-color", Some("#9141ac")).unwrap();
+    settings.write(&p, "mode", Some("manual")).unwrap();
+    // Not turned on, and Velatura's own: left out.
+    settings.write(&o, "color", Some("#ff0000")).unwrap();
+    settings.write(&v, "color", Some("#ff0000")).unwrap();
+    let host = home.host(&StdFs, &settings);
+    let pinned: Vec<_> = targets::other_tools(&host)
+        .into_iter()
+        .filter(|t| matches!(t, OtherTool::PinnedColors { .. }))
+        .collect();
+    assert_eq!(
+        pinned,
+        [
+            OtherTool::PinnedColors {
+                name: "Ext borders".to_owned(),
+                keys: vec!["active-color".to_owned()],
+            },
+            OtherTool::PinnedColors {
+                name: "Ext hint".to_owned(),
+                keys: vec!["hint-color".to_owned()],
+            },
+        ]
+    );
+}
+
+#[test]
 fn day_and_night_choices_are_kept_in_a_file_a_person_can_edit() {
     use velatura_engine::store::{DayNight, is_theme_spec};
     let home = Home::full();
