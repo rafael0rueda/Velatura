@@ -43,6 +43,12 @@ const UPS_CLASS = 'velatura-ups';
 const NUT_HOST = 'localhost';
 const NUT_PORT = 3493;
 const POLL_SECONDS = 5;
+// A reading may take this long and send this much, many times what a UPS
+// with every variable NUT knows needs, and is given up past either. Each
+// read of the socket has its own limit too, but one byte at a time would
+// keep that from ever running out.
+const NUT_DEADLINE_MS = 3000;
+const NUT_MAX_BYTES = 64 * 1024;
 
 // GNOME 48 gave St.BoxLayout an orientation in place of `vertical`.
 const VERTICAL = GObject.Object.find_property.call(St.BoxLayout, 'orientation')
@@ -50,8 +56,7 @@ const VERTICAL = GObject.Object.find_property.call(St.BoxLayout, 'orientation')
 
 Gio._promisify(Gio.SocketClient.prototype, 'connect_to_host_async');
 Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
-// As the Shell itself does: the line comes as bytes.
-Gio._promisify(Gio.DataInputStream.prototype, 'read_line_async');
+Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
 
 const OUTLINED = [
     Meta.WindowType.NORMAL,
@@ -257,16 +262,67 @@ function words(line) {
     return out;
 }
 
+// The lines NUT sends, read in pieces so that nothing it sends, one
+// endless line included, is held past NUT_MAX_BYTES.
+class Lines {
+    constructor(stream, cancellable) {
+        this._stream = stream;
+        this._cancellable = cancellable;
+        this._buffer = new Uint8Array(0);
+        this._total = 0;
+    }
+
+    // The next line without its line ending, or null at the end.
+    async next() {
+        for (;;) {
+            const end = this._buffer.indexOf(10);
+            if (end >= 0) {
+                const line = this._buffer.subarray(0, end);
+                this._buffer = this._buffer.slice(end + 1);
+                return new TextDecoder().decode(line).replace(/\r$/, '');
+            }
+            if (this._total > NUT_MAX_BYTES)
+                throw new Error('NUT answered too much');
+            const bytes = await this._stream.read_bytes_async(4096, GLib.PRIORITY_DEFAULT,
+                this._cancellable);
+            const piece = bytes.toArray();
+            if (piece.length === 0)
+                return null;
+            this._total += piece.length;
+            const joined = new Uint8Array(this._buffer.length + piece.length);
+            joined.set(this._buffer);
+            joined.set(piece, this._buffer.length);
+            this._buffer = joined;
+        }
+    }
+}
+
 // What NUT says of the first UPS it lists, as name to value, or null if
-// there is none. One connection per reading, closed at the end.
+// there is none. One connection per reading, closed at the end; the
+// reading is cancelled with `cancellable`, or past NUT_DEADLINE_MS.
 async function readUps(cancellable) {
+    const reading = new Gio.Cancellable();
+    // g_cancellable_connect(): called at once if already cancelled.
+    const linked = cancellable.connect(() => reading.cancel());
+    let deadline = GLib.timeout_add(GLib.PRIORITY_DEFAULT, NUT_DEADLINE_MS, () => {
+        deadline = 0;
+        reading.cancel();
+        return GLib.SOURCE_REMOVE;
+    });
+    try {
+        return await askUps(reading);
+    } finally {
+        if (deadline)
+            GLib.source_remove(deadline);
+        cancellable.disconnect(linked);
+    }
+}
+
+async function askUps(cancellable) {
     const client = new Gio.SocketClient({timeout: 3});
     const connection = await client.connect_to_host_async(NUT_HOST, NUT_PORT, cancellable);
     try {
-        const input = new Gio.DataInputStream({
-            base_stream: connection.get_input_stream(),
-            newline_type: Gio.DataStreamNewlineType.ANY,
-        });
+        const input = new Lines(connection.get_input_stream(), cancellable);
         const output = connection.get_output_stream();
         // One question, and the lines of its answer up to its END line.
         const ask = async question => {
@@ -274,10 +330,9 @@ async function readUps(cancellable) {
                 GLib.PRIORITY_DEFAULT, cancellable);
             const lines = [];
             for (;;) {
-                const [bytes] = await input.read_line_async(GLib.PRIORITY_DEFAULT, cancellable);
-                if (bytes === null)
+                const line = await input.next();
+                if (line === null)
                     throw new Error('NUT closed the connection');
-                const line = new TextDecoder().decode(bytes);
                 if (line.startsWith('ERR '))
                     throw new Error(`NUT answered ${line}`);
                 if (line.startsWith('END '))
@@ -363,6 +418,12 @@ class UpsIndicator extends PanelMenu.Button {
             this._poll();
             return GLib.SOURCE_CONTINUE;
         });
+        // However it is destroyed, by the extension or along with the panel.
+        this.connect('destroy', () => {
+            GLib.source_remove(this._timer);
+            this._timer = 0;
+            this._cancel.cancel();
+        });
     }
 
     async _poll() {
@@ -372,9 +433,8 @@ class UpsIndicator extends PanelMenu.Button {
         let vars = null;
         try {
             vars = await readUps(this._cancel);
-        } catch (e) {
-            if (e.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
-                return;
+        } catch {
+            // Not there, not answering in time, or not making sense: hidden.
         } finally {
             this._busy = false;
         }
@@ -412,13 +472,6 @@ class UpsIndicator extends PanelMenu.Button {
         this._battery.text = v['battery.charge'] ? `${v['battery.charge']}%` : '—';
         this._runtime.text = v['battery.runtime'] ? formatRuntime(Number(v['battery.runtime'])) : '—';
         this._input.text = v['input.voltage'] ? `${v['input.voltage']} V` : '—';
-    }
-
-    destroy() {
-        GLib.source_remove(this._timer);
-        this._timer = 0;
-        this._cancel.cancel();
-        super.destroy();
     }
 });
 
