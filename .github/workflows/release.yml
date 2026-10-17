@@ -1,7 +1,8 @@
 name: release
 
-# A tag v<version> publishes a release. On a pull request that changes how
-# a release is made, everything is built and checked, and nothing is
+# A tag v<version> on main publishes a release, once the gate has passed
+# in the very build that makes it. On a pull request that changes how a
+# release is made, everything is checked and built, and nothing is
 # published.
 on:
   push:
@@ -23,23 +24,36 @@ jobs:
   # programs also run on every newer one.
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container: fedora:41
     steps:
       - name: Install git
         # Before the checkout, so the same tries as scripts/ci-install.sh.
         run: for try in 1 2 3; do timeout 10m dnf install -y --setopt=install_weak_deps=False git && exit 0; dnf clean metadata || true; done; exit 1
       - uses: actions/checkout@v4
-      - name: Install tools
-        run: |
-          scripts/ci-install.sh gcc pkgconf-pkg-config glib2-devel \
-            gtk4-devel libadwaita-devel python3 desktop-file-utils tar gzip rustup
-          rustup-init -y -q --profile minimal
-      - name: The tag names the version being released
+        with:
+          # All of main's history, to tell whether the tag is on it.
+          fetch-depth: 0
+      - name: The tag names the version being released, on main
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
           [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "the tag is $GITHUB_REF_NAME, Cargo.toml says $version"; exit 1; }
+          git config --global --add safe.directory "$PWD"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main ||
+            { echo "the tag $GITHUB_REF_NAME is not on main"; exit 1; }
+      # What check-older installs on this image, and what packing needs.
+      - name: Install tools
+        run: |
+          scripts/ci-install.sh $(cat scripts/ci-packages.txt scripts/ci-packages-desktop.txt) tar gzip rustup
+          rustup-init -y -q --profile minimal --component clippy,rustfmt
+      # The whole gate, with the toolchain the release is then built with:
+      # what is published is what was checked.
+      - name: Gate
+        run: |
+          . "$HOME/.cargo/env"
+          VELATURA_CI=1 scripts/check.sh
       - name: Build
         run: |
           . "$HOME/.cargo/env"
