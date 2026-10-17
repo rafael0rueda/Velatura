@@ -93,6 +93,7 @@ pub fn plan_apply(
 ) -> Result<Plan, Error> {
     let state = State::load(host)?;
     let prefs = Prefs::load(host)?;
+    let ledger = Ledger::load(host)?;
     // The style leads and the theme follows: writing the style here
     // would have the two chase each other.
     let opts = &ApplyOpts {
@@ -109,27 +110,29 @@ pub fn plan_apply(
         };
         wanted && !matches(instance, &opts.except)
     };
+    // Turned off, a part is taken away at the next apply by hand, or it
+    // would keep the colors of the theme applied last. Not by the
+    // schedule, with no one there; not when parts are named for one apply,
+    // or left out of this one only.
+    let take_away = |instance: &str| {
+        if opts.only.is_empty() && !matches(instance, &opts.except) && !opts.unattended {
+            crate::off::plan_part_off(instance, host, env, theme, &state, &ledger)
+        } else {
+            Ok(TargetPlan::skip(instance, Skip::NotSelected))
+        }
+    };
     for instance in targets::INSTANCES {
         plans.push(if selected(instance) {
             targets::plan(instance, host, env, theme, &state, opts)
-        } else if targets::TAKEN_AWAY_WHEN_OFF.contains(&instance)
-            && opts.only.is_empty()
-            && !matches(instance, &opts.except)
-            && !opts.unattended
-        {
-            // Turned off: the outline, the top bar's style or the UPS goes
-            // at the next apply by hand, or a switch would leave it on screen
-            // with no way to take it away.
-            targets::plan_sheet_off(instance, host, &state)
         } else {
-            TargetPlan::skip(instance, Skip::NotSelected)
+            take_away(instance)?
         });
     }
     // The user's templates come after every built-in part.
     for (id, entry) in templates::load(host) {
         let instance = format!("{}{id}", templates::PREFIX);
         plans.push(match entry {
-            _ if !selected(&instance) => TargetPlan::skip(&instance, Skip::NotSelected),
+            _ if !selected(&instance) => take_away(&instance)?,
             Ok(entry) => {
                 templates::plan_template(host, theme, &state, opts.replace_changed, &entry)
             }
@@ -171,7 +174,7 @@ pub fn plan_apply(
 /// Take what Velatura added out of the file as it is now, keeping
 /// everything else. `added` is what was put in, for a span that has no
 /// markers to find it by.
-fn unblock(
+pub(crate) fn unblock(
     host: &Host<'_>,
     path: &str,
     target: &str,
@@ -451,6 +454,51 @@ pub fn plan_undo(host: &Host<'_>) -> Result<Plan, Error> {
     })
 }
 
+/// Take away a file of Velatura's that still holds what was `written`.
+pub(crate) fn take_owned(
+    host: &Host<'_>,
+    path: &str,
+    written: &str,
+    out: &mut TargetPlan,
+) -> Result<(), Error> {
+    let file = PathBuf::from(path);
+    match hash_opt(io(read_opt(host, &file))?.as_deref()) {
+        None => {}
+        Some(now) if now == written => out.changes.push(Change::Owned {
+            path: file,
+            content: None,
+            pre: Some(now),
+        }),
+        Some(_) => out.notes.push(Note::KeptFile { path: file }),
+    }
+    Ok(())
+}
+
+/// Put a setting Velatura wrote back to what the ledger recorded, if it
+/// still holds what was `written`.
+pub(crate) fn take_setting(
+    host: &Host<'_>,
+    id: &str,
+    written: &Option<String>,
+    ledger: &Ledger,
+    out: &mut TargetPlan,
+) {
+    let Some((schema, key)) = id.rsplit_once(' ') else {
+        return;
+    };
+    let original = ledger.settings.get(id).and_then(|(_, was)| was.clone());
+    match current_setting(host, schema, key) {
+        Some(now) if now == original => {}
+        Some(now) if now == *written => out.changes.push(Change::Setting {
+            schema: schema.to_owned(),
+            key: key.to_owned(),
+            value: original,
+            pre: now,
+        }),
+        _ => out.notes.push(kept_setting(host, schema, key, &original)),
+    }
+}
+
 /// What removing everything Velatura added would do: its files, its blocks,
 /// and the settings it wrote put back to what the ledger recorded. Reads only.
 pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
@@ -458,16 +506,7 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
     let ledger = Ledger::load(host)?;
     let mut out = TargetPlan::new("");
     for (path, written) in &state.owned {
-        let file = PathBuf::from(path);
-        match hash_opt(io(read_opt(host, &file))?.as_deref()) {
-            None => {}
-            Some(now) if now == *written => out.changes.push(Change::Owned {
-                path: file,
-                content: None,
-                pre: Some(now),
-            }),
-            Some(_) => out.notes.push(Note::KeptFile { path: file }),
-        }
+        take_owned(host, path, written, &mut out)?;
     }
     for (path, record) in &state.blocks {
         unblock(
@@ -485,20 +524,7 @@ pub fn plan_restore_original(host: &Host<'_>) -> Result<Plan, Error> {
         });
     }
     for (id, written) in &state.settings {
-        let Some((schema, key)) = id.rsplit_once(' ') else {
-            continue;
-        };
-        let original = ledger.settings.get(id).and_then(|(_, was)| was.clone());
-        match current_setting(host, schema, key) {
-            Some(now) if now == original => {}
-            Some(now) if now == *written => out.changes.push(Change::Setting {
-                schema: schema.to_owned(),
-                key: key.to_owned(),
-                value: original,
-                pre: now,
-            }),
-            _ => out.notes.push(kept_setting(host, schema, key, &original)),
-        }
+        take_setting(host, id, written, &ledger, &mut out);
     }
     Ok(Plan {
         cause: Cause::RestoreOriginal,
@@ -740,8 +766,8 @@ fn next_id(host: &Host<'_>) -> Result<u64, Error> {
     Ok(max + 1)
 }
 
-/// Turn an instance on or off for future applies. What is already applied
-/// to it stays until the next apply or undo.
+/// Turn an instance on or off for future applies. Turned off, what is
+/// applied to it stays until the next apply by hand, which takes it away.
 pub fn set_included(host: &Host<'_>, instance: &str, included: bool) -> Result<(), Error> {
     let mut prefs = Prefs::load(host)?;
     let changed = match (targets::OPT_IN.contains(&instance), included) {
@@ -917,6 +943,8 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
         return Vec::new();
     };
     let off = excluded(host).unwrap_or_default();
+    let held = State::load(host).unwrap_or_default();
+    let ledger = Ledger::load(host).unwrap_or_default();
     let mut out = Vec::new();
     for t in &plan.targets {
         let instance = t.instance.clone();
@@ -931,7 +959,13 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
                     | Note::NeovimOtherScheme { .. }
             )
         });
+        // Turned off and still holding something of Velatura's, from this
+        // theme or one before: the next apply by hand takes it away.
+        let leftover = !included
+            && crate::off::plan_part_off(&instance, host, env, &resolved, &held, &ledger)
+                .is_ok_and(|p| !p.changes.is_empty());
         let state = match (&t.skipped, shadow) {
+            _ if leftover => PartState::Themed,
             (Some(why), _) => PartState::Unavailable(why.clone()),
             (None, Some(note)) if applied.is_some() => PartState::Shadowed(note.clone()),
             (None, _) if t.changes.is_empty() && applied.is_some() => PartState::Themed,

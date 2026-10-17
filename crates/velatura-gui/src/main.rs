@@ -2547,10 +2547,8 @@ fn part_row(
     // name only says what the switch cannot.
     let subtitle = match &row.state {
         RowState::Themed if row.included => None,
-        RowState::Themed if targets::TAKEN_AWAY_WHEN_OFF.contains(&row.instance.as_str()) => {
-            Some(tr("Taken away at the next apply"))
-        }
-        RowState::Themed => Some(tr("Themed, and left out of the next apply")),
+        // Turned off, with Velatura's colors still on it.
+        RowState::Themed => Some(tr("Taken away at the next apply")),
         RowState::Ready if row.included => Some(tr("Included in the next apply")),
         // Off until turned on, so the row says what turning on does.
         RowState::Ready if row.instance == targets::ICONS => Some(tr(
@@ -3131,16 +3129,14 @@ async fn remove_all(ui: &U) {
 
 /// The display name for a stored `theme/variant`, or the label itself if
 /// that theme is no longer in the library.
-/// A part turned on and not applied yet, or the window outline or top bar
-/// style turned off while it is still there: the next apply of the theme
-/// in use changes something.
+/// A part turned on and not applied yet, or turned off while Velatura's
+/// colors are still on it: the next apply of the theme in use changes
+/// something.
 fn pending(snap: &Snapshot) -> bool {
     snap.applied.is_some()
         && snap.rows.iter().any(|r| match r.state {
             RowState::Ready => r.included,
-            RowState::Themed => {
-                !r.included && targets::TAKEN_AWAY_WHEN_OFF.contains(&r.instance.as_str())
-            }
+            RowState::Themed => !r.included,
             _ => false,
         })
 }

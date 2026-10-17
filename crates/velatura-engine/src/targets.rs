@@ -69,10 +69,11 @@ pub const INSTANCES: [&str; 18] = [
 /// change more than colours, or use a way in that is not supported.
 pub const OPT_IN: [&str; 7] = [FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, UPS, OUTLINE];
 
-/// Parts whose output is taken away at the next apply by hand once they
-/// are turned off: left in place, it would stay on screen with no way to
-/// take it away but undo.
-pub const TAKEN_AWAY_WHEN_OFF: [&str; 3] = [TOP_BAR, UPS, OUTLINE];
+/// Parts that are one stylesheet only Velatura's extension shows. Like
+/// every part turned off, they are taken away at the next apply by hand
+/// (see [`crate::off`]); theirs is found by its place even while the
+/// extension is off.
+pub const SHEETS: [&str; 3] = [TOP_BAR, UPS, OUTLINE];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1590,7 +1591,7 @@ fn plan_extension_sheet(
     plan
 }
 
-/// A part of [`TAKEN_AWAY_WHEN_OFF`] taken away, once it is turned off:
+/// A part of [`SHEETS`] taken away, once it is turned off:
 /// its stylesheet goes, and with it what the extension shows. Nothing
 /// else of the Shell's.
 pub fn plan_sheet_off(instance: &str, host: &Host<'_>, state: &State) -> TargetPlan {

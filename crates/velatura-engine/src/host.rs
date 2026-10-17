@@ -215,6 +215,8 @@ pub struct SettingState {
     pub user: Option<String>,
     /// The value in effect: the user's, or the default.
     pub effective: String,
+    /// The value in effect while the user has set none.
+    pub default: String,
     pub writable: bool,
 }
 
@@ -306,6 +308,7 @@ impl Settings for MemSettings {
         let user = self.user.borrow().get(&id).cloned();
         Ok(Some(SettingState {
             effective: user.clone().unwrap_or_else(|| default.clone()),
+            default: default.clone(),
             user,
             writable: !self.locked.borrow().contains(&id),
         }))

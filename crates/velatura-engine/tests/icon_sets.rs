@@ -484,3 +484,29 @@ fn pictures_are_recolored_pixel_by_pixel_and_undone() {
     assert_eq!(home.snapshot(), start);
     assert_eq!(icon_theme(&s), "Frosty");
 }
+
+#[test]
+fn turned_off_the_icon_theme_goes_back_to_the_one_before_at_the_next_apply() {
+    let t = bundled::themes();
+    let home = Home::new();
+    let s = settings("Mini");
+    let host = home.host(&StdFs, &s);
+    let by_hand = |theme: &Theme| {
+        let resolved = Resolved::new(theme, None).unwrap();
+        let p = engine::plan_apply(&host, &env, &resolved, &ApplyOpts::default()).unwrap();
+        engine::execute(&host, &p, &[]).unwrap()
+    };
+    engine::set_included(&host, ICONS, true).unwrap();
+    by_hand(&t[1]);
+    let name = icon_theme(&s);
+    assert!(name.starts_with("Velatura-mini-"), "{name}");
+
+    engine::set_included(&host, ICONS, false).unwrap();
+    by_hand(&t[0]);
+    assert_eq!(icon_theme(&s), "Mini");
+    // The set stays among the recent ones, hidden, to be used again.
+    assert!(home.icons().join(&name).join("index.theme").exists());
+
+    undo(&host);
+    assert_eq!(icon_theme(&s), name);
+}

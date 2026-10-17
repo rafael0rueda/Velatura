@@ -670,9 +670,6 @@ msgstr ""
 msgid "Taken away at the next apply"
 msgstr ""
 
-msgid "Themed, and left out of the next apply"
-msgstr ""
-
 msgid "Included in the next apply"
 msgstr ""
 

@@ -487,10 +487,11 @@ fn look_and_flatpak_from_the_command() {
         fs::read_to_string(&overrides).unwrap(),
         "[Context]\nfilesystems=home;xdg-config/gtk-3.0:ro;xdg-config/gtk-4.0:ro;\n"
     );
-    // Left out of an ordinary apply until turned on.
+    // Named for one apply only: off until turned on, so the next ordinary
+    // apply takes it away again.
     let (_, out, _) = sb.velatura(&["status"]);
     assert!(
-        out.contains("Flatpak Apps: themed, and left out of the next apply"),
+        out.contains("Flatpak Apps: turned off, and taken away at the next apply"),
         "{out}"
     );
     assert_eq!(sb.velatura(&["undo"]).0, 0);
