@@ -810,9 +810,10 @@ pub fn is_scheduled(m: &Manifest) -> bool {
 /// Drop backups older than the newest [`KEEP`] changes the user made, and
 /// the blobs nothing refers to any more. Backups of scheduled switches do
 /// not count towards the number and go with the change they follow. The
-/// ledger and what it refers to are never dropped.
+/// ledger and what it refers to are never dropped. Nor is any blob while a
+/// backup cannot be read: it may be the only copy of what that backup needs.
 pub fn prune(host: &Host<'_>) -> io::Result<()> {
-    let (all, _) = manifests(host)?;
+    let (all, bad) = manifests(host)?;
     let ledger = Ledger::load(host).unwrap_or_default();
     let drop = all
         .iter()
@@ -823,6 +824,9 @@ pub fn prune(host: &Host<'_>) -> io::Result<()> {
         .map_or(0, |(i, _)| i);
     for m in &all[..drop] {
         host.fs.remove_file(&Manifest::path(host, m.id))?;
+    }
+    if !bad.is_empty() {
+        return Ok(());
     }
     let mut live: BTreeSet<&String> = all[drop..].iter().flat_map(Manifest::blobs).collect();
     live.extend(ledger.files.values().filter_map(|(_, was)| was.as_ref()));

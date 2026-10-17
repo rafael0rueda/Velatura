@@ -335,6 +335,71 @@ fn what_the_user_wrote_since_is_kept_by_undo() {
 }
 
 #[test]
+fn undo_leaves_a_block_the_user_took_out_or_changed_since() {
+    let t = bundled::themes();
+    let kept = |report: &Report| {
+        report
+            .notes
+            .iter()
+            .any(|(_, n)| matches!(n, Note::KeptFile { path } if path.ends_with("starship.toml")))
+    };
+    // A line of the user's inside Velatura's block.
+    fn mine(s: &str) -> String {
+        s.replace("# <<< velatura starship", "# mine\n# <<< velatura starship")
+    }
+
+    // Each case: the starship file after the two themes, as the user left
+    // it, and the file undo must leave.
+    type Edit = fn(&str) -> Option<String>;
+    let cases: [(&str, Edit); 3] = [
+        ("taken out", |_| Some(STARSHIP_TOML.to_owned())),
+        ("file removed", |_| None),
+        ("changed", |s| Some(mine(s))),
+    ];
+    for (case, edit) in cases {
+        let home = Home::full();
+        let settings = MemSettings::gnome();
+        let host = home.host(&StdFs, &settings);
+        apply(&host, &t[0]);
+        apply(&host, &t[1]);
+        let after = home.read(".config/starship.toml");
+        let edited = edit(&after);
+        match &edited {
+            Some(s) => home.write(".config/starship.toml", s),
+            None => fs::remove_file(home.path(".config/starship.toml")).unwrap(),
+        }
+        let report = undo(&host);
+        let now = fs::read_to_string(home.path(".config/starship.toml")).ok();
+        assert_eq!(now, edited, "{case}");
+        assert!(kept(&report), "{case}");
+    }
+
+    // The first theme's block, changed by hand, is not taken out either.
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    apply(&host, &t[0]);
+    let edited = mine(&home.read(".config/starship.toml"));
+    home.write(".config/starship.toml", &edited);
+    let report = undo(&host);
+    assert_eq!(home.read(".config/starship.toml"), edited);
+    assert!(kept(&report));
+
+    // Unchanged, it still goes back to the first theme's, and then away.
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    apply(&host, &t[0]);
+    let first = home.read(".config/starship.toml");
+    apply(&host, &t[1]);
+    assert_ne!(home.read(".config/starship.toml"), first);
+    undo(&host);
+    assert_eq!(home.read(".config/starship.toml"), first);
+    undo(&host);
+    assert_eq!(home.read(".config/starship.toml"), STARSHIP_TOML);
+}
+
+#[test]
 fn apps_that_are_not_there_are_left_out_and_found_by_their_program() {
     let t = bundled::themes();
     let home = Home::empty();

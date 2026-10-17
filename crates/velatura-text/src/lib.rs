@@ -834,6 +834,25 @@ pub fn failure(f: &Failure) -> String {
     }
 }
 
+/// Why an undo was refused before anything was changed: a backup in the
+/// way that cannot be trusted. `None` for any other error.
+pub fn backup_refused(e: &velatura_engine::engine::Error) -> Option<String> {
+    use velatura_engine::engine::Error;
+    let shown = |p: &Path| clean_text(&p.to_string_lossy(), 400);
+    match e {
+        Error::UnreadableBackup(backup) => Some(tf!(
+            "Nothing was undone: the backup {1} cannot be read, and it may hold the change to undo first. Moving that file out of the backups folder lets older changes be undone.",
+            shown(backup)
+        )),
+        Error::ForeignBackup { backup, names } => Some(tf!(
+            "Nothing was undone: the backup {1} names {2}, which is outside this home folder, so it was made for another one. Moving that file out of the backups folder lets older changes be undone.",
+            shown(backup),
+            shown(names)
+        )),
+        _ => None,
+    }
+}
+
 /// Why a theme was not saved, imported, exported or removed.
 pub fn library_refused(why: &LibraryRefused, home: &Path) -> String {
     match why {

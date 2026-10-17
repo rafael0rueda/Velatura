@@ -247,6 +247,9 @@ impl From<Error> for Exit {
                 "Another Velatura is making changes. Try again in a moment.".to_owned(),
             ),
             Error::NothingToUndo => (FAILED, "There is nothing to undo.".to_owned()),
+            Error::UnreadableBackup(_) | Error::ForeignBackup { .. } => {
+                (FAILED, text::backup_refused(&e).unwrap_or_default())
+            }
             Error::Io(why) => (FAILED, clean_text(&why, 300)),
             Error::Store(e) => (
                 FAILED,
