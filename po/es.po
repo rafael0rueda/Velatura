@@ -668,9 +668,6 @@ msgstr "No se revirtió del todo"
 msgid "Taken away at the next apply"
 msgstr "Se quita en la próxima aplicación"
 
-msgid "Themed, and left out of the next apply"
-msgstr "Con el tema, y fuera de la próxima aplicación"
-
 msgid "Included in the next apply"
 msgstr "Incluido en la próxima aplicación"
 
@@ -1565,3 +1562,4 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
+

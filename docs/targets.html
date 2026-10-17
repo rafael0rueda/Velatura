@@ -23,6 +23,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <h1>Theming targets and how each is applied</h1>
 <p class="lead">Revision 2, corrected after the platform review. <span class="tag ok">Official</span> uses a documented, supported mechanism. <span class="tag wa">Workaround</span> works today but is not promised by the upstream project and can break on an update. <span class="tag no">Not feasible</span> cannot be done within the project's rules. Results of the Phase 0 experiments are in <a href="spikes.html">Spike results</a>.</p>
 
+<p>Every part on Apps &amp; Desktop has a switch. Turned off, a part is left out of later applies, and the next apply by hand takes away what Velatura put there: its files, its line in the app's own settings file, the folders it made once empty, and the settings it wrote, back to what they were before Velatura. Changes made to those files since are kept. Recoloured icon and cursor sets stay, hidden, among the recent ones. A scheduled switch takes nothing away, and neither does an apply that names parts with <code>--only</code> or leaves some out with <code>--except</code>. Undo brings a part back (<a href="decisions.html#d78">D78</a>).</p>
+
 <h2 id="summary">1. Summary</h2>
 <div class="wrap"><table>
 <tr><th>Target</th><th>Mechanism</th><th>Class</th><th>Takes effect</th><th>Phase</th></tr>

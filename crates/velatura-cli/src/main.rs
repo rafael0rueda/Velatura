@@ -694,7 +694,7 @@ impl Cx<'_> {
         for part in &parts {
             let state = match &part.state {
                 PartState::Themed if part.included => "themed".to_owned(),
-                PartState::Themed => "themed, and left out of the next apply".to_owned(),
+                PartState::Themed => "turned off, and taken away at the next apply".to_owned(),
                 PartState::Ready if part.included => "included in the next apply".to_owned(),
                 PartState::Ready => "left out".to_owned(),
                 PartState::Shadowed(note) => format!(

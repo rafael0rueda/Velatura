@@ -113,6 +113,7 @@ impl Settings for GioSettings {
         if let Some(name) = schema.strip_prefix("dbus:") {
             return Ok(bus_property(name, key).map(|effective| SettingState {
                 user: None,
+                default: effective.clone(),
                 effective,
                 writable: false,
             }));
@@ -127,6 +128,9 @@ impl Settings for GioSettings {
         let effective = text(settings.value(key));
         Ok(Some(SettingState {
             user: settings.user_value(key).map(text),
+            default: settings
+                .default_value(key)
+                .map_or_else(|| effective.clone(), text),
             effective,
             writable: settings.is_writable(key),
         }))

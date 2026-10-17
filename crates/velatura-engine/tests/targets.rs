@@ -766,6 +766,109 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
 }
 
 #[test]
+fn a_part_turned_off_is_taken_away_at_the_next_apply_by_hand() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let start = home.user_files();
+    let appearance = |s: &MemSettings| {
+        s.snapshot()
+            .into_iter()
+            .filter(|((schema, key), _)| {
+                schema == INTERFACE_SCHEMA
+                    && ["color-scheme", "accent-color"].contains(&key.as_str())
+            })
+            .count()
+    };
+    apply(&host, &t[0]);
+    let first = home.user_files();
+    assert!(
+        home.read(".config/kitty/kitty.conf")
+            .contains("include velatura.conf")
+    );
+    assert!(appearance(&settings) > 0);
+    let state_of = |instance: &str| {
+        let (themes, _) = velatura_engine::library::load(&host);
+        engine::parts(&host, &no_env, &themes)
+            .into_iter()
+            .find(|p| p.instance == instance)
+            .map(|p| (p.state, p.included))
+    };
+
+    for instance in [KITTY, GTK4, targets::APPEARANCE] {
+        engine::set_included(&host, instance, false).unwrap();
+    }
+    // Before the apply the app says what will go.
+    assert_eq!(state_of(KITTY), Some((engine::PartState::Themed, false)));
+
+    // Not by the schedule, nor when parts are named or left out for one apply.
+    let resolved = Resolved::new(&t[1], None).unwrap();
+    for opts in [
+        ApplyOpts {
+            unattended: true,
+            ..ApplyOpts::default()
+        },
+        ApplyOpts {
+            except: vec!["kitty".to_owned()],
+            ..ApplyOpts::default()
+        },
+        ApplyOpts {
+            only: vec!["ghostty".to_owned()],
+            ..ApplyOpts::default()
+        },
+    ] {
+        let p = engine::plan_apply(&host, &no_env, &resolved, &opts).unwrap();
+        assert_eq!(
+            target(&p, KITTY).skipped,
+            Some(Skip::NotSelected),
+            "{opts:?}"
+        );
+    }
+
+    // By hand: the three go back to how they were before Velatura, and
+    // the rest take the second theme.
+    apply(&host, &t[1]);
+    assert_eq!(home.read(".config/kitty/kitty.conf"), "font_size 12\n");
+    assert!(!home.path(".config/kitty/velatura.conf").exists());
+    assert_eq!(home.read(".config/gtk-4.0/gtk.css"), GTK_CSS);
+    assert!(!home.path(".config/gtk-4.0/velatura.css").exists());
+    assert_eq!(appearance(&settings), 0);
+    let ghostty = ".config/ghostty/velatura.conf";
+    assert_ne!(home.user_files().get(ghostty), first.get(ghostty));
+    assert!(
+        target(&plan(&host, &t[1]), KITTY).skipped.is_some(),
+        "nothing left"
+    );
+    assert!(matches!(state_of(KITTY), Some((s, false)) if s != engine::PartState::Themed));
+
+    // Undo brings them back with the first theme's colors, and on again
+    // the next apply themes them as before.
+    undo(&host);
+    assert_eq!(home.user_files(), first);
+    for instance in [KITTY, GTK4, targets::APPEARANCE] {
+        engine::set_included(&host, instance, true).unwrap();
+    }
+    apply(&host, &t[1]);
+    assert!(
+        home.read(".config/kitty/kitty.conf")
+            .contains("include velatura.conf")
+    );
+
+    // A file of the part's changed by the user stays.
+    engine::set_included(&host, KITTY, false).unwrap();
+    home.write(".config/kitty/velatura.conf", "# mine\n");
+    let report = apply(&host, &t[0]);
+    assert_eq!(home.read(".config/kitty/velatura.conf"), "# mine\n");
+    assert!(report.notes.iter().any(
+        |(_, n)| matches!(n, Note::KeptFile { path } if path.ends_with("kitty/velatura.conf"))
+    ));
+    fs::remove_file(home.path(".config/kitty/velatura.conf")).unwrap();
+    engine::restore_to(&host, 1).unwrap();
+    assert_eq!(home.user_files(), start);
+}
+
+#[test]
 fn restore_to_goes_back_to_before_the_named_backup() {
     let t = bundled::themes();
     let home = Home::full();
