@@ -81,6 +81,21 @@ pub async fn run_if_asked(ui: &U) {
             bar.set_value(bar.upper());
             pause(300).await;
             save(ui, dir, &format!("{view}-end"));
+            // Rebuilt, as after any change made on it, the view stays
+            // scrolled where it was.
+            let at = bar.value();
+            if at > 0.0 {
+                crate::refresh(ui).await;
+                pause(700).await;
+                let now = ui
+                    .stack
+                    .visible_child()
+                    .and_then(|bin| bin.first_child())
+                    .and_then(|view| view.first_child())
+                    .and_downcast::<gtk::ScrolledWindow>()
+                    .map_or(0.0, |s| s.vadjustment().value());
+                println!("SHOTS kept {view}={}", (now - at).abs() < 1.0);
+            }
         }
     }
     ui.stack.set_visible_child_name("themes");
@@ -185,6 +200,26 @@ async fn editor(ui: &U, dir: &Path) {
     crate::editor::poke_current();
     pause(700).await;
     save(ui, dir, "editor-changed");
+    // With a change not saved, Ctrl+Z is the editor's to leave alone, and
+    // closing the window asks first instead of losing it.
+    let undo = ui
+        .window
+        .lookup_action("undo")
+        .is_some_and(|a| a.is_enabled());
+    println!("SHOTS editor undo={}", if undo { "on" } else { "off" });
+    ui.window.close();
+    pause(700).await;
+    let asks = ui
+        .window
+        .visible_dialog()
+        .and_downcast::<adw::AlertDialog>()
+        .map(|d| d.heading().unwrap_or_default().to_string());
+    println!("SHOTS editor asks={asks:?}");
+    save(ui, dir, "editor-asks");
+    if let Some(dialog) = ui.window.visible_dialog() {
+        dialog.force_close();
+        pause(400).await;
+    }
     gtk::prelude::WidgetExt::activate_action(&ui.window, "win.save-theme", None).ok();
     pause(1500).await;
     save(ui, dir, "editor-saved");

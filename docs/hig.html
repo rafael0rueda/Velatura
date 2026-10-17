@@ -106,6 +106,8 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 </table></div>
 <ul>
 <li>Only standard shortcuts are used. No Alt or Super combinations of the app's own.</li>
+<li>Undo Last Apply is off while a text field has the focus or the theme editor is open: GTK hands a key to the window's shortcuts before the focused widget, so Ctrl+Z would otherwise undo the desktop instead of the typing.</li>
+<li>Unsaved work in the editor is never lost without asking: Back, Esc, Alt+Left, opening another theme in the editor, closing the window and Quit all ask "Discard Changes?" first.</li>
 <li>Every labelled control has an access key; no letter repeats inside one dialog or menu; thin letters and letters with descenders are avoided.</li>
 <li>Everything is reachable with Tab and the arrow keys in a sensible order. Return activates, Space toggles, Esc closes dialogs, popovers and menus.</li>
 <li>In a list of rows with controls, focus goes to the controls.</li>
