@@ -1320,7 +1320,7 @@ They are kept in {}",
             self.emit(json!({"extension": {
                 "uuid": velatura_engine::companion::UUID,
                 "installed": s.installed.as_ref().map(|p| p.to_string_lossy()),
-                "by_velatura": s.by_velatura, "outdated": s.outdated, "enabled": s.enabled,
+                "by_velatura": s.by_velatura, "differs": s.differs, "outdated": s.outdated, "enabled": s.enabled,
             }}));
             return Ok(OK);
         }
