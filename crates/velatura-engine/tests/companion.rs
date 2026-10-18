@@ -147,7 +147,7 @@ fn the_extension_is_installed_as_published_and_removed_without_a_trace() {
     }
     let status = companion::status(&host, &no_env);
     assert_eq!(status.installed.as_deref(), Some(dir.as_path()));
-    assert!(status.by_velatura && !status.outdated);
+    assert!(status.by_velatura && !status.differs && !status.outdated);
     // Installed is not on: turning it on is the user's to do.
     assert_eq!(status.enabled, Some(false));
     assert!(!status.active());
@@ -160,7 +160,8 @@ fn the_extension_is_installed_as_published_and_removed_without_a_trace() {
         companion::install(&host),
         Err(Refused::Foreign(_))
     ));
-    assert!(companion::status(&host, &no_env).outdated);
+    let status = companion::status(&host, &no_env);
+    assert!(status.differs && !status.outdated, "the same version");
     let kept = companion::remove(&host).unwrap().unwrap();
     assert_eq!(kept, [dir.join("extension.js")]);
     assert!(dir.join("extension.js").exists() && !dir.join("metadata.json").exists());
@@ -724,19 +725,46 @@ fn an_older_extension_cannot_show_the_top_bar() {
     let js = home.path(&format!(
         ".local/share/gnome-shell/extensions/{UUID}/extension.js"
     ));
-    // Any other copy, as an earlier version is: here, one line less.
+    let metadata = js.with_file_name("metadata.json");
+    let ours = fs::read_to_string(&metadata).unwrap();
+    let only = ApplyOpts {
+        only: vec![TOP_BAR.to_owned()],
+        ..ApplyOpts::default()
+    };
+    let skipped = |host: &velatura_engine::host::Host<'_>| {
+        let plan = top_bar_plan(host, &only);
+        plan.targets
+            .iter()
+            .find(|t| t.instance == TOP_BAR)
+            .unwrap()
+            .skipped
+            .clone()
+    };
+
+    // The same version with another description, as after 0.2.0's
+    // metadata was reworded: up to date enough, and offered to update.
+    fs::write(&metadata, ours.replace("Loads the colors", "Loads colors")).unwrap();
+    let status = companion::status(&host, &no_env);
+    assert!(status.differs && !status.outdated);
+    assert_ne!(skipped(&host), Some(Skip::VelaturaExtensionOutdated));
+
+    // An earlier version: one line less, and a lower version number.
     let older = fs::read_to_string(&js)
         .unwrap()
         .replace("        new Sheet(TOP_BAR_SHEET),\n", "");
     assert_ne!(older, fs::read_to_string(&js).unwrap());
     fs::write(&js, older).unwrap();
-    let only = ApplyOpts {
-        only: vec![TOP_BAR.to_owned()],
-        ..ApplyOpts::default()
-    };
-    let plan = top_bar_plan(&host, &only);
-    let part = plan.targets.iter().find(|t| t.instance == TOP_BAR).unwrap();
-    assert_eq!(part.skipped, Some(Skip::VelaturaExtensionOutdated));
+    let version = |v: &str| format!("\"version-name\": \"{v}\"");
+    let now = ours
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("\"version-name\": \""))
+        .and_then(|v| v.strip_suffix('"'))
+        .unwrap()
+        .to_owned();
+    let earlier = (now.parse::<u64>().unwrap() - 1).to_string();
+    fs::write(&metadata, ours.replace(&version(&now), &version(&earlier))).unwrap();
+    assert!(companion::status(&host, &no_env).outdated);
+    assert_eq!(skipped(&host), Some(Skip::VelaturaExtensionOutdated));
 }
 
 #[test]

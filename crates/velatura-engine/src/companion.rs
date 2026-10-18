@@ -98,7 +98,12 @@ pub struct Status {
     pub installed: Option<PathBuf>,
     /// True if this user's copy was put there by Velatura.
     pub by_velatura: bool,
-    /// Velatura's copy differs from the one this build carries.
+    /// Velatura's copy differs from the one this build carries: installing
+    /// it again brings it up to date.
+    pub differs: bool,
+    /// Velatura's copy is an earlier version than the one this build
+    /// carries, so parts that need the later one cannot be shown. A copy
+    /// that differs only in its description is not.
     pub outdated: bool,
     /// Turned on in the Shell's settings. `None` if those cannot be read.
     pub enabled: Option<bool>,
@@ -116,16 +121,30 @@ fn hash_at(host: &Host<'_>, path: &Path) -> Option<String> {
     read_opt(host, path).ok().flatten().map(|b| sha256_hex(&b))
 }
 
+/// The `version-name` an extension's metadata gives, as a number.
+fn version_of(metadata: &[u8]) -> Option<u64> {
+    let v: Value = serde_json::from_slice(metadata).ok()?;
+    v.get("version-name")?.as_str()?.parse().ok()
+}
+
 pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
     let installed = targets::data_dirs(host, env)
         .into_iter()
         .map(|d| d.join("gnome-shell/extensions").join(UUID))
         .find(|d| matches!(host.fs.kind(&d.join("metadata.json")), Ok(Some(_))));
     let ours = installed.as_ref() == Some(&user_dir(host)) && record(host).is_some();
-    let outdated = ours
+    let differs = ours
         && FILES.iter().any(|(name, text)| {
             hash_at(host, &user_dir(host).join(name)) != Some(sha256_hex(text.as_bytes()))
         });
+    // A copy whose version cannot be read is taken as an earlier one.
+    let outdated = differs && {
+        let bytes = read_opt(host, &user_dir(host).join("metadata.json"))
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        version_of(&bytes).is_none_or(|v| Some(v) < version_of(FILES[0].1.as_bytes()))
+    };
     let enabled = match host.settings.read("org.gnome.shell", "enabled-extensions") {
         Ok(Some(list)) => {
             let off = matches!(
@@ -139,6 +158,7 @@ pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
     Status {
         installed,
         by_velatura: ours,
+        differs,
         outdated,
         enabled,
     }

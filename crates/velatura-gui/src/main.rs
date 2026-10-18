@@ -2972,7 +2972,7 @@ fn extension_group(ui: &U, snap: &Snapshot) -> adw::PreferencesGroup {
         .subtitle_lines(0)
         .build();
     // A copy from a package is not Velatura's to remove or replace.
-    let action = match (&status.installed, status.by_velatura, status.outdated) {
+    let action = match (&status.installed, status.by_velatura, status.differs) {
         (None, ..) => Some((tr("_Install"), true)),
         (Some(_), true, true) => Some((tr("_Update"), true)),
         (Some(_), true, false) => Some((tr("_Remove"), false)),

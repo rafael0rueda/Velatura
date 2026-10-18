@@ -738,7 +738,7 @@ pub fn last_run(last: &LastRun) -> Option<String> {
 pub fn extension(s: &companion::Status) -> String {
     match (&s.installed, s.enabled) {
         (None, _) => t("Velatura's extension is not installed"),
-        (Some(_), Some(true)) if s.outdated => t(
+        (Some(_), Some(true)) if s.differs => t(
             "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in",
         ),
         (Some(_), Some(true)) => {
