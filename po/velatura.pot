@@ -420,6 +420,9 @@ msgstr ""
 msgid "De_tails"
 msgstr ""
 
+msgid "_Preview Changes…"
+msgstr ""
+
 msgid "_Remove Theme"
 msgstr ""
 

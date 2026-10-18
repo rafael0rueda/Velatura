@@ -386,6 +386,9 @@ fn add_actions(ui: &U) {
         theme_entry("theme-details", ui, |ui, id, variant| {
             open_theme(&ui, &id, &variant);
         }),
+        theme_entry("preview-theme", ui, |ui, id, variant| {
+            glib::spawn_future_local(async move { preview_theme(&ui, id, variant).await });
+        }),
         theme_entry("edit-theme", ui, |ui, id, variant| {
             editor::edit(&ui, &id, &variant);
         }),
@@ -1066,6 +1069,7 @@ fn theme_menu(spec: &str, bundled: bool) -> gio::Menu {
         menu.append_item(&item);
     };
     item(tr("De_tails"), "win.theme-details");
+    item(tr("_Preview Changes…"), "win.preview-theme");
     item(
         if bundled {
             tr("_Duplicate to Edit")
@@ -2121,6 +2125,17 @@ fn recolors(snap: &Snapshot) -> bool {
 /// Apply a theme: plan, confirm when the guidelines call for it, execute,
 /// and say what happened.
 async fn apply_theme(ui: &U, id: String, variant: String) {
+    apply_or_preview(ui, id, variant, false).await;
+}
+
+/// What applying a theme would change, shown before anything is: the same
+/// question as a first apply, with the details, whatever the apply would
+/// otherwise ask (D37).
+async fn preview_theme(ui: &U, id: String, variant: String) {
+    apply_or_preview(ui, id, variant, true).await;
+}
+
+async fn apply_or_preview(ui: &U, id: String, variant: String, preview: bool) {
     if busy(ui) {
         return;
     }
@@ -2185,7 +2200,8 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     }
 
     // Confirm the first time, and whenever a file of the user's would be
-    // edited for the first time or the result may be hard to read.
+    // edited for the first time or the result may be hard to read; and
+    // always when the changes were asked to be seen first.
     let asking: Vec<String> = plan
         .needing_consent()
         .iter()
@@ -2203,7 +2219,7 @@ async fn apply_theme(ui: &U, id: String, variant: String) {
     };
     // The question is asked over the main view, not over a page saying
     // the theme is being applied; that page comes back once agreed to.
-    let work = if first || !asking.is_empty() || low {
+    let work = if preview || first || !asking.is_empty() || low {
         work.done().await;
         if !confirm(ui, &name, &plan, &home, low, &tools).await {
             return;
