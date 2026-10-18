@@ -4,6 +4,7 @@
 Reads `cargo metadata`; no network access beyond what the build needs.
 """
 import json
+import re
 import subprocess
 import sys
 
@@ -16,12 +17,69 @@ ALLOWED = {
 
 
 def acceptable(expr: str) -> bool:
-    # "A OR B" needs one acceptable side; "A AND B" needs both.
-    expr = expr.replace("/", " OR ").replace("(", " ").replace(")", " ")
-    return any(
-        all(part.strip() in ALLOWED for part in alt.split(" AND "))
-        for alt in expr.split(" OR ")
-    )
+    """An SPDX expression as SPDX reads it: AND binds tighter than OR,
+    parentheses group, "A WITH B" is one licence, and the old "A/B" is OR.
+    "A OR B" needs one acceptable side; "A AND B" needs both."""
+    tokens = re.findall(r"\(|\)|[^\s()]+", expr.replace("/", " OR "))
+    at = 0
+
+    def peek():
+        return tokens[at] if at < len(tokens) else None
+
+    def take():
+        nonlocal at
+        at += 1
+        return tokens[at - 1]
+
+    def either():
+        ok = both()
+        while peek() == "OR":
+            take()
+            ok = both() or ok
+        return ok
+
+    def both():
+        ok = one()
+        while peek() == "AND":
+            take()
+            ok = one() and ok
+        return ok
+
+    def one():
+        token = take() if peek() is not None else None
+        if token == "(":
+            ok = either()
+            if take() != ")":
+                raise ValueError(expr)
+            return ok
+        if token in (None, ")", "AND", "OR", "WITH"):
+            raise ValueError(expr)
+        if peek() == "WITH":
+            take()
+            token = f"{token} WITH {take()}"
+        return token in ALLOWED
+
+    try:
+        ok = either()
+        return ok and at == len(tokens)
+    except (ValueError, IndexError):
+        return False
+
+
+# The rules above, held to: a stricter licence ANDed onto a choice is not
+# lifted by the choice.
+for expr, want in [
+    ("MIT OR Apache-2.0", True),
+    ("MIT/Apache-2.0", True),
+    ("(MIT OR Apache-2.0) AND Unicode-3.0", True),
+    ("(MIT OR Apache-2.0) AND SSPL-1.0", False),
+    ("MIT AND SSPL-1.0 OR Apache-2.0", True),
+    ("Apache-2.0 WITH LLVM-exception OR MIT", True),
+    ("GPL-2.0-only", False),
+    ("", False),
+    ("(MIT", False),
+]:
+    assert acceptable(expr) == want, expr
 
 
 meta = json.loads(subprocess.check_output(

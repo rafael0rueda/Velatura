@@ -174,7 +174,27 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
         grep -qF "$want" <<<"$took" || { echo "import check failed, missing: $want"; exit 1; }
     done
 else
-    echo "NOT RUN: the app flow check needs mutter (not in the CI image)"
+    echo "NOT RUN: the app flow check needs mutter and dbus-run-session"
+fi
+
+step "extension"
+# The Shell extension is plain JavaScript that only GNOME Shell loads, and
+# the Shell check below needs a system bus a container lacks: here it must
+# at least parse, and its metadata read, on every image.
+ext=extension/velatura@rafael0rueda.github.io
+python3 -c 'import json, sys; json.load(open(sys.argv[1]))' "$ext/metadata.json"
+if command -v node >/dev/null 2>&1; then
+    js=$(mktemp -d)
+    # As a module, which is how the Shell loads it.
+    cp "$ext/extension.js" "$js/extension.mjs"
+    node --check "$js/extension.mjs" || { rm -rf "$js"; exit 1; }
+    rm -rf "$js"
+    echo "extension: parses, and its metadata reads"
+elif [ -n "${VELATURA_CI:-}" ]; then
+    echo "node is required in CI"; exit 1
+else
+    echo "SKIPPED: node is not installed, so the extension is not parsed (sudo dnf install nodejs)"
+    skipped+=(extension)
 fi
 
 step "shell"
@@ -182,7 +202,7 @@ step "shell"
 # show their colours on the panel, reload on a new theme, and return to
 # stock after undo.
 if ! command -v gnome-shell >/dev/null 2>&1 || ! command -v dbus-run-session >/dev/null 2>&1; then
-    echo "NOT RUN: the Shell check needs gnome-shell (not in the CI image)"
+    echo "NOT RUN: the Shell check needs gnome-shell and dbus-run-session"
 elif [ ! -S /run/dbus/system_bus_socket ]; then
     # The Shell asks the login manager for its session when it starts.
     echo "NOT RUN: the Shell check needs a system bus, which a container does not have"

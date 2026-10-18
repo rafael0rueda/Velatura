@@ -19,3 +19,4 @@ gettext
 desktop-file-utils
 tmux
 neovim
+nodejs

@@ -1784,7 +1784,10 @@ pub fn plan(
             !opts.unattended,
             opts.untested_shell,
         ),
-        _ => plan_appearance(host, theme, opts.keep_style),
+        APPEARANCE => plan_appearance(host, theme, opts.keep_style),
+        // A part listed in INSTANCES with no arm here: planned as nothing,
+        // and caught by the test that plans every part.
+        other => TargetPlan::skip(other, Skip::NotSelected),
     }
 }
 
