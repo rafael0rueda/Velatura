@@ -269,8 +269,8 @@ msgstr "_Apps y escritorio"
 msgid "_History"
 msgstr "_Historial"
 
-msgid "_Undo Last Apply"
-msgstr "_Deshacer la última aplicación"
+msgid "_Undo Last Change"
+msgstr "_Deshacer el último cambio"
 
 msgid "_Troubleshooting"
 msgstr "_Solución de problemas"
@@ -287,8 +287,8 @@ msgstr "Menú principal"
 msgid "General"
 msgstr "General"
 
-msgid "Undo Last Apply"
-msgstr "Deshacer la última aplicación"
+msgid "Undo Last Change"
+msgstr "Deshacer el último cambio"
 
 msgid "Import Theme"
 msgstr "Importar tema"
@@ -320,8 +320,8 @@ msgstr "Un cambio anterior quedó interrumpido"
 msgid "_Roll Back"
 msgstr "_Revertir"
 
-msgid "High Contrast is on ‒ apps are not recolored"
-msgstr "El contraste alto está activado ‒ las aplicaciones no se recolorean"
+msgid "High Contrast is on, so apps are not recolored"
+msgstr "El alto contraste está activado, así que las aplicaciones no se recolorean"
 
 msgid "Light"
 msgstr "Claro"
@@ -647,8 +647,8 @@ msgstr "{name} aplicado"
 msgid "A few things to know"
 msgstr "Algunas cosas que conviene saber"
 
-msgid "Last apply undone"
-msgstr "Última aplicación deshecha"
+msgid "Last change undone"
+msgstr "Se deshizo el último cambio"
 
 msgid "Undone, With Exceptions"
 msgstr "Deshecho, con excepciones"
@@ -665,11 +665,11 @@ msgstr "Revertido"
 msgid "Not Fully Rolled Back"
 msgstr "No se revirtió del todo"
 
-msgid "Taken away at the next apply"
-msgstr "Se quita en la próxima aplicación"
+msgid "Taken away when a theme is next applied"
+msgstr "Se quita la próxima vez que se aplique un tema"
 
-msgid "Included in the next apply"
-msgstr "Incluido en la próxima aplicación"
+msgid "Included when a theme is next applied"
+msgstr "Se incluye la próxima vez que se aplique un tema"
 
 msgid "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in"
 msgstr "Da a las carpetas y demás iconos marcados del tema de iconos en uso el color de acento del tema. Hacerlos tarda unos segundos la primera vez; las aplicaciones abiertas los muestran al volver a abrirse, y todo después de cerrar sesión y volver a entrar"
@@ -808,11 +808,11 @@ msgstr "Se quitó todo lo que añadió Velatura"
 msgid "Not Removed"
 msgstr "No se quitó"
 
-msgid "No Backups Yet"
-msgstr "Aún no hay copias de seguridad"
+msgid "No Changes Yet"
+msgstr "Aún no hay cambios"
 
-msgid "A backup is made each time a theme is applied"
-msgstr "Se hace una copia de seguridad cada vez que se aplica un tema"
+msgid "Each change Velatura makes is listed here, and can be undone"
+msgstr "Cada cambio que hace Velatura aparece aquí, y se puede deshacer"
 
 msgid "Restoring goes back to how things were just before that change"
 msgstr "Restaurar devuelve todo a como estaba justo antes de ese cambio"
@@ -844,8 +844,8 @@ msgstr "Deshecho"
 msgid "Current"
 msgstr "Actual"
 
-msgid "Restore…"
-msgstr "Restaurar…"
+msgid "Go Back to Before This Change…"
+msgstr "Volver a antes de este cambio…"
 
 msgid "Go Back to Before This Change?"
 msgstr "¿Volver a antes de este cambio?"
@@ -856,17 +856,14 @@ msgid_plural "{n} changes are undone, newest first. Files edited by hand since t
 msgstr[0] "Se deshace {n} cambio. Los archivos editados a mano desde entonces se conservan."
 msgstr[1] "Se deshacen {n} cambios, del más reciente al más antiguo. Los archivos editados a mano desde entonces se conservan."
 
-msgid "_Restore"
-msgstr "_Restaurar"
+msgid "_Go Back"
+msgstr "_Volver"
 
-msgid "Restored"
-msgstr "Restaurado"
+msgid "Gone back to before the change"
+msgstr "Se volvió a antes del cambio"
 
-msgid "Not Restored"
-msgstr "No se restauró"
-
-msgid "Apps and Desktop"
-msgstr "Aplicaciones y escritorio"
+msgid "Apps & Desktop"
+msgstr "Apps y escritorio"
 
 msgid "Can be themed"
 msgstr "Admite tema"
@@ -981,6 +978,19 @@ msgstr "No se borra nada."
 
 msgid "This can be undone at any time."
 msgstr "Se puede deshacer en cualquier momento."
+
+msgid "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed on Apps & Desktop, under Shell Extension. The User Themes extension works too"
+msgstr "Se omite: la barra superior y la vista general se recolorean mediante una extensión, y no hay ninguna activada. La de Velatura se puede instalar en Apps y escritorio, en Extensión de Shell. La extensión User Themes también sirve"
+
+msgid "Left out: this part is shown by Velatura's own extension, which is not turned on. It can be installed on Apps & Desktop, under Shell Extension, and is turned on after signing out and in"
+msgstr "Se omite: esta parte la muestra la extensión de Velatura, que no está activada. Se puede instalar en Apps y escritorio, en Extensión de Shell, y se activa tras cerrar la sesión y volver a entrar"
+
+msgid "Left out: Velatura's extension is an older copy that cannot show this part. It can be updated on Apps & Desktop, under Shell Extension, and shows it after signing out and in"
+msgstr "Se omite: la extensión de Velatura es una copia antigua que no puede mostrar esta parte. Se puede actualizar en Apps y escritorio, en Extensión de Shell, y la muestra tras cerrar la sesión y volver a entrar"
+
+#, rust-format
+msgid "These extensions color the top bar or its menus themselves, which wins over the theme there: {names}. Velatura's own extension wins over them, and can be installed on Apps & Desktop, under Shell Extension"
+msgstr "Estas extensiones colorean por sí mismas la barra superior o sus menús, lo que se impone al tema allí: {names}. La extensión de Velatura se impone a ellas, y se puede instalar en Apps y escritorio, en Extensión de Shell"
 
 msgid "Left out: "
 msgstr "Se omite: "
@@ -1562,4 +1572,16 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
+
+
+
+
+
+
+
+
+
+
+
+
 

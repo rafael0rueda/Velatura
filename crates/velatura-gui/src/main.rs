@@ -134,7 +134,7 @@ fn build(app: &adw::Application) -> U {
 
     let menu = gio::Menu::new();
     let actions = gio::Menu::new();
-    actions.append(Some(&tr("_Undo Last Apply")), Some("win.undo"));
+    actions.append(Some(&tr("_Undo Last Change")), Some("win.undo"));
     actions.append(Some(&tr("_Troubleshooting")), Some("win.troubleshooting"));
     menu.append_section(None, &actions);
     let standard = gio::Menu::new();
@@ -422,7 +422,7 @@ fn shortcuts_window() -> gtk::ShortcutsWindow {
     let xml = format!(
         "<interface><object class=\"GtkShortcutsWindow\" id=\"help_overlay\"><property name=\"modal\">1</property><child><object class=\"GtkShortcutsSection\"><property name=\"section-name\">shortcuts</property><child><object class=\"GtkShortcutsGroup\"><property name=\"title\">{}</property>{}{}{}{}{}{}{}{}{}</object></child></object></child></object></interface>",
         glib::markup_escape_text(&tr("General")),
-        row(&tr("Undo Last Apply"), "&lt;Control&gt;z"),
+        row(&tr("Undo Last Change"), "&lt;Control&gt;z"),
         row(&tr("New Theme"), "&lt;Control&gt;n"),
         row(&tr("Import Theme"), "&lt;Control&gt;o"),
         row(&tr("Save Theme"), "&lt;Control&gt;s"),
@@ -487,7 +487,7 @@ async fn refresh(ui: &U) {
         ui.banner.set_revealed(true);
     } else if adw::StyleManager::default().is_high_contrast() {
         ui.banner
-            .set_title(&tr("High Contrast is on ‒ apps are not recolored"));
+            .set_title(&tr("High Contrast is on, so apps are not recolored"));
         ui.banner.set_button_label(None);
         ui.banner.set_revealed(true);
     } else if let Some(left) = left {
@@ -2261,7 +2261,7 @@ async fn confirm(
         .flat_map(|t| &t.notes)
         .filter(|n| matches!(n, Note::NeovimOtherScheme { .. }))
     {
-        body = format!("{body}\n\n{}.", velatura_text::note(note, home));
+        body = format!("{body}\n\n{}.", words::note(note, home));
     }
     if low {
         body = format!(
@@ -2334,7 +2334,7 @@ fn applied(ui: &U, name: &str, report: &Report, home: &Path) {
             format!(
                 "{}: {}",
                 velatura_text::instance(instance),
-                words::reason(&velatura_text::skip(why, home))
+                words::reason(&words::skip(why, home))
             )
         })
         .collect();
@@ -2343,7 +2343,7 @@ fn applied(ui: &U, name: &str, report: &Report, home: &Path) {
             .notes
             .iter()
             .filter(|(_, n)| worth_showing(n))
-            .map(|(_, n)| velatura_text::note(n, home)),
+            .map(|(_, n)| words::note(n, home)),
     );
     lines.dedup();
     ui.nav.pop_to_tag("main");
@@ -2437,10 +2437,10 @@ async fn undo(ui: &U) {
                             | Note::SettingNeedsSession { .. }
                     )
                 })
-                .map(|(_, n)| velatura_text::note(n, &home))
+                .map(|(_, n)| words::note(n, &home))
                 .collect();
             if kept.is_empty() {
-                toast(ui, &tr("Last apply undone"));
+                toast(ui, &tr("Last change undone"));
             } else {
                 result_page(ui, &tr("Undone, With Exceptions"), true, &kept, false);
             }
@@ -2548,8 +2548,8 @@ fn part_row(
     let subtitle = match &row.state {
         RowState::Themed if row.included => None,
         // Turned off, with Velatura's colors still on it.
-        RowState::Themed => Some(tr("Taken away at the next apply")),
-        RowState::Ready if row.included => Some(tr("Included in the next apply")),
+        RowState::Themed => Some(tr("Taken away when a theme is next applied")),
+        RowState::Ready if row.included => Some(tr("Included when a theme is next applied")),
         // Off until turned on, so the row says what turning on does.
         RowState::Ready if row.instance == targets::ICONS => Some(tr(
             "Gives the folders and other marked icons of the icon theme in use the theme's accent color. Making them takes some seconds the first time; open apps show them once reopened, and everything after signing out and in",
@@ -2576,9 +2576,9 @@ fn part_row(
         RowState::Shadowed(note) => Some(format!(
             "{}. {}",
             tr("Set up, but not taking effect"),
-            velatura_text::note(note, &snap.home)
+            words::note(note, &snap.home)
         )),
-        RowState::Unavailable(why) => Some(words::reason(&velatura_text::skip(why, &snap.home))),
+        RowState::Unavailable(why) => Some(words::reason(&words::skip(why, &snap.home))),
     };
     let can = available(row);
     let subtitle = match (subtitle, place.filter(|p| !p.is_empty())) {
@@ -3154,8 +3154,10 @@ fn history_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
     if snap.history.is_empty() {
         return adw::StatusPage::builder()
             .icon_name("document-open-recent-symbolic")
-            .title(tr("No Backups Yet"))
-            .description(tr("A backup is made each time a theme is applied"))
+            .title(tr("No Changes Yet"))
+            .description(tr(
+                "Each change Velatura makes is listed here, and can be undone",
+            ))
             .build()
             .upcast();
     }
@@ -3290,7 +3292,7 @@ fn history_row(
         );
         row.add_suffix(&now);
     } else if !m.undone {
-        let restore = icon_button("edit-undo-symbolic", &tr("Restore…"));
+        let restore = icon_button("edit-undo-symbolic", &tr("Go Back to Before This Change…"));
         restore.add_css_class("flat");
         let weak = Rc::downgrade(ui);
         let (id, label) = (m.id, what.clone());
@@ -3329,7 +3331,7 @@ async fn restore_to(ui: &U, id: u64, label: &str) {
             )
         )),
     );
-    dialog.add_responses(&[("cancel", &tr("_Cancel")), ("restore", &tr("_Restore"))]);
+    dialog.add_responses(&[("cancel", &tr("_Cancel")), ("restore", &tr("_Go Back"))]);
     dialog.set_close_response("cancel");
     if dialog.choose_future(Some(&ui.window)).await != "restore" {
         return;
@@ -3339,8 +3341,8 @@ async fn restore_to(ui: &U, id: u64, label: &str) {
     ui.busy.set(false);
     refresh(ui).await;
     match done {
-        Some(Ok(_)) => toast(ui, &tr("Restored")),
-        Some(Err(e)) => result_page(ui, &tr("Not Restored"), false, &[error_text(&e)], false),
+        Some(Ok(_)) => toast(ui, &tr("Gone back to before the change")),
+        Some(Err(e)) => result_page(ui, &tr("Not Undone"), false, &[error_text(&e)], false),
         None => toast(ui, &tr("The change could not be started")),
     }
 }
@@ -3353,12 +3355,12 @@ async fn troubleshooting(ui: &U) {
     let page = adw::PreferencesPage::new();
 
     let parts = adw::PreferencesGroup::builder()
-        .title(tr("Apps and Desktop"))
+        .title(tr("Apps & Desktop"))
         .build();
     for row in &snap.rows {
         let state = match &row.state {
-            RowState::Unavailable(why) => words::reason(&velatura_text::skip(why, &home)),
-            RowState::Shadowed(note) => velatura_text::note(note, &home),
+            RowState::Unavailable(why) => words::reason(&words::skip(why, &home)),
+            RowState::Shadowed(note) => words::note(note, &home),
             _ => tr("Can be themed"),
         };
         parts.add(
