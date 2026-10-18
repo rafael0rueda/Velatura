@@ -179,6 +179,9 @@ fn main() -> ExitCode {
         ["show", theme] => cx.show(theme),
         ["targets"] => cx.targets(),
         ["apply", theme] => cx.apply(theme),
+        ["apply"] => Err(usage(
+            "apply needs a theme, for example: velatura apply ember",
+        )),
         ["switch"] => cx.switch_show(),
         ["switch", "set", which @ ("day" | "night"), theme] => cx.switch_set(which, theme),
         ["switch", which @ ("day" | "night" | "toggle")] => cx.switch(which),
@@ -477,7 +480,21 @@ impl Cx<'_> {
             .iter()
             .find(|e| e.theme.id == id)
             .ok_or_else(not_found)?;
-        let resolved = Resolved::new(&entry.theme, variant).ok_or_else(not_found)?;
+        let resolved = Resolved::new(&entry.theme, variant).ok_or_else(|| Exit {
+            code: USAGE,
+            message: format!(
+                "The theme \"{}\" has no variant \"{}\". Its variants: {}",
+                clean_text(id, 80),
+                clean_text(variant.unwrap_or_default(), 80),
+                entry
+                    .theme
+                    .variants
+                    .keys()
+                    .map(|v| clean_text(v, 80))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        })?;
         Ok(f(&resolved, &entry.theme.name))
     }
 
@@ -624,8 +641,10 @@ impl Cx<'_> {
                 "desktop settings".to_owned(),
             ),
         ];
+        // As wide as the longest name, so the columns stay in line.
+        let wide = rows.iter().map(|r| r.1.chars().count()).max().unwrap_or(0);
         for (id, name, support, place) in rows {
-            println!("{id:<17} {name:<34} {support:<11} {place}");
+            println!("{id:<17} {name:<wide$} {support:<11} {place}");
         }
         println!("\nUnofficial: not supported by GNOME; may stop working after an update.");
         Ok(OK)
@@ -1603,7 +1622,42 @@ They are kept in {}",
         Ok(if left_out { PARTIAL } else { OK })
     }
 
+    /// Every name given to --only or --except names a part: a typo would
+    /// otherwise leave the apply doing nothing, or everything.
+    fn check_parts(&self) -> Result<(), Exit> {
+        let all = engine::instances(&self.host);
+        let known = |name: &str| {
+            all.iter()
+                .any(|i| i == name || i.split(':').next() == Some(name))
+        };
+        let unknown: Vec<&String> = self
+            .args
+            .only
+            .iter()
+            .chain(&self.args.except)
+            .filter(|name| !known(name))
+            .collect();
+        if unknown.is_empty() {
+            return Ok(());
+        }
+        // As `velatura targets` names them.
+        let short: Vec<&str> = all
+            .iter()
+            .map(|i| i.strip_suffix(":default").unwrap_or(i))
+            .collect();
+        Err(usage(&format!(
+            "No part named {}. Parts: {}",
+            unknown
+                .iter()
+                .map(|n| format!("\"{}\"", clean_text(n, 40)))
+                .collect::<Vec<_>>()
+                .join(", "),
+            short.join(", ")
+        )))
+    }
+
     fn apply(&self, spec: &str) -> Outcome {
+        self.check_parts()?;
         let opts = ApplyOpts {
             only: self.args.only.clone(),
             except: self.args.except.clone(),
