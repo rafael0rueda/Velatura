@@ -134,12 +134,18 @@ if command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2
     # With a theme applied to GTK apps, the app's own window keeps
     # libadwaita's colours: not Ember's background.
     shots=$(mktemp -d)
-    own=$(scripts/gui-shots.sh "$shots" --applied 2>/dev/null | grep '^SHOTS own' || true)
+    applied=$(scripts/gui-shots.sh "$shots" --applied 2>/dev/null | grep -E '^SHOTS (own|preview)' || true)
     rm -rf "$shots"
-    echo "$own"
+    echo "$applied"
+    own=$(grep '^SHOTS own' <<<"$applied" || true)
     case "$own" in
         "SHOTS own window_bg_color=#191316" | "") echo "the app's window took the theme's colours"; exit 1 ;;
     esac
+    # Another theme's changes can be seen before applying it, and seeing
+    # them changes nothing (D37).
+    for want in 'SHOTS preview asks=Some("Apply Aetherius?")' 'SHOTS preview applied=Some("ember/default")'; do
+        grep -qxF "$want" <<<"$applied" || { echo "preview check failed, missing: $want"; exit 1; }
+    done
     # With the schedule on and one switch made with no one present, the
     # window shows the schedule and says what the switch left out.
     shots=$(mktemp -d)

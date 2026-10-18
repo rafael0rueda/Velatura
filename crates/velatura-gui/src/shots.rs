@@ -124,6 +124,38 @@ pub async fn run_if_asked(ui: &U) {
     pause(700).await;
     save(ui, dir, "result");
     ui.nav.pop_to_tag("main");
+    // With a theme applied, another one's changes can still be seen before
+    // anything is changed: the question comes up, and is left unanswered.
+    let other = {
+        let snap = ui.snap.borrow();
+        snap.applied.as_ref().and_then(|applied| {
+            snap.themes
+                .iter()
+                .map(|e| format!("{}/{}", e.theme.id, e.theme.default_variant()))
+                .find(|spec| spec != applied)
+        })
+    };
+    if let Some(spec) = other {
+        gtk::prelude::WidgetExt::activate_action(
+            &ui.window,
+            "win.preview-theme",
+            Some(&spec.to_variant()),
+        )
+        .ok();
+        pause(1500).await;
+        let asks = ui
+            .window
+            .visible_dialog()
+            .and_downcast::<adw::AlertDialog>()
+            .map(|d| d.heading().unwrap_or_default().to_string());
+        println!("SHOTS preview asks={asks:?}");
+        save(ui, dir, "preview");
+        if let Some(dialog) = ui.window.visible_dialog() {
+            dialog.force_close();
+            pause(400).await;
+        }
+        println!("SHOTS preview applied={:?}", ui.snap.borrow().applied);
+    }
     crate::troubleshooting(ui).await;
     pause(700).await;
     save(ui, dir, "troubleshooting");

@@ -418,6 +418,9 @@ msgstr "Más para {name}"
 msgid "De_tails"
 msgstr "De_talles"
 
+msgid "_Preview Changes…"
+msgstr "_Ver los cambios…"
+
 msgid "_Remove Theme"
 msgstr "_Quitar tema"
 
@@ -1591,5 +1594,3 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
-
-
