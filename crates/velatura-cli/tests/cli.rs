@@ -882,3 +882,42 @@ fn damaged_records_are_said_in_words() {
         );
     }
 }
+
+/// A typo in a part's or variant's name, or a missing theme, is refused
+/// as wrong usage with what would be right, before anything is planned.
+#[test]
+fn wrong_names_are_refused_with_the_right_ones() {
+    let sb = Sandbox::named("names");
+    for (args, says) in [
+        (
+            &["apply", "ember", "--only", "bogus", "--yes"][..],
+            "No part named \"bogus\". Parts: kitty, ghostty",
+        ),
+        (
+            &["apply", "ember", "--except", "kity", "--yes"][..],
+            "No part named \"kity\".",
+        ),
+        (&["apply"][..], "apply needs a theme"),
+        (
+            &["apply", "ember/nosuch"][..],
+            "The theme \"ember\" has no variant \"nosuch\". Its variants: default",
+        ),
+    ] {
+        let (code, _, err) = sb.velatura_without_session(args);
+        assert_eq!(code, 2, "{args:?}: {err}");
+        assert!(err.contains(says), "{args:?}: {err}");
+    }
+    // Names as `velatura targets` gives them, and their first word, are
+    // known.
+    let (code, _, err) = sb.velatura_without_session(&[
+        "apply",
+        "ember",
+        "--only",
+        "gnome:ups",
+        "--only",
+        "kitty",
+        "--preview",
+    ]);
+    assert_eq!(code, 0, "{err}");
+    assert!(fs::read_to_string(sb.home().join(".config/kitty/kitty.conf")).is_err());
+}
