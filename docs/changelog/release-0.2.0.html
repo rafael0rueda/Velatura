@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release 0.2.0 – Velatura changelog</title>
+<style>
+:root{--bg:#fafafa;--fg:#1e1e1e;--mut:#5e5c64;--card:#fff;--bd:#d8d8dc;--ac:#1c71d8;--ok:#1b7f4f;--wa:#9a5700;--no:#c01c28}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e20;--fg:#eee;--mut:#a9a8ae;--card:#28282b;--bd:#44444a;--ac:#78aeed;--ok:#57e389;--wa:#f8b044;--no:#ff7b72}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 20px 64px}
+nav{display:flex;flex-wrap:wrap;gap:14px;padding:12px 20px;border-bottom:1px solid var(--bd);font-size:14px}
+a{color:var(--ac)}h1{font-size:28px;margin:.6em 0 .2em}h2{font-size:21px;margin-top:1.8em;border-bottom:1px solid var(--bd);padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}th{background:var(--card)}
+.wrap{overflow-x:auto}code{font-family:ui-monospace,monospace;font-size:13.5px}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}.ok{color:var(--ok)}.wa{color:var(--wa)}.no{color:var(--no)}
+.lead{color:var(--mut)}
+.note{border-left:4px solid var(--ac);background:var(--card);padding:10px 14px;margin:14px 0}
+</style>
+</head>
+<body>
+<nav><a href="../index.html">Index</a><a href="../plan.html">Plan</a><a href="../architecture.html">Architecture</a><a href="../hig.html">Interface guidelines</a><a href="../targets.html">Theming targets</a><a href="../decisions.html">Decisions log</a><a href="../review.html">Review findings</a><a href="../spikes.html">Spike results</a><a href="../workflow.html">Workflow</a><a href="../changelog/index.html">Changelog</a></nav>
+<main>
+<h1>Release 0.2.0</h1>
+<p class="lead">Prepared on branch <code>release/0.2.0</code>, 2026-10-18. Everything merged since 0.1.0 (2026-10-15): pull requests #24 to #51, decisions <a href="../decisions.html#d70">D70</a> to <a href="../decisions.html#d78">D78</a>. Most of it came from the owner's first weeks on their own desktop, and from the deep review of 2026-10-17.</p>
+<div class="note"><strong>Upgrading from 0.1.0.</strong> Install as before. Velatura's Shell extension is now at version 6: <code>velatura extension install</code> (or Install on Apps &amp; Desktop), then sign out and in. A part turned off on Apps &amp; Desktop is now taken away at the next apply by hand (<a href="../decisions.html#d78">D78</a>); see below.</div>
+
+<h2>New</h2>
+<ul>
+<li><strong>Window Outline</strong> (<a href="../decisions.html#d71">D71</a>, #30, #32): a thin line in the theme's accent around the window in use, drawn by Velatura's extension; off until turned on.</li>
+<li><strong>Top Bar Style</strong> (<a href="../decisions.html#d74">D74</a>, #35): the top bar as one complete bar or as a pill per button, as opaque as chosen; off until turned on. Also from the command: <code>velatura top-bar</code>.</li>
+<li><strong>UPS Indicator</strong> (<a href="../decisions.html#d75">D75</a>, #36): the watts a UPS draws, in the top bar, read from Network UPS Tools on this computer, with battery and runtime in a menu; off until turned on.</li>
+<li><strong>A redesigned window</strong> (<a href="../decisions.html#d72">D72</a>, #33): the theme in use as a card, every theme as a card in a grid with a Dark and Light filter, Day and Night as one group, icons and counts on Apps &amp; Desktop, History grouped by day. A new app icon.</li>
+<li><strong>Each theme card has its own menu button</strong> (<a href="../decisions.html#d77">D77</a>, #43), with <strong>Preview Changes…</strong> in it (#51): what applying the theme would change, with the details, before anything is changed (<a href="../decisions.html#d37">D37</a>).</li>
+<li><strong>A part turned off is taken away</strong> at the next apply by hand (<a href="../decisions.html#d78">D78</a>, #44): it goes back to how it was before Velatura instead of keeping the last theme's colours. Not by the schedule, nor with <code>--only</code> or <code>--except</code>; undo brings it back.</li>
+<li><strong>Other tools</strong> (<a href="../decisions.html#d76">D76</a>, #38): Shell extensions that keep a colour in their own settings are listed among the other tools that change colours.</li>
+<li><strong>Recoloured sets</strong> (#25): the sets of recent themes are kept, so coming back to one is quick; the app shows work while it makes one, and says when they show.</li>
+<li><strong>README</strong> (<a href="../decisions.html#d73">D73</a>, #34, #50): what Velatura does, with pictures of the app.</li>
+</ul>
+
+<h2>Fixed</h2>
+<ul>
+<li>Undo could reverse the wrong change: one a run with another home folder had left among the backups, an older one when the newest could not be read, or one after its preview no longer held. It now refuses and says which file is in the way; it also no longer puts back a block taken out by hand (#39).</li>
+<li>A program listening on NUT's port could keep the UPS reading going for ever; a reading now ends after 3 seconds or 64 KiB (#40).</li>
+<li>The app lost its place on every change; Ctrl+Z typed in a text field undid the desktop; unsaved work in the theme editor could be lost without asking (#42).</li>
+<li>Recolored Icons read as not applied right after every theme switch (#45).</li>
+<li>The top bar was reported as themed while another extension coloured it (#24); a light theme now asks for light outright, so the Shell's menus stay readable (<a href="../decisions.html#d70">D70</a>, #27); the dash and app grid tiles no longer get a solid background (#28).</li>
+<li>Starship's prompt, Neovim's colour scheme and Solaar's tray icon after a switch (#26, #29); a part turned on or off can be applied without changing theme (#31).</li>
+</ul>
+
+<h2>Words</h2>
+<ul>
+<li>"Undo Last Change" in place of "Undo Last Apply"; History's button says "Go Back to Before This Change…"; the app points to its own Install button instead of naming commands; Spanish no longer uses "aplicación" for an apply (#46).</li>
+<li>Errors say which file and what is wrong with it, the same in the command and the app; the app's banner says when Velatura's own records cannot be used (#47).</li>
+<li>The command refuses a part or variant name that does not exist, with the right ones (exit 2), says that apply needs a theme, and keeps the targets table in line (#48). Its help no longer says "you".</li>
+</ul>
+
+<h2>Build and release</h2>
+<ul>
+<li>A release is published only from a tag on <code>main</code>, after the whole gate passes in the release build itself, with the toolchain it is built with (#41).</li>
+<li>Every CI job has a time limit and package installs try again (#37); the Shell extension is parsed on every image, the licence check reads SPDX expressions properly, and every part is planned by name in a test (#49).</li>
+<li><a href="../architecture.html">Architecture</a> describes what was built (#50).</li>
+</ul>
+
+<h2>Known and left</h2>
+<ul>
+<li>Velatura's records for the schedule and the extension treat a file from a newer version as missing. Every file is version 1, so this only matters after a future version and a downgrade.</li>
+<li>Part names are written out in more than one crate; nothing a person sees depends on it.</li>
+</ul>
+</main>
+</body>
+</html>
