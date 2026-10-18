@@ -228,6 +228,16 @@ pub enum SettingsError {
     Failed(String),
 }
 
+/// The reason alone, as it reads after "desktop settings are not available".
+impl std::fmt::Display for SettingsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unavailable(why) | Self::Failed(why) => f.write_str(why),
+            Self::NotWritable => f.write_str("the setting is locked"),
+        }
+    }
+}
+
 /// Desktop settings as text. Text keys read and write as their value;
 /// other types read in their printed form (`true`, `42`) and are not written.
 /// A schema given as `id@/folder` is looked up in that folder's compiled

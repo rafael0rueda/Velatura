@@ -302,7 +302,7 @@ pub fn plan_select(
                 break;
             }
             Err(e) => {
-                target = TargetPlan::skip(INSTANCE, Skip::SettingsUnavailable(format!("{e:?}")));
+                target = TargetPlan::skip(INSTANCE, Skip::SettingsUnavailable(e.to_string()));
                 break;
             }
             // An older desktop without, say, the dark wallpaper key.

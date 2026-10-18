@@ -252,7 +252,7 @@ pub fn plan_icons(
                 "{INTERFACE_SCHEMA} icon-theme"
             )));
         }
-        Err(e) => return skip(Skip::SettingsUnavailable(format!("{e:?}"))),
+        Err(e) => return skip(Skip::SettingsUnavailable(e.to_string())),
     };
     let base = made_from(host, &now.effective).unwrap_or_else(|| now.effective.clone());
     if !icons::plain_name(&base) {

@@ -852,3 +852,33 @@ fn ptyxis_and_text_editor_settings_are_set_and_put_back() {
     assert_ne!(default, "'velatura'");
     assert!(!palette.exists() && !scheme.exists());
 }
+
+/// Velatura's own records that cannot be used are named, in words: which
+/// file, and what is wrong with it.
+#[test]
+fn damaged_records_are_said_in_words() {
+    let sb = Sandbox::named("records");
+    let state = sb.home().join(".local/state/velatura/state.json");
+    fs::create_dir_all(state.parent().unwrap()).unwrap();
+    for (content, wrong) in [
+        ("{not json", "is damaged"),
+        (
+            "{\"version\": 99}",
+            "was written by a newer version of Velatura",
+        ),
+    ] {
+        fs::write(&state, content).unwrap();
+        let (code, _, err) = sb.velatura_without_session(&["apply", "ember", "--yes"]);
+        assert_eq!(code, 1, "{err}");
+        assert!(
+            err.contains(&format!(
+                "Velatura's own records cannot be used: ~/.local/state/velatura/state.json {wrong}. Nothing was changed."
+            )),
+            "{err}"
+        );
+        assert!(
+            !err.contains("Damaged(") && !err.contains("Newer("),
+            "{err}"
+        );
+    }
+}

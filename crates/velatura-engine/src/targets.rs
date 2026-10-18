@@ -544,7 +544,7 @@ pub(crate) fn set_text(
         }),
         Ok(None) => return Err(Skip::SettingsUnavailable(format!("{schema} {key}"))),
         Err(SettingsError::Unavailable(why)) => return Err(Skip::SettingsUnavailable(why)),
-        Err(e) => return Err(Skip::SettingsUnavailable(format!("{e:?}"))),
+        Err(e) => return Err(Skip::SettingsUnavailable(e.to_string())),
     }
     Ok(())
 }
@@ -577,7 +577,7 @@ pub fn plan_ptyxis(
         Err(SettingsError::Unavailable(why)) => {
             return TargetPlan::skip(PTYXIS, Skip::SettingsUnavailable(why));
         }
-        Err(e) => return TargetPlan::skip(PTYXIS, Skip::SettingsUnavailable(format!("{e:?}"))),
+        Err(e) => return TargetPlan::skip(PTYXIS, Skip::SettingsUnavailable(e.to_string())),
     };
     if !exists(host, &dir) && !on_path(host, env, "ptyxis") {
         return TargetPlan::skip(PTYXIS, Skip::NotInstalled);
@@ -647,7 +647,7 @@ pub fn plan_text_editor(
             return TargetPlan::skip(TEXT_EDITOR, Skip::SettingsUnavailable(why));
         }
         Err(e) => {
-            return TargetPlan::skip(TEXT_EDITOR, Skip::SettingsUnavailable(format!("{e:?}")));
+            return TargetPlan::skip(TEXT_EDITOR, Skip::SettingsUnavailable(e.to_string()));
         }
     }
     let dir = host.dirs.data.join("gtksourceview-5");
@@ -1319,7 +1319,7 @@ pub fn plan_shell(
     let now = match host.settings.read(&schema, "name") {
         Ok(Some(now)) => now,
         Ok(None) => return TargetPlan::skip(SHELL, Skip::SettingsUnavailable(schema)),
-        Err(e) => return TargetPlan::skip(SHELL, Skip::SettingsUnavailable(format!("{e:?}"))),
+        Err(e) => return TargetPlan::skip(SHELL, Skip::SettingsUnavailable(e.to_string())),
     };
 
     let mut plan = TargetPlan::new(SHELL);
@@ -1707,7 +1707,7 @@ pub fn plan_appearance(host: &Host<'_>, theme: &Resolved<'_>, keep_style: bool) 
                 return TargetPlan::skip(APPEARANCE, Skip::SettingsUnavailable(why));
             }
             Err(e) => {
-                return TargetPlan::skip(APPEARANCE, Skip::SettingsUnavailable(format!("{e:?}")));
+                return TargetPlan::skip(APPEARANCE, Skip::SettingsUnavailable(e.to_string()));
             }
             Ok(None) if key == "accent-color" => {
                 plan.notes.push(Note::AccentUnsupported);

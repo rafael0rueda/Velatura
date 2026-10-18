@@ -123,7 +123,7 @@ fn user_value(host: &Host<'_>, schema: &str, key: &str) -> Result<Option<String>
     match host.settings.read(schema, key) {
         Ok(Some(state)) => Ok(state.user),
         Ok(None) => Err("no such setting".to_owned()),
-        Err(e) => Err(format!("{e:?}")),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -176,7 +176,7 @@ fn do_step(host: &Host<'_>, step: &Step) -> Result<(), String> {
             }
             host.settings
                 .write(schema, key, value.as_deref())
-                .map_err(|e| format!("{e:?}"))
+                .map_err(|e| e.to_string())
         }
     }
 }
@@ -336,7 +336,7 @@ fn rollback(host: &Host<'_>, journal: &[u8]) -> Rollback {
                             .settings
                             .write(schema, key, pre.as_deref())
                             .map(|()| true)
-                            .map_err(|e| format!("{e:?}")),
+                            .map_err(|e| e.to_string()),
                         Ok(_) => Ok(false),
                         Err(e) => Err(e),
                     }

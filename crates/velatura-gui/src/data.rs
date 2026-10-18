@@ -100,7 +100,10 @@ pub fn snapshot(host: &Host<'_>) -> Snapshot {
             snap.applied = status.applied.map(|(label, _)| label);
             snap.unfinished = status.unfinished;
         }
-        Err(e) => snap.problem = Some(format!("{e:?}")),
+        Err(velatura_engine::engine::Error::Store(e)) => {
+            snap.problem = Some(velatura_text::records_problem(&e, &host.dirs.home));
+        }
+        Err(e) => snap.problem = Some(velatura_text::engine_error(&e, &host.dirs.home)),
     }
     if let Ok((history, _)) = engine::history(host) {
         snap.history = history;

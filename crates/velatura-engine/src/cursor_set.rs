@@ -153,7 +153,7 @@ pub fn plan_cursors(
                 "{INTERFACE_SCHEMA} cursor-theme"
             )));
         }
-        Err(e) => return skip(Skip::SettingsUnavailable(format!("{e:?}"))),
+        Err(e) => return skip(Skip::SettingsUnavailable(e.to_string())),
     };
     let base = made_from(host, &now.effective).unwrap_or_else(|| now.effective.clone());
     if !velatura_theme::icons::plain_name(&base) {
