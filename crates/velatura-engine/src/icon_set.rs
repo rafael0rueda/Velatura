@@ -344,8 +344,8 @@ pub fn plan_icons(
 pub const KEPT_SETS: usize = 3;
 
 /// The names of Velatura's sets that `key` (`icon-theme` or
-/// `cursor-theme`) was set to or from, most recent first, as many as are
-/// kept: read from the backups.
+/// `cursor-theme`) was set to or from, most recent first: read from the
+/// backups. The one in use may be among them.
 pub(crate) fn recent_sets(host: &Host<'_>, key: &str) -> Vec<String> {
     let Ok((all, _)) = crate::store::manifests(host) else {
         return Vec::new();
@@ -369,14 +369,14 @@ pub(crate) fn recent_sets(host: &Host<'_>, key: &str) -> Vec<String> {
             }
         }
     }
-    out.truncate(KEPT_SETS);
     out
 }
 
 /// Sets of one kind Velatura made for earlier colours, as far as they are
-/// as written, taken away: all but `keep`, the one in use now, and
-/// `recent`, the ones used last, which are kept to be used again. `kind`
-/// tells a set's folder name of that kind from the other's.
+/// as written, taken away: all but `keep`, the one in use now, and the
+/// [`KEPT_SETS`] used last before it among `recent`, which are kept to be
+/// used again. `kind` tells a set's folder name of that kind from the
+/// other's.
 pub(crate) fn clear_other_sets(
     host: &Host<'_>,
     state: &State,
@@ -386,6 +386,15 @@ pub(crate) fn clear_other_sets(
     plan: &mut TargetPlan,
 ) {
     let root = sets_dir(host);
+    // Counted without the one in use, which is the most recent when the
+    // same colours are planned again: else one set fewer would be kept
+    // than when they were applied.
+    let in_use = keep.file_name().and_then(|n| n.to_str());
+    let recent: Vec<&String> = recent
+        .iter()
+        .filter(|r| Some(r.as_str()) != in_use)
+        .take(KEPT_SETS)
+        .collect();
     // Sets made for earlier colours, as far as they are as written.
     let mut others: std::collections::BTreeMap<PathBuf, Vec<(PathBuf, &String)>> =
         std::collections::BTreeMap::new();
@@ -398,7 +407,7 @@ pub(crate) fn clear_other_sets(
         };
         let top = root.join(top);
         let named = top.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-            n.starts_with("Velatura-") && kind(n) && !recent.iter().any(|r| r == n)
+            n.starts_with("Velatura-") && kind(n) && !recent.iter().any(|r| *r == n)
         });
         if top != keep && named {
             others.entry(top).or_default().push((path, hash));
