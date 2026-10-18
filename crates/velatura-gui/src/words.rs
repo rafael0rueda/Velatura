@@ -3,7 +3,9 @@
 //! Every string a person reads goes through [`tr`], so it can be translated.
 //! Source text is US English and follows the GNOME writing guidelines.
 
-use velatura_engine::plan::{Change, Plan};
+use std::path::Path;
+
+use velatura_engine::plan::{Change, Note, Plan, Skip};
 
 /// Look a string up in the translation catalog.
 pub fn tr(text: &str) -> String {
@@ -106,6 +108,35 @@ pub fn summary(c: Counts) -> String {
 }
 
 /// Turn "Left out: reason" from the shared messages into "Reason".
+/// Why a part is left out, as the app says it: where the command line
+/// names the command that installs Velatura's extension, the app points
+/// to its own button for it.
+pub fn skip(why: &Skip, home: &Path) -> String {
+    match why {
+        Skip::NeedsUserThemes => tr(
+            "Left out: the top bar and overview are recolored through an extension, and none is turned on. Velatura's own can be installed on Apps & Desktop, under Shell Extension. The User Themes extension works too",
+        ),
+        Skip::NeedsVelaturaExtension => tr(
+            "Left out: this part is shown by Velatura's own extension, which is not turned on. It can be installed on Apps & Desktop, under Shell Extension, and is turned on after signing out and in",
+        ),
+        Skip::VelaturaExtensionOutdated => tr(
+            "Left out: Velatura's extension is an older copy that cannot show this part. It can be updated on Apps & Desktop, under Shell Extension, and shows it after signing out and in",
+        ),
+        _ => velatura_text::skip(why, home),
+    }
+}
+
+/// Something to know about a part, as the app says it; see [`skip`].
+pub fn note(note: &Note, home: &Path) -> String {
+    match note {
+        Note::ShellExtensionStyles { names } => tr(
+            "These extensions color the top bar or its menus themselves, which wins over the theme there: {names}. Velatura's own extension wins over them, and can be installed on Apps & Desktop, under Shell Extension",
+        )
+        .replace("{names}", &velatura_theme::model::clean_text(&names.join(", "), 400)),
+        _ => velatura_text::note(note, home),
+    }
+}
+
 pub fn reason(text: &str) -> String {
     let rest = text
         .strip_prefix(velatura_text::left_out_prefix().as_str())
