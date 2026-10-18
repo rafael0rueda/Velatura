@@ -982,3 +982,25 @@ fn write_fixture(fixture: &Path) {
         fs::copy(&path, fixture.join(blobs).join(path.file_name().unwrap())).unwrap();
     }
 }
+
+#[test]
+fn every_part_has_a_plan_of_its_own() {
+    let t = bundled::themes();
+    let home = Home::full();
+    let settings = MemSettings::gnome();
+    let host = home.host(&StdFs, &settings);
+    let resolved = Resolved::new(&t[0], None).unwrap();
+    let state = store::State::default();
+    for instance in INSTANCES {
+        let p = targets::plan(
+            instance,
+            &host,
+            &no_env,
+            &resolved,
+            &state,
+            &ApplyOpts::default(),
+        );
+        assert_eq!(p.instance, instance);
+        assert_ne!(p.skipped, Some(Skip::NotSelected), "{instance} has no plan");
+    }
+}
