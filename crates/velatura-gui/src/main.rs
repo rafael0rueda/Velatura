@@ -485,6 +485,11 @@ async fn refresh(ui: &U) {
             .set_title(&tr("An earlier change was interrupted"));
         ui.banner.set_button_label(Some(&tr("_Roll Back")));
         ui.banner.set_revealed(true);
+    } else if let Some(problem) = &snap.problem {
+        // Nothing can be applied or undone until it is seen to.
+        ui.banner.set_title(problem);
+        ui.banner.set_button_label(None);
+        ui.banner.set_revealed(true);
     } else if adw::StyleManager::default().is_high_contrast() {
         ui.banner
             .set_title(&tr("High Contrast is on, so apps are not recolored"));
@@ -2033,23 +2038,10 @@ fn busy(ui: &U) -> bool {
 }
 
 fn error_text(e: &Error) -> String {
-    match e {
-        Error::Busy => tr("Another Velatura is making changes"),
-        Error::NothingToUndo => tr("Nothing to undo"),
-        Error::UnreadableBackup(_) | Error::ForeignBackup { .. } => {
-            velatura_text::backup_refused(e).unwrap_or_default()
-        }
-        Error::Failed(f) => velatura_text::failure(f),
-        Error::Recovery(r) => format!(
-            "{}\n{}",
-            tr(
-                "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
-            ),
-            velatura_text::rollback(r)
-        ),
-        Error::Io(why) => why.clone(),
-        Error::Store(_) => tr("Velatura's own records cannot be read. Nothing was changed."),
-    }
+    let home = std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_default();
+    velatura_text::engine_error(e, &home)
 }
 
 /// A page that says Velatura is at work, put up as soon as the work

@@ -593,18 +593,6 @@ msgstr ""
 msgid "Still working on the last change"
 msgstr ""
 
-msgid "Another Velatura is making changes"
-msgstr ""
-
-msgid "Nothing to undo"
-msgstr ""
-
-msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
-msgstr ""
-
-msgid "Velatura's own records cannot be read. Nothing was changed."
-msgstr ""
-
 msgid "Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick"
 msgstr ""
 
@@ -653,6 +641,9 @@ msgid "Last change undone"
 msgstr ""
 
 msgid "Undone, With Exceptions"
+msgstr ""
+
+msgid "Nothing to undo"
 msgstr ""
 
 msgid "Not Undone"
@@ -1514,6 +1505,34 @@ msgid "Rolling back did not finish:\n"
 msgstr ""
 
 msgid "Backups are in ~/.local/share/velatura/backups. To try again: velatura recover"
+msgstr ""
+
+#, rust-format
+msgid "{1} cannot be read ({2})"
+msgstr ""
+
+#, rust-format
+msgid "{1} is damaged"
+msgstr ""
+
+#, rust-format
+msgid "{1} was written by a newer version of Velatura"
+msgstr ""
+
+#, rust-format
+msgid "Velatura's own records cannot be used: {1}"
+msgstr ""
+
+msgid "Another Velatura is making changes. Try again in a moment."
+msgstr ""
+
+msgid "There is nothing to undo."
+msgstr ""
+
+msgid "Nothing was changed."
+msgstr ""
+
+msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
 msgstr ""
 
 #, rust-format

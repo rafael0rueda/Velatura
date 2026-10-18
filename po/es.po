@@ -591,18 +591,6 @@ msgstr "_Aplicar tema"
 msgid "Still working on the last change"
 msgstr "Aún se está haciendo el último cambio"
 
-msgid "Another Velatura is making changes"
-msgstr "Otro Velatura está haciendo cambios"
-
-msgid "Nothing to undo"
-msgstr "No hay nada que deshacer"
-
-msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
-msgstr "Un cambio anterior interrumpido no se pudo revertir del todo, así que no se cambió nada nuevo."
-
-msgid "Velatura's own records cannot be read. Nothing was changed."
-msgstr "No se pueden leer los registros de Velatura. No se cambió nada."
-
 msgid "Recoloring icons takes some seconds the first time. Velatura keeps the result, so coming back to these colors is quick"
 msgstr "Recolorear los iconos tarda unos segundos la primera vez. Velatura guarda el resultado, así que volver a estos colores es rápido"
 
@@ -652,6 +640,9 @@ msgstr "Se deshizo el último cambio"
 
 msgid "Undone, With Exceptions"
 msgstr "Deshecho, con excepciones"
+
+msgid "Nothing to undo"
+msgstr "No hay nada que deshacer"
 
 msgid "Not Undone"
 msgstr "No se deshizo"
@@ -1515,6 +1506,34 @@ msgid "Backups are in ~/.local/share/velatura/backups. To try again: velatura re
 msgstr "Las copias de seguridad están en ~/.local/share/velatura/backups. Para intentarlo de nuevo: velatura recover"
 
 #, rust-format
+msgid "{1} cannot be read ({2})"
+msgstr "{1} no se puede leer ({2})"
+
+#, rust-format
+msgid "{1} is damaged"
+msgstr "{1} está dañado"
+
+#, rust-format
+msgid "{1} was written by a newer version of Velatura"
+msgstr "{1} lo escribió una versión más reciente de Velatura"
+
+#, rust-format
+msgid "Velatura's own records cannot be used: {1}"
+msgstr "Los registros propios de Velatura no se pueden usar: {1}"
+
+msgid "Another Velatura is making changes. Try again in a moment."
+msgstr "Otro Velatura está haciendo cambios. Inténtelo de nuevo en un momento."
+
+msgid "There is nothing to undo."
+msgstr "No hay nada que deshacer."
+
+msgid "Nothing was changed."
+msgstr "No se cambió nada."
+
+msgid "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
+msgstr "Un cambio anterior interrumpido no se pudo revertir del todo, así que no se cambió nada nuevo."
+
+#, rust-format
 msgid "Nothing was undone: the backup {1} cannot be read, and it may hold the change to undo first. Moving that file out of the backups folder lets older changes be undone."
 msgstr "No se deshizo nada: la copia de seguridad {1} no se puede leer, y puede contener el cambio que hay que deshacer primero. Sacar ese archivo de la carpeta de copias de seguridad permite deshacer los cambios anteriores."
 
@@ -1572,16 +1591,5 @@ msgstr "{1}, leído como tema. Los colores que no da se calcularon a partir de l
 
 msgid "Theme files hold only colors and names. They cannot run anything"
 msgstr "Los archivos de tema solo contienen colores y nombres. No pueden ejecutar nada"
-
-
-
-
-
-
-
-
-
-
-
 
 

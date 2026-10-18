@@ -241,31 +241,17 @@ fn usage(message: &str) -> Exit {
 
 impl From<Error> for Exit {
     fn from(e: Error) -> Self {
-        let (code, message) = match e {
-            Error::Busy => (
-                BUSY,
-                "Another Velatura is making changes. Try again in a moment.".to_owned(),
-            ),
-            Error::NothingToUndo => (FAILED, "There is nothing to undo.".to_owned()),
-            Error::UnreadableBackup(_) | Error::ForeignBackup { .. } => {
-                (FAILED, text::backup_refused(&e).unwrap_or_default())
-            }
-            Error::Io(why) => (FAILED, clean_text(&why, 300)),
-            Error::Store(e) => (
-                FAILED,
-                format!(
-                    "Velatura's own records cannot be used ({}). Nothing was changed.",
-                    clean_text(&format!("{e:?}"), 300)
-                ),
-            ),
-            Error::Recovery(r) => (
-                FAILED,
-                format!(
-                    "An earlier interrupted change could not be fully rolled back, so nothing new was changed.\n{}To try again: velatura recover",
-                    text::rollback(&r)
-                ),
-            ),
-            Error::Failed(f) => (FAILED, text::failure(&f)),
+        let home = std::env::var_os("HOME")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_default();
+        let mut message = text::engine_error(&e, &home);
+        // From a terminal, the way on is a command.
+        if let Error::Recovery(_) = e {
+            message.push_str("To try again: velatura recover");
+        }
+        let code = match e {
+            Error::Busy => BUSY,
+            _ => FAILED,
         };
         Self { code, message }
     }
@@ -1802,7 +1788,7 @@ They are kept in {}",
             Err(e) => {
                 println!(
                     "Desktop settings: not available ({})",
-                    clean_text(&format!("{e:?}"), 120)
+                    clean_text(&e.to_string(), 120)
                 );
                 code = PARTIAL;
             }

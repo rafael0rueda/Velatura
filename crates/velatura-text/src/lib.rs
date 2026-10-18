@@ -834,6 +834,58 @@ pub fn failure(f: &Failure) -> String {
     }
 }
 
+/// What is wrong with one of Velatura's own files.
+pub fn store_error(e: &velatura_engine::store::StoreError, home: &Path) -> String {
+    use velatura_engine::store::StoreError;
+    match e {
+        StoreError::Io(p, why) => tf!(
+            "{1} cannot be read ({2})",
+            path(p, home),
+            clean_text(&why.to_string(), 200)
+        ),
+        StoreError::Damaged(p) => tf!("{1} is damaged", path(p, home)),
+        StoreError::Newer(p) => tf!(
+            "{1} was written by a newer version of Velatura",
+            path(p, home)
+        ),
+    }
+}
+
+/// Velatura's own records, when they cannot be used.
+pub fn records_problem(e: &velatura_engine::store::StoreError, home: &Path) -> String {
+    tf!(
+        "Velatura's own records cannot be used: {1}",
+        store_error(e, home)
+    )
+}
+
+/// Why an operation did not happen or did not finish, for the command and
+/// the app alike. The command adds how to go on from a terminal.
+pub fn engine_error(e: &velatura_engine::engine::Error, home: &Path) -> String {
+    use velatura_engine::engine::Error;
+    match e {
+        Error::Busy => t("Another Velatura is making changes. Try again in a moment."),
+        Error::NothingToUndo => t("There is nothing to undo."),
+        Error::UnreadableBackup(_) | Error::ForeignBackup { .. } => {
+            backup_refused(e).unwrap_or_default()
+        }
+        Error::Store(why) => format!(
+            "{}. {}",
+            records_problem(why, home),
+            t("Nothing was changed.")
+        ),
+        Error::Io(why) => clean_text(why, 300),
+        Error::Recovery(r) => format!(
+            "{}\n{}",
+            t(
+                "An earlier interrupted change could not be fully rolled back, so nothing new was changed."
+            ),
+            rollback(r)
+        ),
+        Error::Failed(f) => failure(f),
+    }
+}
+
 /// Why an undo was refused before anything was changed: a backup in the
 /// way that cannot be trusted. `None` for any other error.
 pub fn backup_refused(e: &velatura_engine::engine::Error) -> Option<String> {
