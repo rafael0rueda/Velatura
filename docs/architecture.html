@@ -34,18 +34,18 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 ├── extension/             optional GNOME Shell companion extension (JavaScript)
 ├── data/                  desktop file, icons, metainfo
 ├── po/                    translations
-├── tests/                 goldens, fixtures (stock Shell stylesheets, old backup formats), harness
-├── docs/                  this documentation (HTML)
-└── meson.build            wraps Cargo for the GUI and installed data</pre>
+├── scripts/               the test gate, acceptance checks against real apps, install and release
+└── docs/                  this documentation (HTML)</pre>
+<p class="note">As built: each crate keeps its tests, goldens and fixtures (stock Shell stylesheets, a first-version backup) under its own <code>tests/</code>. No Meson: Cargo builds everything, and <code>scripts/install-local.sh</code> and <code>scripts/release.sh</code> install the programs and data.</p>
 <div class="wrap"><table>
 <tr><th>Crate</th><th>Responsibility</th><th>Must not</th></tr>
 <tr><td><code>velatura-theme</code></td><td>Turn a theme file into a fully resolved set of typed colours, and render that into text for each app. Pure functions; can be fuzzed; all the editor preview needs.</td><td>Read or write anything.</td></tr>
-<tr><td><code>velatura-engine</code></td><td>Everything that inspects or changes the machine. Public interface of about eight operations: probe, plan, execute, undo, history, restore, disconnect, diagnose.</td><td>Depend on GTK (it may use GLib and GIO for settings), produce user-facing prose, or ask questions.</td></tr>
-<tr><td><code>velatura-cli</code></td><td>Arguments, translated text output, JSON output.</td><td>Hold logic the GUI would have to repeat.</td></tr>
+<tr><td><code>velatura-engine</code></td><td>Everything that inspects or changes the machine. Plans (<code>plan_apply</code>, <code>plan_undo</code>, <code>plan_restore_original</code>), one <code>execute</code>, the undo walks (<code>undo_last</code>, <code>restore_to</code>), <code>history</code>, <code>status</code>, <code>parts</code>, and the modules the front ends call for the library, schedule, look, templates and extension.</td><td>Depend on GTK (it may use GLib and GIO for settings), produce user-facing prose, or ask questions.</td></tr>
+<tr><td><code>velatura-cli</code></td><td>Arguments, text output in English, JSON output. The sentences it shares with the app come from <code>velatura-text</code>.</td><td>Hold logic the GUI would have to repeat.</td></tr>
 <tr><td><code>velatura-gui</code></td><td>Presentation. Calls the engine on a background thread; no async runtime.</td><td>Write any file itself.</td></tr>
-<tr><td><code>extension</code></td><td>Load one stylesheet into the Shell and reload it when it changes.</td><td>Contain theme logic, start programs, or patch Shell internals.</td></tr>
+<tr><td><code>extension</code></td><td>Load the stylesheets the app writes (the Shell's colours, Top Bar Style, Window Outline) and reload them when they change; draw the window outline; show the UPS indicator, read from Network UPS Tools on <code>localhost</code> (<a href="decisions.html#d71">D71</a>, <a href="decisions.html#d74">D74</a>, <a href="decisions.html#d75">D75</a>).</td><td>Contain theme logic, start programs, or patch Shell internals.</td></tr>
 </table></div>
-<p>Bundled themes and all version-specific data are compiled into the binaries, so they are found the same way when running from source, from a user-prefix install, from a package or from a sandbox. Messages, hints and errors cross the engine boundary as typed values with a stable code and arguments; the CLI and GUI turn them into translated text.</p>
+<p>Bundled themes and all version-specific data are compiled into the binaries, so they are found the same way when running from source, from a user-prefix install, from a package or from a sandbox. Messages, hints and errors cross the engine boundary as typed values with a stable code and arguments; <code>velatura-text</code> turns them into sentences, translated in the app.</p>
 <p><strong>Dependency budget for the theme and engine crates:</strong> TOML reading and comment-preserving editing, JSON, error and logging facades, a hash, safe temporary files, a diff library, and GIO behind a feature switch. Colour maths, contrast, marker editing, key-file editing and placeholder substitution are written in-house. No regular-expression engine, async runtime, template engine or date library. CI fails if the crate count per binary exceeds a stated cap.</p>
 
 <h2 id="model">2. Data model</h2>
@@ -53,11 +53,12 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px}th,td{b
 <li><strong>Theme</strong> and <strong>Variant</strong>: parsed and validated TOML.</li>
 <li><strong>ResolvedTheme</strong>: sanitised identity, appearance, every role as a typed <code>Color</code>, and per-target slot values. A <code>Color</code> can only be formatted through a closed set of functions.</li>
 <li><strong>Instance</strong>: one concrete thing to theme, identified by target and instance, for example <code>kitty:default</code>, <code>firefox:default</code>, <code>obsidian:&lt;vault id&gt;</code>. Preferences, consent, backups, status and <code>--only</code> are all keyed this way.</li>
-<li><strong>Facts</strong>: what probing found about an instance: paths, versions, prerequisites, conflicts. Serialisable, so plans can be tested from stored facts.</li>
+<li><strong>Facts</strong> did not become a type of their own: each target's plan reads what it needs through the host layer, and tests give it a throw-away home and an in-memory settings store instead of stored facts.</li>
 <li><strong>Plan</strong>: an ordered list of Changes, each with the precondition it was computed against, plus conflicts needing an answer and hints for afterwards. Serialisable.</li>
 </ul>
 
 <h2 id="targets">3. Targets: renderer and connector</h2>
+<p class="note">As built: the renderers are pure functions in <code>velatura-theme</code>, golden-tested as planned. The connectors are not trait objects: each is a plan function in <code>velatura-engine</code> (<code>plan_kitty</code>, <code>plan_gtk4</code>, …) taking the host, the environment, the theme and the state, chosen by name in <code>targets::plan</code>, and a test plans every part. The changes are <code>CreateDir</code>, <code>RemoveDir</code>, <code>Owned</code> (a file of Velatura's, written or removed), <code>Block</code> (a marked block in a file of the user's) and <code>Setting</code>; timers are written by the schedule module, not as changes. What follows is the design as reviewed in Phase 0.</p>
 <p>The first design claimed targets could be pure planners. The review showed that is false for most of them (Kitty must read <code>kitty.conf</code>, Firefox must find profiles). Each target is now two parts with a read-only probing step between them.</p>
 <pre>trait Renderer {                       // colours -&gt; bytes. Pure, golden-tested.
     fn render(&amp;self, theme: &amp;ResolvedTheme, opts: &amp;RenderOpts) -&gt; Artifacts;
@@ -88,7 +89,7 @@ enum Change {
 </ul>
 
 <h2 id="host">4. Host-access layer</h2>
-<p>All contact with the machine goes through one layer, defined in Phase 0 and enforced by a lint that bans direct file, process and directory-lookup calls elsewhere. It has a real implementation, a failure-injecting wrapper for tests, and room for a sandboxed implementation later.</p>
+<p>All contact with the machine goes through one layer, defined in Phase 0. No lint enforces it, as was planned; it is kept by review, and the front ends reach files only through the same layer. It has a real implementation, a failure-injecting wrapper for tests, and room for a sandboxed implementation later.</p>
 <div class="wrap"><table>
 <tr><th>Part</th><th>Covers</th></tr>
 <tr><td>Directories</td><td>The host's XDG directories (never the process's own, which differ in a sandbox), system data directories taken from <code>XDG_DATA_DIRS</code>.</td></tr>
@@ -161,24 +162,23 @@ enum Change {
 <p>Consents are kept out of <code>~/.config</code> because people synchronise that directory between machines. These locations are the same in every install channel; a second install of a different channel finds the first one's state and refuses to manage the same files until told to import it.</p>
 
 <h2 id="cli">7. Command line</h2>
-<div class="note"><strong>Built so far (Phases 1a to 2e):</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code> (with <code>auto</code>), <code>schedule</code>, <code>extension</code>, <code>look</code>, <code>theme</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>. Exit codes: 0 done, 1 failed, 2 wrong usage, 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The rest of the list below arrives with later phases.</div>
+<div class="note"><strong>Built:</strong> <code>list</code>, <code>show</code>, <code>validate</code>, <code>targets</code>, <code>status</code>, <code>apply</code>, <code>switch</code> (with <code>set</code> and <code>auto</code>), <code>schedule</code> (with <code>set</code>, <code>off</code> and <code>follow</code>), <code>top-bar</code>, <code>extension</code>, <code>theme</code> (import, export, resolve, remove), <code>template</code>, <code>look</code>, <code>undo</code>, <code>history</code>, <code>restore</code>, <code>recover</code>, <code>doctor</code>; <code>velatura --help</code> lists them with their options. Exit codes: 0 done, 1 failed, 2 wrong usage (an unknown part or variant name included), 3 agreement needed and nothing changed, 4 another Velatura is running, 5 done but something was left out. The sketch below is the plan's.</div>
 <pre>velatura                               status and short help
 velatura list | show &lt;theme&gt; | validate &lt;file&gt; [--strict]
 velatura targets                       apps and desktop parts: instances, support, prerequisites
 velatura status                        theme in use, per-instance state, things left for you to do
-velatura apply &lt;theme&gt;[/variant] [--only ..] [--except ..] [--preview] [--yes] [--if-stale]
+velatura apply &lt;theme&gt;[/variant] [--only ..] [--except ..] [--preview] [--yes]
 velatura switch day|night|toggle|auto
 velatura undo                          (alias: revert)
 velatura history [verify]
 velatura restore &lt;id&gt; | --original [--preview]
-velatura disconnect &lt;target&gt; | --all   remove what the app added
 velatura doctor                        versions, prerequisites, conflicts, other theming tools
 velatura schedule set --day 07:00 --night 20:00 | off | status
 velatura theme import|export|resolve</pre>
 <ul>
 <li>Words match the GUI: Undo, History, Preview. One glossary is shared by GUI, CLI and docs.</li>
 <li>The first apply that adds a line to a user's file, or puts files into Neovim's settings folder when that exists, needs confirmation on a terminal or <code>--yes</code>. Without a terminal and without <code>--yes</code> it changes nothing and exits with the conflict code.</li>
-<li><code>--json</code> on every command, with a format number, stable codes and a documented exit-code table. Human output is translated; command names, JSON keys and exit codes are not.</li>
+<li><code>--json</code> on every command, with a format number, stable codes and a documented exit-code table. Human output is in English; the app is translated (Phase 2e). Command names, JSON keys and exit codes are never translated.</li>
 </ul>
 
 <h2 id="gui">8. GUI structure</h2>
@@ -189,7 +189,7 @@ velatura theme import|export|resolve</pre>
 <tr><td>target, instance</td><td>"app", on a page called Apps &amp; Desktop</td></tr>
 <tr><td>snapshot</td><td>"backup"; the list is History; the first is Original Setup</td></tr>
 <tr><td>managed line, owned file</td><td>"a line Velatura adds to your settings file", "a file Velatura creates"</td></tr>
-<tr><td>connect, disconnect</td><td>Set Up, Stop Theming</td></tr>
+<tr><td>connect, disconnect</td><td>Set Up; a part's switch turned off, taken away at the next apply (<a href="decisions.html#d78">D78</a>)</td></tr>
 <tr><td>dry run, revert, doctor, hints</td><td>Preview Changes, Undo, Troubleshooting, "Finish applying"</td></tr>
 <tr><td>support level</td><td>No badge when supported; "Unofficial" (not supported by GNOME; may stop working after an update); "Experimental"</td></tr>
 </table></div>
@@ -235,7 +235,7 @@ velatura theme import|export|resolve</pre>
 <li><strong>A self-hosted Flatpak repository</strong> with full permissions, mainly for immutable desktops.</li>
 <li><strong>Flathub: only as a reduced edition, if at all.</strong> The full app needs about a dozen permission exceptions (home configuration directories, host system data, host settings, user timers, host commands), and Flathub does not accept system utilities that mainly act on the host. Flathub also requires disclosure of AI-generated material, forbids AI-generated or AI-assisted content in the submission manifest, and refuses sandbox-escaping exceptions where it sees signs of LLM use. Since this project is being developed with AI assistance, that policy applies and the owner should read it before planning on Flathub.</li>
 </ol>
-<p>Each connector declares which host capabilities it needs, so a restricted build can switch a target off with an explanation instead of failing. Fixed in Phase 0 because they are expensive to change later: application ID, CLI and GUI binary names, gettext domain, extension identifier, timer unit names.</p>
+<p>Not built: connectors declaring the host capabilities they need. A part that cannot work here says why when it is planned, and is left out. Fixed in Phase 0 because they are expensive to change later: application ID, CLI and GUI binary names, gettext domain, extension identifier, timer unit names.</p>
 </main>
 </body>
 </html>

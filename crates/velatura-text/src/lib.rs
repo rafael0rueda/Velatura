@@ -41,14 +41,14 @@ Usage:
   velatura top-bar style <style>   bar for a full bar, pills for a pill per button
   velatura top-bar opacity <0-100> how opaque, as a percentage
   velatura extension               whether Velatura's own Shell extension is installed
-  velatura extension install       install it for this user (turning it on is left to you)
+  velatura extension install       install it for this user; turn it on in the Extensions app
   velatura extension remove        remove the copy Velatura installed
   velatura theme import <file>     add a theme file to the library; base16,
                                    base24 and Kitty themes are read too
   velatura theme export <theme> [<file>]   write a theme's file, or print it
   velatura theme resolve <theme>   print a theme with every color written out
-  velatura theme remove <theme>    take one of your themes out of the library
-  velatura template                your templates, and where each one writes
+  velatura theme remove <theme>    take an added theme out of the library
+  velatura template                the templates added, and where each one writes
   velatura template add <file>     check a template and add it
   velatura template remove <id>    take a template out (a copy is kept)
   velatura look                    icons, cursor, wallpaper and fonts in use
