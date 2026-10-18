@@ -325,6 +325,10 @@ fn the_sets_used_last_are_kept_and_older_ones_cleared() {
         .collect();
     assert_eq!(left, [false, true, true, true, true]);
     assert_eq!(velatura_engine::icon_set::KEPT_SETS, 3);
+    // Planned again with the same colors, as the app's status does, it
+    // keeps the same three: nothing is left to do.
+    let last = ACCENTS[ACCENTS.len() - 1];
+    assert!(plan(&host, &tinted(last)).is_empty());
 }
 
 #[test]
