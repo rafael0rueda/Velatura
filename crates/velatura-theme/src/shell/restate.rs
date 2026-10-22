@@ -296,33 +296,58 @@ pub fn restate(theme: &Resolved<'_>, stock: &str, heavy: bool) -> Option<String>
         super::FORMAT,
         &sha256_hex(stock.as_bytes())[..16]
     );
+    // Where the Shell says a property `!important` for a selector, a plain
+    // declaration of it elsewhere never shows, as in `.popup-menu-item:
+    // insensitive`, transparent `!important` and a grey later on. Restated
+    // one step heavier, the grey would show, so it is left out there.
+    let important: Vec<(&str, &str)> = rules
+        .iter()
+        .flat_map(|(selectors, body)| {
+            declarations(body)
+                .into_iter()
+                .filter(|(_, v)| v.ends_with("!important"))
+                .flat_map(|(p, _)| selectors.split(',').map(move |s| (s.trim(), p)))
+        })
+        .collect();
     let mut kept = 0;
     for (selectors, body) in &rules {
         if selectors.starts_with('@') || selectors.is_empty() {
             continue;
         }
-        let mut kept_here = Vec::new();
+        let selectors: Vec<&str> = selectors.split(',').map(str::trim).collect();
+        // Each declaration with the selectors it still reaches; those that
+        // reach the same ones share a rule, which is all of them but where
+        // `!important` stands in the way.
+        let mut kept_here: Vec<(Vec<&str>, Vec<String>)> = Vec::new();
         for (property, value) in declarations(body) {
             let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
             let (value, changed) = recolor(&value, &ramp, accent_fg);
-            if changed {
-                kept_here.push(format!("{property}: {value}"));
+            if !changed {
+                continue;
+            }
+            let reached: Vec<&str> = selectors
+                .iter()
+                .copied()
+                .filter(|s| value.ends_with("!important") || !important.contains(&(*s, property)))
+                .collect();
+            if reached.is_empty() {
+                continue;
+            }
+            let declaration = format!("{property}: {value}");
+            match kept_here.iter_mut().find(|(s, _)| *s == reached) {
+                Some((_, declarations)) => declarations.push(declaration),
+                None => kept_here.push((reached, vec![declaration])),
             }
         }
-        if kept_here.is_empty() {
-            continue;
-        }
-        let selectors = if heavy {
-            selectors
-                .split(',')
-                .map(|s| heavier(s.trim()))
+        for (reached, declarations) in kept_here {
+            let reached = reached
+                .iter()
+                .map(|s| if heavy { heavier(s) } else { (*s).to_owned() })
                 .collect::<Vec<_>>()
-                .join(", ")
-        } else {
-            selectors.clone()
-        };
-        let _ = writeln!(out, "{selectors} {{ {}; }}", kept_here.join("; "));
-        kept += 1;
+                .join(", ");
+            let _ = writeln!(out, "{reached} {{ {}; }}", declarations.join("; "));
+            kept += 1;
+        }
     }
     if kept == 0 {
         return None;
@@ -492,6 +517,37 @@ mod tests {
         assert_eq!(parse("#ffff"), None);
         assert_eq!(parse("transparent"), None);
         assert_eq!(parse("grayish"), None);
+    }
+
+    /// What an `!important` declaration hides stays hidden: the Shell's
+    /// separators in menus are insensitive items, transparent `!important`
+    /// over a grey, and the grey once showed as a bar around the line.
+    #[test]
+    fn what_important_hides_is_left_out() {
+        let theme = ember();
+        let r = Resolved::new(&theme, None).unwrap();
+        let stock = "stage { color: #ffffff; }\n#overviewGroup { background-color: #222226; }\n\
+            .popup-menu-item:insensitive { background-color: transparent !important; }\n\
+            .popup-menu-item:insensitive, .other { color: #ffffff; background-color: #424247; }\n\
+            .button { color: #ffffff !important; }\n.button { color: #424247 !important; }\n";
+        let out = restate(&r, stock, true).unwrap();
+        let ui = &r.colors.ui;
+        let grey = Ramp::new(&r, Color::rgb(255, 255, 255), Color::rgb(0x22, 0x22, 0x26))
+            .unwrap()
+            .map(Color::rgb(0x42, 0x42, 0x47));
+        assert!(
+            out.contains(&format!(
+                "\n.popup-menu-item:insensitive.popup-menu-item:insensitive, .other.other {{ color: {}; }}\n.other.other {{ background-color: {}; }}\n",
+                ui.fg.hex(),
+                grey.hex()
+            )),
+            "{out}"
+        );
+        // One `!important` over another goes by the usual order.
+        assert!(out.contains(&format!(
+            ".button.button {{ color: {} !important; }}",
+            grey.hex()
+        )));
     }
 
     /// A property declared twice counts by its last declaration, as in the
