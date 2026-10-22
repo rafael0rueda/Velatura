@@ -22,7 +22,8 @@ pub use restate::restate;
 /// new format makes the Shell load the new file.
 /// 3: a property declared twice in one rule is read as CSS reads it, by its
 /// last declaration.
-pub const FORMAT: u32 = 3;
+/// 4: what the Shell's own `!important` hides is not restated.
+pub const FORMAT: u32 = 4;
 
 /// Every selector the overrides use. A test checks each one exists in the
 /// stock stylesheet of every supported Shell version.
