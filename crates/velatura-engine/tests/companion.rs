@@ -228,6 +228,61 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
     assert!(js.contains("this._cancel.cancel()") && js.contains("this._ups?.destroy()"));
 }
 
+/// Every version of the extension as published, with the SHA-256 of its
+/// `extension.js`. A line is never changed once its version is out: a
+/// change to `extension.js` raises `version-name` in `metadata.json` and
+/// adds a line here.
+const RELEASED: [(u64, &str); 6] = [
+    (
+        1,
+        "5fe303db4bb508c20caad93f7e9abe00b709713ac0bcaecd9dbf7d6b89f043c0",
+    ),
+    (
+        2,
+        "7c9fc2616dec37fded596dd1b29e30f5a5b471942a41c94d9f09e3495387be5f",
+    ),
+    (
+        3,
+        "34e478712f943d8ae7e9d54559f254e187abfaa7ecd465e8f8c64f26b51aaca8",
+    ),
+    (
+        4,
+        "9c04e8bd6790a3e8829626d1089010565960c7c7f0accc01c15442c085e59914",
+    ),
+    (
+        5,
+        "81ea761b0387496ea9790dc0f777065dba669c87452889a8f0e0ce649a410206",
+    ),
+    (
+        6,
+        "d9e9da3bc96bd7dec3b3747e28ac2a00b5422fec95bbf4289f397bd57dbc30f2",
+    ),
+];
+
+/// Whether an installed copy is older is read from its `version-name`, so
+/// a change to what the extension does must come with a new one, or an
+/// earlier copy would count as up to date and be written for.
+#[test]
+fn a_changed_extension_has_a_new_version() {
+    let meta: serde_json::Value = serde_json::from_str(companion::FILES[0].1).unwrap();
+    let version: u64 = meta["version-name"].as_str().unwrap().parse().unwrap();
+    let js = velatura_theme::sha256_hex(companion::FILES[1].1.as_bytes());
+    for pair in RELEASED.windows(2) {
+        assert!(pair[0].0 < pair[1].0, "versions in order, each once");
+        assert!(
+            RELEASED.iter().filter(|(_, sha)| *sha == pair[1].1).count() == 1,
+            "each version's extension.js is its own"
+        );
+    }
+    assert_eq!(
+        RELEASED.last(),
+        Some(&(version, js.as_str())),
+        "extension.js or version-name changed: raise version-name in metadata.json to {} and add ({}, \"{js}\") as a new last line of RELEASED",
+        RELEASED[RELEASED.len() - 1].0 + 1,
+        RELEASED[RELEASED.len() - 1].0 + 1,
+    );
+}
+
 #[test]
 fn with_the_extension_on_the_shell_gets_one_stylesheet_in_one_place() {
     let home = Home::new();
