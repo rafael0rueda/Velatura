@@ -483,10 +483,23 @@ fn following_the_style_needs_a_light_and_a_dark_theme_and_replaces_the_clock() {
     want.retain(|k, _| !k.contains("velatura"));
     assert_eq!(after, want);
 
-    // A home folder with a space in it is written so systemd reads it right.
+    // A home folder with a space in it is written so systemd reads it right:
+    // as it is, since systemd decodes no escapes there, only `%`.
     let (_, watch) =
         schedule::follow_units(&exe, Path::new("/home/a b/.config/dconf/user 100%")).unwrap();
-    assert!(watch.contains("PathChanged=/home/a\\x20b/.config/dconf/user\\x20100%%\n"));
+    assert!(watch.contains("PathChanged=/home/a b/.config/dconf/user 100%%\n"));
+    // What systemd would cut off or join to the next line is refused.
+    for bad in [
+        "/home/a/user ",
+        "/home/a/user\\",
+        "/home/a/us\ner",
+        "home/a/user",
+    ] {
+        assert!(
+            schedule::follow_units(&exe, Path::new(bad)).is_none(),
+            "{bad:?}"
+        );
+    }
 }
 
 #[test]

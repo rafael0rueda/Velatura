@@ -202,9 +202,16 @@ pub fn units(exe: &Path, times: Times) -> Option<(String, String)> {
 /// following the dark style. `settings` is the settings database file.
 pub fn follow_units(exe: &Path, settings: &Path) -> Option<(String, String)> {
     let (service, _) = units(exe, Times::default())?;
-    let watched = settings
-        .to_str()
-        .filter(|text| settings.is_absolute() && !text.chars().any(char::is_control))?;
+    // systemd reads a path here as it is, but for `%`: no quotes and no
+    // escapes. It drops white space at the end of a line and joins a line
+    // that ends in a backslash to the next, so a path ending in either is
+    // refused.
+    let watched = settings.to_str().filter(|text| {
+        settings.is_absolute()
+            && !text.chars().any(char::is_control)
+            && !text.ends_with(char::is_whitespace)
+            && !text.ends_with('\\')
+    })?;
     // The settings file changes in bursts, and systemd by default refuses
     // to start a service more than five times in ten seconds, after which
     // the watching unit fails and stays off. The command is cheap and does
@@ -225,8 +232,8 @@ pub fn follow_units(exe: &Path, settings: &Path) -> Option<(String, String)> {
          \n\
          [Install]\n\
          WantedBy=default.target\n",
-        // The two things systemd would read something into in a path.
-        watched.replace('%', "%%").replace(' ', "\\x20")
+        // The one thing systemd reads something into in this path.
+        watched.replace('%', "%%")
     );
     Some((service, watch))
 }
