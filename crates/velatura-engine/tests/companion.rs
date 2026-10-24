@@ -799,3 +799,49 @@ fn the_ups_indicator_has_its_stylesheet_while_on() {
     engine::execute(&host, &plan, &[]).unwrap();
     assert!(!css.exists());
 }
+
+/// A copy of a later version, as a later Velatura installs, is not
+/// replaced by this build's earlier one, nor offered to be.
+#[test]
+fn a_later_extension_is_kept() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let js = home.path(&format!(
+        ".local/share/gnome-shell/extensions/{UUID}/extension.js"
+    ));
+    let metadata = js.with_file_name("metadata.json");
+    let ours = fs::read_to_string(&metadata).unwrap();
+    let meta: serde_json::Value = serde_json::from_str(&ours).unwrap();
+    let now = meta["version-name"].as_str().unwrap();
+    let later = (now.parse::<u64>().unwrap() + 1).to_string();
+    let later_meta = ours.replace(
+        &format!("\"version-name\": \"{now}\""),
+        &format!("\"version-name\": \"{later}\""),
+    );
+    assert_ne!(later_meta, ours);
+    fs::write(&metadata, &later_meta).unwrap();
+    fs::write(&js, "// what a later version does\n").unwrap();
+
+    let status = companion::status(&host, &no_env);
+    assert!(status.by_velatura && status.active());
+    assert!(!status.differs && !status.outdated, "{status:?}");
+    assert!(!companion::install(&host).unwrap(), "kept");
+    assert_eq!(fs::read_to_string(&metadata).unwrap(), later_meta);
+    assert_eq!(
+        fs::read_to_string(&js).unwrap(),
+        "// what a later version does\n"
+    );
+    // And the parts that need the extension are written for it.
+    let only = ApplyOpts {
+        only: vec![TOP_BAR.to_owned()],
+        ..ApplyOpts::default()
+    };
+    let plan = top_bar_plan(&host, &only);
+    let top_bar = plan.targets.iter().find(|t| t.instance == TOP_BAR).unwrap();
+    assert_ne!(top_bar.skipped, Some(Skip::VelaturaExtensionOutdated));
+    // Removing it is still Velatura's to do.
+    assert!(companion::remove(&host).unwrap().is_some());
+}

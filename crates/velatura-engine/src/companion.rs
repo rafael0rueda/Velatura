@@ -99,7 +99,8 @@ pub struct Status {
     /// True if this user's copy was put there by Velatura.
     pub by_velatura: bool,
     /// Velatura's copy differs from the one this build carries: installing
-    /// it again brings it up to date.
+    /// it again brings it up to date. Not for a copy of a later version,
+    /// as a later Velatura installs: this build leaves that one as it is.
     pub differs: bool,
     /// Velatura's copy is an earlier version than the one this build
     /// carries, so parts that need the later one cannot be shown. A copy
@@ -127,6 +128,19 @@ fn version_of(metadata: &[u8]) -> Option<u64> {
     v.get("version-name")?.as_str()?.parse().ok()
 }
 
+/// The version of the copy in this user's extensions folder, if it says.
+fn user_version(host: &Host<'_>) -> Option<u64> {
+    let bytes = read_opt(host, &user_dir(host).join("metadata.json"))
+        .ok()
+        .flatten()?;
+    version_of(&bytes)
+}
+
+/// True if this user's copy is of a later version than this build's.
+fn later_than_ours(host: &Host<'_>) -> bool {
+    user_version(host).is_some_and(|v| Some(v) > version_of(FILES[0].1.as_bytes()))
+}
+
 pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
     let installed = targets::data_dirs(host, env)
         .into_iter()
@@ -134,17 +148,13 @@ pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
         .find(|d| matches!(host.fs.kind(&d.join("metadata.json")), Ok(Some(_))));
     let ours = installed.as_ref() == Some(&user_dir(host)) && record(host).is_some();
     let differs = ours
+        && !later_than_ours(host)
         && FILES.iter().any(|(name, text)| {
             hash_at(host, &user_dir(host).join(name)) != Some(sha256_hex(text.as_bytes()))
         });
     // A copy whose version cannot be read is taken as an earlier one.
-    let outdated = differs && {
-        let bytes = read_opt(host, &user_dir(host).join("metadata.json"))
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        version_of(&bytes).is_none_or(|v| Some(v) < version_of(FILES[0].1.as_bytes()))
-    };
+    let outdated =
+        differs && user_version(host).is_none_or(|v| Some(v) < version_of(FILES[0].1.as_bytes()));
     let enabled = match host.settings.read("org.gnome.shell", "enabled-extensions") {
         Ok(Some(list)) => {
             let off = matches!(
@@ -169,11 +179,15 @@ fn io<T>(result: std::io::Result<T>) -> Result<T, Refused> {
 }
 
 /// Put the extension in this user's extensions folder, or bring Velatura's
-/// copy there up to date. `Ok(false)` if it was already as it should be.
-/// A folder of that name that Velatura did not make is left alone.
+/// copy there up to date. `Ok(false)` if it was already as it should be,
+/// or is Velatura's copy of a later version, which is kept. A folder of
+/// that name that Velatura did not make is left alone.
 pub fn install(host: &Host<'_>) -> Result<bool, Refused> {
     let dir = user_dir(host);
     let before = record(host);
+    if before.is_some() && later_than_ours(host) {
+        return Ok(false);
+    }
     let wanted: Vec<(&str, String)> = FILES
         .iter()
         .map(|(name, text)| (*name, sha256_hex(text.as_bytes())))
