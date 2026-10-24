@@ -25,8 +25,10 @@ case "$prefix" in
     /*) ;;
     *) echo "--prefix needs a full path" >&2; exit 2 ;;
 esac
+# GNOME launches no app whose path has a %, written either way the
+# launcher's format allows.
 case "$prefix" in
-    *[\"\`\$\\\|]*) echo "the folder's name has a character a launcher cannot hold" >&2; exit 2 ;;
+    *[\"\`\$\\\|%]* | *[[:cntrl:]]*) echo "the folder's name has a character a launcher cannot hold" >&2; exit 2 ;;
 esac
 id=io.github.rafael0rueda.Velatura
 files=(
@@ -46,8 +48,9 @@ for f in "${files[@]}"; do
     install -D -m "$mode" "$f" "$prefix/$f"
 done
 # The launcher names the app by its full path: the folder need not be on
-# the session's PATH.
-sed -i "s|^Exec=velatura-app\$|Exec=\"$prefix/bin/velatura-app\"|" \
+# the session's PATH. sed reads & as what it matched, so it is escaped.
+exec_path=${prefix//&/\\&}
+sed -i "s|^Exec=velatura-app\$|Exec=\"$exec_path/bin/velatura-app\"|" \
     "$prefix/share/applications/$id.desktop"
 echo "Installed $("$prefix/bin/velatura" --version) in $prefix."
 case ":$PATH:" in
