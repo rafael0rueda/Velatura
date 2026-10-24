@@ -1449,6 +1449,9 @@ msgstr "La extensión de Velatura está activada, y hay instalada una copia más
 msgid "Velatura's extension is on: the top bar and overview are themed through it"
 msgstr "La extensión de Velatura está activada: la barra superior y la vista de actividades reciben el tema a través de ella"
 
+msgid "Velatura's extension is installed. Whether it is on can only be read in a desktop session"
+msgstr "La extensión de Velatura está instalada. Si está activada solo se puede saber en una sesión de escritorio"
+
 #, rust-format
 msgid "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
 msgstr "La extensión de Velatura está instalada y desactivada. Tras cerrar la sesión y volver a entrar una vez, actívela en la aplicación Extensiones, o con: gnome-extensions enable {1}"
