@@ -15,7 +15,12 @@
 //! accent the theme's accent, exactly.
 //!
 //! The output is text of the Shell's own stylesheet with colours put in
-//! place, and nothing a theme file says but colours.
+//! place: every declaration of a property that holds a colour anywhere in
+//! it, and nothing else. The Shell gives Velatura's stylesheets their own
+//! place above its own whatever the weight of a rule (an extension's, or
+//! a user theme's as the author's stylesheet), so a `transparent` or a
+//! `none` that wins over a colour in the Shell's stylesheet has to be said
+//! again in Velatura's, or the colour wins there.
 
 use std::fmt::Write;
 
@@ -239,18 +244,28 @@ fn stock_color(rules: &[(String, String)], selector: &str, property: &str) -> Op
 }
 
 /// The declarations of one rule as CSS reads them: where a property is
-/// declared more than once, only the last counts, in its place. The
-/// Shell's stylesheet does that on purpose, as in `background-color:
-/// #222226; background-color: transparent;`.
+/// declared more than once, only the last counts, in its place, unless an
+/// earlier one is `!important` and it is not. The Shell's stylesheet does
+/// that on purpose, as in `background-color: #222226; background-color:
+/// transparent;`.
 fn declarations(body: &str) -> Vec<(&str, &str)> {
     let all: Vec<(&str, &str)> = body
         .split(';')
         .filter_map(|d| d.split_once(':'))
         .map(|(p, v)| (p.trim(), v.trim()))
         .collect();
+    let important = |v: &str| v.ends_with("!important");
     all.iter()
         .enumerate()
-        .filter(|(i, (p, _))| !all[i + 1..].iter().any(|(q, _)| q == p))
+        .filter(|(i, (p, v))| {
+            let mut later = all[i + 1..].iter().filter(|(q, _)| q == p);
+            let mut earlier = all[..*i].iter().filter(|(q, _)| q == p);
+            if important(v) {
+                !later.any(|(_, w)| important(w))
+            } else {
+                later.next().is_none() && !earlier.any(|(_, w)| important(w))
+            }
+        })
         .map(|(_, d)| *d)
         .collect()
 }
@@ -296,61 +311,54 @@ pub fn restate(theme: &Resolved<'_>, stock: &str, heavy: bool) -> Option<String>
         super::FORMAT,
         &sha256_hex(stock.as_bytes())[..16]
     );
-    // Where the Shell says a property `!important` for a selector, a plain
-    // declaration of it elsewhere never shows, as in `.popup-menu-item:
-    // insensitive`, transparent `!important` and a grey later on. Restated
-    // one step heavier, the grey would show, so it is left out there.
-    let important: Vec<(&str, &str)> = rules
+    let styled = |selectors: &str| !selectors.starts_with('@') && !selectors.is_empty();
+    // The properties of colours: those that hold one somewhere, those
+    // named for one, and the shorthands that cover them, as `border` does
+    // `border-color`. Each of their declarations is said again, those
+    // without a colour as they are, so the Shell's own `!important`,
+    // `transparent` and shorthands keep winning where they win in its
+    // stylesheet, as the transparent `!important` of `.popup-menu-item:
+    // insensitive` over a later grey.
+    let all: Vec<(&str, &str)> = rules
         .iter()
-        .flat_map(|(selectors, body)| {
-            declarations(body)
-                .into_iter()
-                .filter(|(_, v)| v.ends_with("!important"))
-                .flat_map(|(p, _)| selectors.split(',').map(move |s| (s.trim(), p)))
-        })
+        .filter(|(selectors, _)| styled(selectors))
+        .flat_map(|(_, body)| declarations(body))
         .collect();
-    let mut kept = 0;
+    if !all.iter().any(|(_, v)| recolor(v, &ramp, accent_fg).1) {
+        return None;
+    }
+    let colored: Vec<&str> = all
+        .iter()
+        .filter(|(p, v)| *p == "color" || p.ends_with("-color") || recolor(v, &ramp, accent_fg).1)
+        .map(|(p, _)| *p)
+        .collect();
+    let of_colour = |p: &str| {
+        colored
+            .iter()
+            .any(|q| *q == p || q.strip_prefix(p).is_some_and(|rest| rest.starts_with('-')))
+    };
     for (selectors, body) in &rules {
-        if selectors.starts_with('@') || selectors.is_empty() {
+        if !styled(selectors) {
             continue;
         }
-        let selectors: Vec<&str> = selectors.split(',').map(str::trim).collect();
-        // Each declaration with the selectors it still reaches; those that
-        // reach the same ones share a rule, which is all of them but where
-        // `!important` stands in the way.
-        let mut kept_here: Vec<(Vec<&str>, Vec<String>)> = Vec::new();
-        for (property, value) in declarations(body) {
-            let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
-            let (value, changed) = recolor(&value, &ramp, accent_fg);
-            if !changed {
-                continue;
-            }
-            let reached: Vec<&str> = selectors
-                .iter()
-                .copied()
-                .filter(|s| value.ends_with("!important") || !important.contains(&(*s, property)))
-                .collect();
-            if reached.is_empty() {
-                continue;
-            }
-            let declaration = format!("{property}: {value}");
-            match kept_here.iter_mut().find(|(s, _)| *s == reached) {
-                Some((_, declarations)) => declarations.push(declaration),
-                None => kept_here.push((reached, vec![declaration])),
-            }
+        let kept_here: Vec<String> = declarations(body)
+            .into_iter()
+            .filter(|(p, _)| of_colour(p))
+            .map(|(property, value)| {
+                let value = value.split_whitespace().collect::<Vec<_>>().join(" ");
+                format!("{property}: {}", recolor(&value, &ramp, accent_fg).0)
+            })
+            .collect();
+        if kept_here.is_empty() {
+            continue;
         }
-        for (reached, declarations) in kept_here {
-            let reached = reached
-                .iter()
-                .map(|s| if heavy { heavier(s) } else { (*s).to_owned() })
-                .collect::<Vec<_>>()
-                .join(", ");
-            let _ = writeln!(out, "{reached} {{ {}; }}", declarations.join("; "));
-            kept += 1;
-        }
-    }
-    if kept == 0 {
-        return None;
+        let selectors = selectors
+            .split(',')
+            .map(str::trim)
+            .map(|s| if heavy { heavier(s) } else { s.to_owned() })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(out, "{selectors} {{ {}; }}", kept_here.join("; "));
     }
     // The panel's text comes down from the stage in the Shell's own
     // stylesheet, so an extension that colours the panel's text would
@@ -519,35 +527,52 @@ mod tests {
         assert_eq!(parse("grayish"), None);
     }
 
-    /// What an `!important` declaration hides stays hidden: the Shell's
-    /// separators in menus are insensitive items, transparent `!important`
-    /// over a grey, and the grey once showed as a bar around the line.
+    /// What the Shell's stylesheet hides stays hidden, as Velatura's
+    /// stylesheets are above it whatever its weight. The Shell's separators
+    /// in menus are insensitive items, transparent `!important` over a
+    /// grey, and the grey once showed as a bar around the line. The clock
+    /// says `box-shadow: none !important` for itself, which also hides the
+    /// shadow of its `:hover`, and a shorthand `border: none !important`
+    /// hides a `border-color`.
     #[test]
-    fn what_important_hides_is_left_out() {
+    fn what_the_shell_hides_stays_hidden() {
         let theme = ember();
         let r = Resolved::new(&theme, None).unwrap();
         let stock = "stage { color: #ffffff; }\n#overviewGroup { background-color: #222226; }\n\
             .popup-menu-item:insensitive { background-color: transparent !important; }\n\
             .popup-menu-item:insensitive, .other { color: #ffffff; background-color: #424247; }\n\
-            .button { color: #ffffff !important; }\n.button { color: #424247 !important; }\n";
+            .clock { box-shadow: inset 0 0 0 100px transparent; box-shadow: none !important; border: none !important; }\n\
+            .clock:hover { box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17); }\n\
+            .clock, .other { border-color: #424247; }\n\
+            .button { color: #ffffff !important; color: #424247; }\n";
         let out = restate(&r, stock, true).unwrap();
         let ui = &r.colors.ui;
         let grey = Ramp::new(&r, Color::rgb(255, 255, 255), Color::rgb(0x22, 0x22, 0x26))
             .unwrap()
             .map(Color::rgb(0x42, 0x42, 0x47));
-        assert!(
-            out.contains(&format!(
-                "\n.popup-menu-item:insensitive.popup-menu-item:insensitive, .other.other {{ color: {}; }}\n.other.other {{ background-color: {}; }}\n",
+        let lines: Vec<&str> = out.lines().skip(2).collect();
+        for want in [
+            ".popup-menu-item:insensitive.popup-menu-item:insensitive { background-color: transparent !important; }".to_owned(),
+            format!(
+                ".popup-menu-item:insensitive.popup-menu-item:insensitive, .other.other {{ color: {}; background-color: {}; }}",
                 ui.fg.hex(),
                 grey.hex()
-            )),
-            "{out}"
-        );
-        // One `!important` over another goes by the usual order.
-        assert!(out.contains(&format!(
-            ".button.button {{ color: {} !important; }}",
-            grey.hex()
-        )));
+            ),
+            ".clock.clock { box-shadow: none !important; border: none !important; }".to_owned(),
+            format!(
+                ".clock:hover.clock:hover {{ box-shadow: inset 0 0 0 100px rgba({}, {}, {}, 0.17); }}",
+                ui.fg.r, ui.fg.g, ui.fg.b
+            ),
+            format!(".clock.clock, .other.other {{ border-color: {}; }}", grey.hex()),
+            // Within one rule, an `!important` wins over a later plain one.
+            format!(".button.button {{ color: {} !important; }}", ui.fg.hex()),
+        ] {
+            assert!(lines.contains(&want.as_str()), "missing {want}\n{out}");
+        }
+        // And the Shell's own order: the `!important` ones come first, as
+        // there, and the Shell weighs them over the rest.
+        let at = |needle: &str| out.find(needle).unwrap();
+        assert!(at("transparent !important") < at(&grey.hex()));
     }
 
     /// A property declared twice counts by its last declaration, as in the
@@ -564,7 +589,8 @@ mod tests {
             .lines()
             .find(|l| l.starts_with(".overview-tile"))
             .unwrap();
-        assert!(!tile.contains("background-color"), "{tile}");
+        assert!(tile.contains("background-color: transparent; "), "{tile}");
+        assert!(!tile.contains("background-color: #"), "{tile}");
         assert!(tile.contains("color: #"), "{tile}");
         assert!(
             out.contains(&format!(

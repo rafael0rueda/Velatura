@@ -53,6 +53,13 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
         done
         echo "FAILED: $2: expected $1, top bar is $(top_bar)"; return 1
     }
+    wait_hidden() { # separator background, clock button fill, label
+        for _ in $(seq 60); do
+            [ "$(cat "$VEL_OUT/hidden.txt" 2>/dev/null)" = "$1" ] && { echo "ok: $2: $1"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2: expected $1, got $(cat "$VEL_OUT/hidden.txt" 2>/dev/null)"; return 1
+    }
     wait_for() { # colours, label
         for _ in $(seq 60); do
             [ "$(panel)" = "$1" ] && { echo "ok: $2: panel is $1"; return 0; }
@@ -64,10 +71,13 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     gsettings set org.gnome.shell disable-user-extensions false
     gsettings set org.gnome.shell disable-extension-version-validation true
     "$BIN" apply ember --only gnome:shell --yes >/dev/null || { echo "FAILED: apply ember"; exit 1; }
-    gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell.log" 2>&1 &
+    # Out of the overview, where the Shell'"'"'s own bar is transparent, as
+    # the theme leaves it.
+    VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell.log" 2>&1 &
     shell=$!
     status=0
     wait_for "#110d0f #dbc7b0 #e0914f" "Ember, applied before the Shell started" || status=1
+    wait_hidden "#00000000 none" "through User Themes, what the Shell hides stays hidden" || status=1
     "$BIN" apply aetherius --only gnome:shell --yes >/dev/null || status=1
     wait_for "#0d101a #d3d9ee #8493d8" "Aetherius, applied while the Shell runs" || status=1
     "$BIN" undo >/dev/null && "$BIN" undo >/dev/null || status=1
@@ -77,7 +87,7 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
 
     # Second round: another extension colours the panel. Through User Themes
     # the theme loses to it; through Velatura'"'"'s own extension it wins.
-    rm -f "$VEL_OUT/panel.txt"
+    rm -f "$VEL_OUT/panel.txt" "$VEL_OUT/hidden.txt"
     gsettings set org.gnome.shell enabled-extensions "['"'"'$UT'"'"', '"'"'velatura-accept@test'"'"', '"'"'velatura-rival@test'"'"']"
     "$BIN" apply ember --only gnome:shell --yes >/dev/null || status=1
     gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell2.log" 2>&1 &
@@ -85,14 +95,15 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     wait_for "#123456 #fedcba #e0914f" "User Themes loses to another extension" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
 
-    rm -f "$VEL_OUT/panel.txt"
+    rm -f "$VEL_OUT/panel.txt" "$VEL_OUT/hidden.txt"
     "$BIN" extension install >/dev/null || status=1
     # Turning it on is the user'"'"'s to do; here the script is the user.
     gsettings set org.gnome.shell enabled-extensions "['"'"'velatura@rafael0rueda.github.io'"'"', '"'"'$UT'"'"', '"'"'velatura-accept@test'"'"', '"'"'velatura-rival@test'"'"']"
     "$BIN" apply ember --only gnome:shell --yes >/dev/null || status=1
-    gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell3.log" 2>&1 &
+    VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell3.log" 2>&1 &
     shell=$!
     wait_for "#110d0f #dbc7b0 #e0914f" "Ember through Velatura'"'"'s extension, over the other one" || status=1
+    wait_hidden "#00000000 none" "through Velatura'"'"'s extension, what the Shell hides stays hidden" || status=1
     "$BIN" apply aetherius --only gnome:shell --yes >/dev/null || status=1
     wait_for "#0d101a #d3d9ee #8493d8" "Aetherius, the file replaced while the Shell runs" || status=1
     "$BIN" undo >/dev/null && "$BIN" undo >/dev/null || status=1

@@ -4,7 +4,10 @@
 // and applied, and whether the toggle has the theme's accent itself.
 // For the top bar's style, also the panel's background with its alpha,
 // and the fill of the quick settings button and of the clock's label;
-// and how the UPS indicator stands.
+// and how the UPS indicator stands. And two things the Shell's own
+// stylesheet hides behind `!important`: the background of a menu's
+// separator, an insensitive item, and the fill of the clock's button
+// itself on hover.
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
@@ -27,6 +30,12 @@ export default class Probe extends Extension {
         this._toggle = new St.Button({style_class: 'quick-toggle', opacity: 0});
         this._toggle.add_style_pseudo_class('checked');
         Main.uiGroup.add_child(this._toggle);
+        this._separator = new St.BoxLayout({style_class: 'popup-menu-item', opacity: 0});
+        this._separator.add_style_pseudo_class('insensitive');
+        Main.uiGroup.add_child(this._separator);
+        this._clockButton = new St.Bin({style_class: 'panel-button clock-display', opacity: 0});
+        this._clockButton.add_style_pseudo_class('hover');
+        Main.panel._rightBox.add_child(this._clockButton);
         this._timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
             try {
                 const node = Main.panel.get_theme_node();
@@ -51,6 +60,9 @@ export default class Probe extends Extension {
                 GLib.file_set_contents(`${out}/top-bar.txt`,
                     `${hexa(node.get_background_color())} ` +
                     `${fill(Main.panel.statusArea.quickSettings)} ${fill(clock)}\n`);
+                GLib.file_set_contents(`${out}/hidden.txt`,
+                    `${hexa(this._separator.get_theme_node().get_background_color())} ` +
+                    `${fill(this._clockButton)}\n`);
             } catch (e) {
                 GLib.file_set_contents(`${out}/error.txt`, `${e}\n`);
             }
@@ -61,5 +73,7 @@ export default class Probe extends Extension {
     disable() {
         GLib.source_remove(this._timer);
         this._toggle.destroy();
+        this._separator.destroy();
+        this._clockButton.destroy();
     }
 }

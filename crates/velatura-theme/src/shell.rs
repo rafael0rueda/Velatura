@@ -23,7 +23,10 @@ pub use restate::restate;
 /// 3: a property declared twice in one rule is read as CSS reads it, by its
 /// last declaration.
 /// 4: what the Shell's own `!important` hides is not restated.
-pub const FORMAT: u32 = 4;
+/// 5: every declaration of a property that holds a colour is restated,
+/// those without one as they are, so the Shell's own `!important`,
+/// `transparent` and shorthands win where they win in its stylesheet.
+pub const FORMAT: u32 = 5;
 
 /// Every selector the overrides use. A test checks each one exists in the
 /// stock stylesheet of every supported Shell version.
