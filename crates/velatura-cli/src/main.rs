@@ -353,6 +353,7 @@ fn note_code(n: &Note) -> &'static str {
         Note::SettingNeedsSession { .. } => "setting-needs-session",
         Note::UserThemesOff => "user-themes-off",
         Note::ShellShortList => "shell-short-list",
+        Note::ExtensionWaiting => "extension-waiting",
         Note::ShellExtensionStyles { .. } => "shell-extension-styles",
         Note::KittyAutoTheme { .. } => "kitty-auto-theme",
         Note::KittyReload => "kitty-reload",
@@ -1320,7 +1321,7 @@ They are kept in {}",
             self.emit(json!({"extension": {
                 "uuid": velatura_engine::companion::UUID,
                 "installed": s.installed.as_ref().map(|p| p.to_string_lossy()),
-                "by_velatura": s.by_velatura, "differs": s.differs, "outdated": s.outdated, "enabled": s.enabled,
+                "by_velatura": s.by_velatura, "differs": s.differs, "outdated": s.outdated, "enabled": s.enabled, "waiting": s.waiting,
             }}));
             return Ok(OK);
         }

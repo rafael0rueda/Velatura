@@ -103,6 +103,22 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell3.log" 2>&1 &
     shell=$!
     wait_for "#110d0f #dbc7b0 #e0914f" "Ember through Velatura'"'"'s extension, over the other one" || status=1
+    # A later copy put in its folder while the Shell runs, as an update
+    # does: the Shell keeps the one it loaded, and Velatura says so.
+    meta=$HOME/.local/share/gnome-shell/extensions/velatura@rafael0rueda.github.io/metadata.json
+    cp "$meta" "$VEL_OUT/metadata.json"
+    sed -i "s/\"version-name\": \"[0-9]*\"/\"version-name\": \"999\"/" "$meta"
+    # A Shell that is busy may not answer at once, which reads as unknown.
+    wait_json() { # what the status must hold, label
+        for _ in $(seq 20); do
+            "$BIN" extension --json | grep -q "$1" && { echo "ok: $2"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2"; return 1
+    }
+    wait_json "\"waiting\": true" "an update waits for signing out and in" || status=1
+    cp "$VEL_OUT/metadata.json" "$meta"
+    wait_json "\"waiting\": false" "nothing to wait for once the Shell runs the copy there" || status=1
     wait_hidden "#00000000 none" "through Velatura'"'"'s extension, what the Shell hides stays hidden" || status=1
     "$BIN" apply aetherius --only gnome:shell --yes >/dev/null || status=1
     wait_for "#0d101a #d3d9ee #8493d8" "Aetherius, the file replaced while the Shell runs" || status=1

@@ -1360,6 +1360,9 @@ msgstr "{1} es un enlace. El cambio se escribe en {2}"
 msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
 msgstr "{1} no se pudo reponer sin una sesión de escritorio. Tras iniciar sesión, ejecute: {2}"
 
+msgid "Velatura's extension was updated, and the Shell runs the earlier copy until signing out and in. This part shows after that"
+msgstr "La extensión de Velatura se actualizó, y GNOME Shell usa la copia anterior hasta cerrar la sesión y volver a entrar. Esta parte se muestra después"
+
 msgid "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent"
 msgstr "No se pudo leer la hoja de estilo propia de la barra superior, así que solo se recolorean sus superficies principales, y conserva el acento del sistema más cercano"
 
@@ -1439,6 +1442,9 @@ msgstr "La extensión de Velatura no está instalada"
 
 msgid "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in"
 msgstr "La extensión de Velatura está activada. Esta versión trae una copia más nueva: instálela de nuevo y luego cierre la sesión y vuelva a entrar"
+
+msgid "Velatura's extension is on, and a newer copy is installed. The Shell takes it after signing out and in"
+msgstr "La extensión de Velatura está activada, y hay instalada una copia más nueva. GNOME Shell la usa tras cerrar la sesión y volver a entrar"
 
 msgid "Velatura's extension is on: the top bar and overview are themed through it"
 msgstr "La extensión de Velatura está activada: la barra superior y la vista de actividades reciben el tema a través de ella"

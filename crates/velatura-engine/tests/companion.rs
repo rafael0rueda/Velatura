@@ -12,7 +12,7 @@ use velatura_engine::companion::{self, UUID};
 use velatura_engine::engine::{self, ApplyOpts};
 use velatura_engine::host::{Dirs, Faults, Fs, Host, MemSettings, MemSystemd, Settings, StdFs};
 use velatura_engine::library;
-use velatura_engine::plan::{Change, Skip};
+use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, SERVICE, TIMER, Times, WATCH};
 use velatura_engine::store::DayNight;
 use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TOP_BAR, UPS, USER_THEMES};
@@ -182,6 +182,61 @@ fn the_extension_is_installed_as_published_and_removed_without_a_trace() {
     assert_eq!(fs::read_to_string(dir.join("metadata.json")).unwrap(), "{}");
     let status = companion::status(&host, &no_env);
     assert!(status.installed.is_some() && !status.by_velatura);
+}
+
+/// Right after an update the Shell still runs the copy it loaded when the
+/// user signed in. That is said, and the parts are written all the same,
+/// so they show once the new copy runs.
+#[test]
+fn an_update_waits_for_signing_out_and_in() {
+    let home = Home::new();
+    let running = format!("extension:{UUID}");
+    let meta: serde_json::Value = serde_json::from_str(companion::FILES[0].1).unwrap();
+    let ours = meta["version-name"].as_str().unwrap().to_owned();
+    let earlier = (ours.parse::<u64>().unwrap() - 1).to_string();
+    let s = MemSettings::new(&[
+        (INTERFACE_SCHEMA, "color-scheme", "default"),
+        (INTERFACE_SCHEMA, "accent-color", "blue"),
+        ("org.gnome.desktop.a11y.interface", "high-contrast", "false"),
+        ("org.gnome.shell", "enabled-extensions", "@as []"),
+        ("org.gnome.shell", "disable-user-extensions", "false"),
+        (USER_THEME_SCHEMA, "name", ""),
+        (&running, "version-name", &earlier),
+    ]);
+    let host = home.host(&StdFs, &s);
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let only = ApplyOpts {
+        only: vec![TOP_BAR.to_owned()],
+        ..ApplyOpts::default()
+    };
+    let top_bar = |host: &Host<'_>| {
+        top_bar_plan(host, &only)
+            .targets
+            .into_iter()
+            .find(|t| t.instance == TOP_BAR)
+            .unwrap()
+    };
+
+    let status = companion::status(&host, &no_env);
+    assert!(
+        status.active() && status.waiting && !status.outdated,
+        "{status:?}"
+    );
+    let part = top_bar(&host);
+    assert_eq!(part.skipped, None);
+    assert!(!part.changes.is_empty());
+    assert!(
+        part.notes.contains(&Note::ExtensionWaiting),
+        "{:?}",
+        part.notes
+    );
+
+    // Once the Shell runs it, nothing is left to wait for.
+    s.write(&running, "version-name", Some(&ours)).unwrap();
+    let status = companion::status(&host, &no_env);
+    assert!(status.active() && !status.waiting);
+    assert!(!top_bar(&host).notes.contains(&Note::ExtensionWaiting));
 }
 
 #[test]
