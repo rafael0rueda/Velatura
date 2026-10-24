@@ -1451,6 +1451,9 @@ msgstr ""
 msgid "Velatura's extension is on: the top bar and overview are themed through it"
 msgstr ""
 
+msgid "Velatura's extension is installed. Whether it is on can only be read in a desktop session"
+msgstr ""
+
 #, rust-format
 msgid "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}"
 msgstr ""

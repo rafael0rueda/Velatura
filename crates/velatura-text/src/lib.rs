@@ -750,7 +750,10 @@ pub fn extension(s: &companion::Status) -> String {
         (Some(_), Some(true)) => {
             t("Velatura's extension is on: the top bar and overview are themed through it")
         }
-        (Some(_), _) => tf!(
+        (Some(_), None) => t(
+            "Velatura's extension is installed. Whether it is on can only be read in a desktop session",
+        ),
+        (Some(_), Some(false)) => tf!(
             "Velatura's extension is installed and turned off. After signing out and in once, turn it on in the Extensions app, or with: gnome-extensions enable {1}",
             companion::UUID
         ),
@@ -1159,6 +1162,18 @@ mod tests {
             ..on.clone()
         };
         assert!(extension(&waiting).contains("after signing out and in"));
+        // Settings that cannot be read say nothing about on or off.
+        let unknown = companion::Status {
+            enabled: None,
+            ..on.clone()
+        };
+        assert!(extension(&unknown).contains("can only be read in a desktop session"));
+        assert!(!extension(&unknown).contains("turned off"));
+        let off = companion::Status {
+            enabled: Some(false),
+            ..on
+        };
+        assert!(extension(&off).contains("turned off"));
     }
 
     #[test]
