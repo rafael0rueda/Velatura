@@ -246,7 +246,10 @@ impl std::fmt::Display for SettingsError {
 /// is read and written at that path, as `gsettings` takes it.
 /// A schema given as `dbus:name` is not a setting at all: it reads the
 /// property `key` of the program of that name on the session bus, which is
-/// how the running Shell says which version it is. Never written.
+/// how the running Shell says which version it is. One given as
+/// `extension:uuid` reads the field `key` of the metadata the running
+/// Shell has loaded for that extension, which is how it says which copy
+/// it runs. Neither is ever written.
 pub trait Settings {
     /// `Ok(None)` when the schema or the key does not exist on this system.
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError>;

@@ -1566,6 +1566,7 @@ fn plan_extension_sheet(
     if status.outdated {
         return TargetPlan::skip(instance, Skip::VelaturaExtensionOutdated);
     }
+    let waiting = status.waiting;
     let wanted = wanted.into_bytes();
     let current = read_opt(host, &css).ok().flatten();
     let pre = current.as_deref().map(sha256_hex);
@@ -1587,6 +1588,10 @@ fn plan_extension_sheet(
             content: Some(wanted),
             pre,
         });
+    }
+    // Written all the same, so it shows as soon as the new copy runs.
+    if waiting {
+        plan.notes.push(Note::ExtensionWaiting);
     }
     plan
 }

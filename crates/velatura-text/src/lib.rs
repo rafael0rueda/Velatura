@@ -619,6 +619,9 @@ pub fn note(n: &Note, home: &Path) -> String {
                 command
             )
         }
+        Note::ExtensionWaiting => t(
+            "Velatura's extension was updated, and the Shell runs the earlier copy until signing out and in. This part shows after that",
+        ),
         Note::ShellShortList => t(
             "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent",
         ),
@@ -740,6 +743,9 @@ pub fn extension(s: &companion::Status) -> String {
         (None, _) => t("Velatura's extension is not installed"),
         (Some(_), Some(true)) if s.differs => t(
             "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in",
+        ),
+        (Some(_), Some(true)) if s.waiting => t(
+            "Velatura's extension is on, and a newer copy is installed. The Shell takes it after signing out and in",
         ),
         (Some(_), Some(true)) => {
             t("Velatura's extension is on: the top bar and overview are themed through it")
@@ -1137,6 +1143,22 @@ mod tests {
             ("uno", "muchos")
         );
         assert_eq!(c.len(), 2);
+    }
+
+    #[test]
+    fn the_extension_says_what_is_left_to_do() {
+        let on = companion::Status {
+            installed: Some(std::path::PathBuf::from("/x")),
+            by_velatura: true,
+            enabled: Some(true),
+            ..companion::Status::default()
+        };
+        assert!(extension(&on).contains("themed through it"));
+        let waiting = companion::Status {
+            waiting: true,
+            ..on.clone()
+        };
+        assert!(extension(&waiting).contains("after signing out and in"));
     }
 
     #[test]

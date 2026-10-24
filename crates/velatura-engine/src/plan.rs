@@ -111,6 +111,9 @@ pub enum Skip {
 /// Something the user should know that does not stop the operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Note {
+    /// Velatura's extension was updated, and the Shell runs the earlier
+    /// copy until the user signs out and in: the part shows after that.
+    ExtensionWaiting,
     /// Lines after Velatura's block that set the same colours and so win.
     Override {
         path: PathBuf,

@@ -1362,6 +1362,9 @@ msgstr ""
 msgid "{1} could not be put back without a desktop session. After signing in, run: {2}"
 msgstr ""
 
+msgid "Velatura's extension was updated, and the Shell runs the earlier copy until signing out and in. This part shows after that"
+msgstr ""
+
 msgid "The top bar's own stylesheet could not be read, so only its main surfaces are recolored, and it keeps the nearest system accent"
 msgstr ""
 
@@ -1440,6 +1443,9 @@ msgid "Velatura's extension is not installed"
 msgstr ""
 
 msgid "Velatura's extension is on. A newer copy comes with this version: install it again, then sign out and in"
+msgstr ""
+
+msgid "Velatura's extension is on, and a newer copy is installed. The Shell takes it after signing out and in"
 msgstr ""
 
 msgid "Velatura's extension is on: the top bar and overview are themed through it"

@@ -107,11 +107,43 @@ fn bus_property(name: &str, key: &str) -> Option<String> {
     value.str().map(str::to_owned)
 }
 
+/// A text field of what the running Shell has loaded of the extension
+/// `uuid`, as its own metadata gives it. `None` if the Shell is not
+/// running, has not loaded it, or the field is not text.
+fn shell_extension_field(uuid: &str, key: &str) -> Option<String> {
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let reply = bus
+        .call_sync(
+            // The Shell itself, not the service of the same interface's
+            // name, which would have to be started for the question.
+            Some("org.gnome.Shell"),
+            "/org/gnome/Shell",
+            "org.gnome.Shell.Extensions",
+            "GetExtensionInfo",
+            Some(&(uuid,).to_variant()),
+            None,
+            gio::DBusCallFlags::NO_AUTO_START,
+            500,
+            gio::Cancellable::NONE,
+        )
+        .ok()?;
+    let info = gio::glib::VariantDict::new(Some(&reply.child_value(0)));
+    let value = info.lookup_value(key, None)?;
+    value.str().map(str::to_owned)
+}
+
 impl Settings for GioSettings {
     fn read(&self, schema: &str, key: &str) -> Result<Option<SettingState>, SettingsError> {
         self.usable()?;
-        if let Some(name) = schema.strip_prefix("dbus:") {
-            return Ok(bus_property(name, key).map(|effective| SettingState {
+        let from_bus = if let Some(name) = schema.strip_prefix("dbus:") {
+            Some(bus_property(name, key))
+        } else {
+            schema
+                .strip_prefix("extension:")
+                .map(|uuid| shell_extension_field(uuid, key))
+        };
+        if let Some(found) = from_bus {
+            return Ok(found.map(|effective| SettingState {
                 user: None,
                 default: effective.clone(),
                 effective,
@@ -138,7 +170,7 @@ impl Settings for GioSettings {
 
     fn write(&self, schema: &str, key: &str, value: Option<&str>) -> Result<(), SettingsError> {
         self.usable()?;
-        if schema.starts_with("dbus:") {
+        if schema.starts_with("dbus:") || schema.starts_with("extension:") {
             return Err(SettingsError::NotWritable);
         }
         let Some(settings) = Self::open(schema, key) else {

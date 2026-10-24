@@ -108,6 +108,10 @@ pub struct Status {
     pub outdated: bool,
     /// Turned on in the Shell's settings. `None` if those cannot be read.
     pub enabled: Option<bool>,
+    /// The running Shell has an earlier version of Velatura's copy loaded
+    /// than the one in its folder, as after an update: the Shell takes the
+    /// new one after signing out and in. False when it cannot be asked.
+    pub waiting: bool,
 }
 
 impl Status {
@@ -155,6 +159,14 @@ pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
     // A copy whose version cannot be read is taken as an earlier one.
     let outdated =
         differs && user_version(host).is_none_or(|v| Some(v) < version_of(FILES[0].1.as_bytes()));
+    let loaded = host
+        .settings
+        .read(&format!("extension:{UUID}"), "version-name")
+        .ok()
+        .flatten()
+        .and_then(|s| s.effective.parse::<u64>().ok());
+    let waiting =
+        ours && loaded.is_some_and(|running| user_version(host).is_some_and(|v| running < v));
     let enabled = match host.settings.read("org.gnome.shell", "enabled-extensions") {
         Ok(Some(list)) => {
             let off = matches!(
@@ -171,6 +183,7 @@ pub fn status(host: &Host<'_>, env: Env<'_>) -> Status {
         differs,
         outdated,
         enabled,
+        waiting,
     }
 }
 
