@@ -50,24 +50,34 @@ for major in 3 4; do
 done
 # And a libadwaita app must compute those colours, over earlier definitions.
 # Needs a display: the session's, or a headless compositor started for it.
+# Each file's failure is kept: the headless run below has no errexit.
 probe() {
-    for f in "$golden"/*.gtk.css; do python3 scripts/gtk-probe.py "$f"; done
+    local failed=0
+    for f in "$golden"/*.gtk.css; do python3 scripts/gtk-probe.py "$f" || failed=1; done
     # Informational: has libadwaita's own palette moved since the table the
     # app uses to keep its window in stock colours was generated?
     python3 scripts/gen-stock-colors.py --check crates/velatura-gui/src/stock.rs || true
+    return $failed
 }
 if [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]; then
     probe
 elif command -v mutter >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then
     export -f probe; export golden
     run=$(mktemp -d); chmod 700 "$run"
+    status=0
     XDG_RUNTIME_DIR="$run" dbus-run-session -- bash -c '
         mutter --headless --no-x11 --wayland-display velatura-probe --virtual-monitor 800x600 >/dev/null 2>&1 &
         compositor=$!
         for _ in $(seq 50); do [ -S "$XDG_RUNTIME_DIR/velatura-probe" ] && break; read -t 0.1 <> <(:) || true; done
+        if [ ! -S "$XDG_RUNTIME_DIR/velatura-probe" ]; then
+            echo "the headless compositor did not start"; kill $compositor 2>/dev/null; exit 1
+        fi
         WAYLAND_DISPLAY=velatura-probe GDK_BACKEND=wayland probe; status=$?
-        kill $compositor 2>/dev/null; exit $status' 2>/dev/null
+        kill $compositor 2>/dev/null; exit $status' 2>/dev/null || status=$?
+    # The session's portals can leave their mounts behind for a moment.
+    for m in "$run"/doc "$run"/gvfs; do fusermount3 -u "$m" 2>/dev/null || true; done
     rm -rf "$run"
+    [ "$status" -eq 0 ] || { echo "the colour probe failed"; exit 1; }
 else
     echo "NOT RUN: the colour probe needs a display or a headless compositor"
 fi
