@@ -912,6 +912,9 @@ msgstr ""
 msgid "red"
 msgstr ""
 
+msgid "yellow"
+msgstr ""
+
 msgid "green"
 msgstr ""
 

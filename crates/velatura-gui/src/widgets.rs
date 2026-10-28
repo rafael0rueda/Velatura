@@ -33,10 +33,10 @@ fn rounded(cr: &cairo::Context, x: f64, y: f64, w: f64, h: f64, r: f64) {
     cr.close_path();
 }
 
-/// The seven colours a theme is shown by, with their names, in the order
-/// the drawings use them: background, surface, accent, text, red, green
-/// and blue.
-fn named(theme: &Resolved<'_>) -> [(String, Color); 7] {
+/// The eight colours a theme is shown by, with their names, in the order
+/// the drawings use them: background, surface, accent, text, red, yellow,
+/// green and blue.
+fn named(theme: &Resolved<'_>) -> [(String, Color); 8] {
     let ui = &theme.colors.ui;
     [
         (tr("background"), ui.bg),
@@ -44,13 +44,14 @@ fn named(theme: &Resolved<'_>) -> [(String, Color); 7] {
         (tr("accent"), ui.accent),
         (tr("text"), ui.fg),
         (tr("red"), theme.colors.ansi[1]),
+        (tr("yellow"), theme.colors.ansi[3]),
         (tr("green"), theme.colors.ansi[2]),
         (tr("blue"), theme.colors.ansi[4]),
     ]
 }
 
-/// The theme's seven colours, as [`named`] orders them.
-pub fn palette(theme: &Resolved<'_>) -> [Color; 7] {
+/// The theme's eight colours, as [`named`] orders them.
+pub fn palette(theme: &Resolved<'_>) -> [Color; 8] {
     named(theme).map(|(_, c)| c)
 }
 
@@ -124,7 +125,7 @@ pub fn swatches(theme: &Resolved<'_>) -> gtk::DrawingArea {
 }
 
 /// The theme in use as a small window: a title bar, three lines of text,
-/// a button in the accent and three dots in red, green and blue.
+/// a button in the accent and four dots in red, yellow, green and blue.
 pub fn window_art(theme: &Resolved<'_>) -> gtk::DrawingArea {
     let named = named(theme);
     let c = palette(theme);
@@ -156,12 +157,12 @@ pub fn window_art(theme: &Resolved<'_>) -> gtk::DrawingArea {
         set_alpha(cr, c[3], 0.45);
         bar(cr, 14.0, 51.0, 150.0, 5.0);
         bar(cr, 14.0, 64.0, 130.0, 5.0);
-        // An outlined button in the accent, and the three dots.
+        // An outlined button in the accent, and the four dots.
         rounded(cr, 14.75, 81.75, 50.5, 16.5, 5.0);
         set(cr, c[2]);
         cr.set_line_width(1.5);
         let _ = cr.stroke();
-        for (i, color) in c[4..7].iter().enumerate() {
+        for (i, color) in c[4..8].iter().enumerate() {
             set(cr, *color);
             disc(cr, 72.0 + 18.0 * i as f64, 84.0, 12.0);
         }
@@ -176,7 +177,7 @@ pub fn window_art(theme: &Resolved<'_>) -> gtk::DrawingArea {
 }
 
 /// The top of a theme's card: its background with one line of its text
-/// and a row of five dots, from the accent to blue.
+/// and a row of six dots, from the accent to blue.
 pub fn card_art(theme: &Resolved<'_>) -> gtk::DrawingArea {
     let named = named(theme);
     let c = palette(theme);
@@ -192,7 +193,7 @@ pub fn card_art(theme: &Resolved<'_>) -> gtk::DrawingArea {
         let dots = h - 10.0 - 16.0;
         set_alpha(cr, c[3], 0.8);
         bar(cr, 12.0, dots - 8.0 - 5.0, 60.0, 5.0);
-        for (i, color) in c[2..7].iter().enumerate() {
+        for (i, color) in c[2..8].iter().enumerate() {
             let x = 12.0 + 20.0 * i as f64;
             set_alpha(cr, Color::rgb(0, 0, 0), 0.15);
             disc(cr, x - 1.0, dots - 1.0, 18.0);
