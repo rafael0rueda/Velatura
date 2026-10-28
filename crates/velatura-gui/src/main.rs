@@ -1170,7 +1170,7 @@ fn day_night_section(ui: &U, snap: &Snapshot, page: &Column) -> gtk::Box {
                 };
                 let dots = Resolved::new(&e.theme, Some(key)).map(|r| {
                     let c = widgets::palette(&r);
-                    [c[2], c[3], c[4], c[5]]
+                    [c[2], c[3], c[4], c[6]]
                 });
                 (spec, v.name.clone(), dots, v.appearance)
             })

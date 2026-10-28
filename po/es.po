@@ -910,6 +910,9 @@ msgstr "texto"
 msgid "red"
 msgstr "rojo"
 
+msgid "yellow"
+msgstr "amarillo"
+
 msgid "green"
 msgstr "verde"
 
