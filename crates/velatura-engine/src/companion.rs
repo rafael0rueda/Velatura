@@ -36,7 +36,7 @@ pub const FILES: [(&str, &str); 2] = [
 ];
 
 /// The file the extension loads for the Shell's colours: with the next
-/// three, the whole contract between the two.
+/// four and the list of tasks, the whole contract between the two.
 pub fn stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("gnome-shell.css")
 }
@@ -57,6 +57,18 @@ pub fn top_bar_stylesheet(host: &Host<'_>) -> PathBuf {
 /// while this file is there.
 pub fn ups_stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("ups.css")
+}
+
+/// The checklist's look. The extension shows the checklist only while
+/// this file is there.
+pub fn tasks_stylesheet(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("shell").join("tasks.css")
+}
+
+/// The tasks themselves, which the extension writes and the app never
+/// does: the user's own, so no apply, undo or removal touches them.
+pub fn tasks_list(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("tasks.json")
 }
 
 fn user_dir(host: &Host<'_>) -> PathBuf {

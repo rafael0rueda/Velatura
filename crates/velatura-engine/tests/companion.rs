@@ -15,7 +15,7 @@ use velatura_engine::library;
 use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, SERVICE, TIMER, Times, WATCH};
 use velatura_engine::store::DayNight;
-use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TOP_BAR, UPS, USER_THEMES};
+use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TASKS, TOP_BAR, UPS, USER_THEMES};
 use velatura_theme::editor::Draft;
 use velatura_theme::shell::{BarStyle, TopBar};
 use velatura_theme::{Appearance, Color, Resolved, bundled};
@@ -252,12 +252,21 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
                 .contains(&version.into())
         );
     }
-    // The contract: four files read from the user's data folder, and the
-    // outline's and the UPS indicator's style classes.
+    // The contract: five files read from the user's data folder, and the
+    // outline's, the UPS indicator's and the checklist's style classes.
     assert!(js.contains("['velatura', 'shell', 'gnome-shell.css']"));
     assert!(js.contains("['velatura', 'shell', 'top-bar.css']"));
     assert!(js.contains("['velatura', 'shell', 'ups.css']"));
     assert!(js.contains(&format!("'{}'", velatura_theme::shell::UPS_CLASS)));
+    assert!(js.contains("['velatura', 'shell', 'tasks.css']"));
+    assert!(js.contains(&format!("'{}'", velatura_theme::shell::TASKS_CLASS)));
+    // The one file it writes: the user's tasks, in Velatura's data folder,
+    // private to the user. kanagawa-shell's list is only read.
+    assert!(js.contains("const TASKS_FILE = ['velatura', 'tasks.json'];"));
+    assert!(js.contains("const OLD_TASKS_FILE = ['kanagawa-shell', 'tasks.json'];"));
+    assert_eq!(js.matches("replace_contents_bytes_async(").count(), 1);
+    assert!(js.contains("this._file.replace_contents_bytes_async("));
+    assert!(js.contains("Gio.FileCreateFlags.PRIVATE"));
     // The one thing it connects to: NUT's server, on this computer.
     assert!(js.contains("const NUT_HOST = 'localhost';"));
     assert_eq!(js.matches("connect_to_host_async(").count(), 1);
@@ -281,13 +290,16 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
     assert!(js.contains("this._monitor.disconnect(this._changedId)"));
     assert!(js.contains("object.disconnect(id)") && js.contains("this._widget.destroy()"));
     assert!(js.contains("this._cancel.cancel()") && js.contains("this._ups?.destroy()"));
+    assert!(
+        js.contains("this._tasks?.destroy()") && js.contains("GLib.source_remove(this._focusId)")
+    );
 }
 
 /// Every version of the extension as published, with the SHA-256 of its
 /// `extension.js`. A line is never changed once its version is out: a
 /// change to `extension.js` raises `version-name` in `metadata.json` and
 /// adds a line here.
-const RELEASED: [(u64, &str); 6] = [
+const RELEASED: [(u64, &str); 7] = [
     (
         1,
         "5fe303db4bb508c20caad93f7e9abe00b709713ac0bcaecd9dbf7d6b89f043c0",
@@ -311,6 +323,10 @@ const RELEASED: [(u64, &str); 6] = [
     (
         6,
         "d9e9da3bc96bd7dec3b3747e28ac2a00b5422fec95bbf4289f397bd57dbc30f2",
+    ),
+    (
+        7,
+        "6c6e8616be7b097a669814c70ed91d857c1fe9f4a8b5ad65ec77f0b716df1e14",
     ),
 ];
 
@@ -967,4 +983,60 @@ fn a_later_extension_is_kept() {
     assert_ne!(top_bar.skipped, Some(Skip::VelaturaExtensionOutdated));
     // Removing it is still Velatura's to do.
     assert!(companion::remove(&host).unwrap().is_some());
+}
+
+#[test]
+fn the_checklist_has_its_stylesheet_while_on_and_its_tasks_always() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    let css = companion::tasks_stylesheet(&host);
+    assert_eq!(css, home.path(".local/share/velatura/shell/tasks.css"));
+    let list = companion::tasks_list(&host);
+    assert_eq!(list, home.path(".local/share/velatura/tasks.json"));
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let part = |plan: &velatura_engine::plan::Plan| {
+        plan.targets
+            .iter()
+            .find(|t| t.instance == TASKS)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(
+        part(&top_bar_plan(&host, &ApplyOpts::default())).skipped,
+        Some(Skip::NotSelected)
+    );
+    engine::set_included(&host, TASKS, true).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    let written = fs::read_to_string(&css).unwrap();
+    assert!(written.contains(".velatura-tasks-label.done"));
+
+    // The extension keeps the list; the app never writes it.
+    let tasks = "[\n {\"text\": \"Buy bread\", \"done\": false}\n]\n";
+    fs::write(&list, tasks).unwrap();
+    for plan in [
+        top_bar_plan(&host, &ApplyOpts::default()),
+        engine::plan_restore_original(&host).unwrap(),
+    ] {
+        assert!(
+            !plan
+                .targets
+                .iter()
+                .flat_map(|t| &t.changes)
+                .any(|c| matches!(
+                    c,
+                    Change::Owned { path, .. } if *path == list
+                )),
+            "{plan:?}"
+        );
+    }
+
+    // Turned off, the look goes, and with it the checklist; the tasks stay.
+    engine::set_included(&host, TASKS, false).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    assert!(!css.exists());
+    assert_eq!(fs::read_to_string(&list).unwrap(), tasks);
 }

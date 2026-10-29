@@ -14,6 +14,11 @@
 // Network UPS Tools on this computer, speaking NUT's own text protocol,
 // and shows nothing while no UPS answers. The look is in the app's file.
 //
+// While the app's Tasks part is on, it shows a checklist left of the clock.
+// The list is the user's, so it is kept here and not by the app: in
+// tasks.json in Velatura's data folder, the one file the extension writes.
+// The first time, a list kanagawa-shell kept is copied in.
+//
 // It starts no programs, reaches nothing beyond this computer, holds no
 // settings and patches nothing in the Shell.
 //
@@ -31,13 +36,20 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-// The contract with the app: four files, and two style classes.
+// The contract with the app: five files, and three style classes.
 const STYLESHEET = ['velatura', 'shell', 'gnome-shell.css'];
 const TOP_BAR_SHEET = ['velatura', 'shell', 'top-bar.css'];
 const UPS_SHEET = ['velatura', 'shell', 'ups.css'];
+const TASKS_SHEET = ['velatura', 'shell', 'tasks.css'];
 const OUTLINE_SHEET = ['velatura', 'shell', 'window-outline.css'];
 const OUTLINE_CLASS = 'velatura-window-outline';
 const UPS_CLASS = 'velatura-ups';
+const TASKS_CLASS = 'velatura-tasks';
+
+// The user's tasks, which the extension keeps; and kanagawa-shell's list,
+// read only while there is no list of Velatura's yet.
+const TASKS_FILE = ['velatura', 'tasks.json'];
+const OLD_TASKS_FILE = ['kanagawa-shell', 'tasks.json'];
 
 // NUT's server on this computer, and how often it is asked.
 const NUT_HOST = 'localhost';
@@ -475,13 +487,257 @@ class UpsIndicator extends PanelMenu.Button {
     }
 });
 
+function dataPath(parts) {
+    return GLib.build_filenamev([GLib.get_user_data_dir(), ...parts]);
+}
+
+// The tasks kept at `path`, each as {text, done}: null if there is no such
+// file, and an empty list if it does not read as one.
+function readTasks(path) {
+    let bytes;
+    try {
+        [, bytes] = GLib.file_get_contents(path);
+    } catch {
+        return null;
+    }
+    try {
+        const list = JSON.parse(new TextDecoder().decode(bytes));
+        if (!Array.isArray(list))
+            return [];
+        return list.filter(t => typeof t?.text === 'string' && t.text.trim())
+            .map(t => ({text: t.text, done: !!t.done}));
+    } catch {
+        return [];
+    }
+}
+
+function iconButton(iconName, accessibleName) {
+    return new St.Button({
+        style_class: `${TASKS_CLASS}-icon-button`,
+        child: new St.Icon({icon_name: iconName}),
+        accessible_name: accessibleName,
+        can_focus: true,
+    });
+}
+
+// The checklist in the top bar: its icon and the count of open tasks, and
+// a menu to add, tick off and delete them. Every change is written at once.
+const TasksIndicator = GObject.registerClass(
+class TasksIndicator extends PanelMenu.Button {
+    _init() {
+        super._init(0.5, 'Tasks');
+        this.add_style_class_name(TASKS_CLASS);
+        this._file = Gio.File.new_for_path(dataPath(TASKS_FILE));
+        this._saving = false;
+        this._again = false;
+        this._tasks = this._load();
+
+        const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
+        box.add_child(new St.Icon({
+            icon_name: 'view-list-bullet-symbolic',
+            style_class: 'system-status-icon',
+        }));
+        this._count = new St.Label({
+            style_class: `${TASKS_CLASS}-count`,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        box.add_child(this._count);
+        this.add_child(box);
+
+        this.menu.box.add_style_class_name(`${TASKS_CLASS}-menu`);
+        // One item holds the whole card and is not activatable, so clicks
+        // inside it, on a checkbox or the entry, leave the menu open.
+        const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
+        const card = new St.BoxLayout({
+            style_class: `${TASKS_CLASS}-card`,
+            ...VERTICAL,
+            x_expand: true,
+        });
+        item.add_child(card);
+        this.menu.addMenuItem(item);
+
+        const header = new St.BoxLayout({style_class: `${TASKS_CLASS}-header`});
+        header.add_child(new St.Label({
+            text: 'Tasks',
+            style_class: `${TASKS_CLASS}-title`,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        }));
+        const add = iconButton('list-add-symbolic', 'Add task');
+        add.connect('clicked', () => this._addFromEntry());
+        header.add_child(add);
+        const clear = iconButton('user-trash-symbolic', 'Clear completed tasks');
+        clear.connect('clicked', () => {
+            this._tasks = this._tasks.filter(t => !t.done);
+            this._changed();
+        });
+        header.add_child(clear);
+        card.add_child(header);
+
+        this._entry = new St.Entry({
+            style_class: `${TASKS_CLASS}-entry`,
+            hint_text: 'Add task',
+            can_focus: true,
+            x_expand: true,
+        });
+        this._entry.clutter_text.connect('activate', () => this._addFromEntry());
+        card.add_child(this._entry);
+
+        this._list = new St.BoxLayout({style_class: `${TASKS_CLASS}-list`, ...VERTICAL});
+        this._scroll = new St.ScrollView({
+            style_class: `${TASKS_CLASS}-scroll`,
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            child: this._list,
+        });
+        card.add_child(this._scroll);
+        this._refresh();
+
+        // The menu gives the focus to its button once this signal is
+        // handled, so the entry takes it on the next idle.
+        this._focusId = 0;
+        this.menu.connect('open-state-changed', (menu, open) => {
+            if (!open || this._focusId)
+                return;
+            this._focusId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                this._focusId = 0;
+                this._entry.grab_key_focus();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+        this.connect('destroy', () => {
+            if (this._focusId)
+                GLib.source_remove(this._focusId);
+            this._focusId = 0;
+        });
+    }
+
+    // Velatura's list; with none yet, kanagawa-shell's, written at once as
+    // Velatura's so that it is copied only this once.
+    _load() {
+        const own = readTasks(this._file.get_path());
+        if (own !== null)
+            return own;
+        const old = readTasks(dataPath(OLD_TASKS_FILE)) ?? [];
+        if (old.length > 0) {
+            this._tasks = old;
+            this._save();
+        }
+        return old;
+    }
+
+    // Written whole, in place of the file, one write at a time; a change
+    // made while one runs is written after it. Not cancelled when the
+    // indicator goes, so the last change is kept.
+    _save() {
+        if (this._saving) {
+            this._again = true;
+            return;
+        }
+        this._saving = true;
+        const bytes = new TextEncoder().encode(`${JSON.stringify(this._tasks, null, 1)}\n`);
+        try {
+            GLib.mkdir_with_parents(GLib.path_get_dirname(this._file.get_path()), 0o700);
+        } catch {
+            // Reported by the write below.
+        }
+        this._file.replace_contents_bytes_async(new GLib.Bytes(bytes), null, false,
+            Gio.FileCreateFlags.PRIVATE | Gio.FileCreateFlags.REPLACE_DESTINATION, null,
+            (file, res) => {
+                try {
+                    file.replace_contents_finish(res);
+                } catch (e) {
+                    console.error(`Velatura: ${file.get_path()} was not written: ${e.message}`);
+                }
+                this._saving = false;
+                if (this._again) {
+                    this._again = false;
+                    this._save();
+                }
+            });
+    }
+
+    _addFromEntry() {
+        const text = this._entry.get_text().trim();
+        if (!text)
+            return;
+        this._tasks.push({text, done: false});
+        this._entry.set_text('');
+        this._changed();
+    }
+
+    _changed() {
+        this._save();
+        this._refresh();
+    }
+
+    _refresh() {
+        this._list.destroy_all_children();
+        this._tasks.forEach((task, i) => this._list.add_child(this._row(task, i)));
+        this._scroll.visible = this._tasks.length > 0;
+        const open = this._tasks.filter(t => !t.done).length;
+        this._count.text = open ? String(open) : '';
+        this._count.visible = open > 0;
+        this.accessible_name = open === 1 ? 'Tasks: 1 open' : `Tasks: ${open} open`;
+    }
+
+    _row(task, index) {
+        const row = new St.BoxLayout({
+            style_class: `${TASKS_CLASS}-row`,
+            track_hover: true,
+            reactive: true,
+        });
+        const check = new St.Button({
+            style_class: `${TASKS_CLASS}-check`,
+            toggle_mode: true,
+            checked: task.done,
+            can_focus: true,
+            accessible_name: task.text,
+            child: new St.Icon({icon_name: 'object-select-symbolic'}),
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        // The tick is shown by its opacity, not its colour: an extension
+        // that paints every icon in the accent would win over a colour.
+        check.child.opacity = task.done ? 255 : 0;
+        check.connect('clicked', () => {
+            task.done = check.checked;
+            this._changed();
+        });
+        row.add_child(check);
+
+        const label = new St.Label({
+            text: task.text,
+            style_class: `${TASKS_CLASS}-label`,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        if (task.done)
+            label.add_style_class_name('done');
+        row.add_child(label);
+
+        // Shown only on the row under the pointer.
+        const remove = iconButton('window-close-symbolic', 'Delete task');
+        remove.add_style_class_name(`${TASKS_CLASS}-remove`);
+        remove.opacity = 0;
+        row.connect('notify::hover', () => (remove.opacity = row.hover ? 255 : 0));
+        remove.connect('clicked', () => {
+            this._tasks.splice(index, 1);
+            this._changed();
+        });
+        row.add_child(remove);
+        return row;
+    }
+});
+
 export default class Velatura extends Extension {
     enable() {
         this._ups = null;
+        this._tasks = null;
         this._sheets = [
             new Sheet(STYLESHEET),
             new Sheet(TOP_BAR_SHEET),
             new Sheet(UPS_SHEET, loaded => this._showUps(loaded)),
+            new Sheet(TASKS_SHEET, loaded => this._showTasks(loaded)),
             new Sheet(OUTLINE_SHEET),
         ];
         this._outline = new Outline();
@@ -500,9 +756,23 @@ export default class Velatura extends Extension {
         }
     }
 
+    // The checklist lives while its stylesheet is there: in the middle of
+    // the bar, first, so left of the clock.
+    _showTasks(loaded) {
+        if (loaded && !this._tasks) {
+            this._tasks = new TasksIndicator();
+            Main.panel.addToStatusArea(TASKS_CLASS, this._tasks, 0, 'center');
+        } else if (!loaded && this._tasks) {
+            this._tasks.destroy();
+            this._tasks = null;
+        }
+    }
+
     disable() {
         this._ups?.destroy();
         this._ups = null;
+        this._tasks?.destroy();
+        this._tasks = null;
         this._outline.destroy();
         this._outline = null;
         for (const sheet of this._sheets)

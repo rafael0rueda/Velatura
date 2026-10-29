@@ -4,7 +4,8 @@
 // and applied, and whether the toggle has the theme's accent itself.
 // For the top bar's style, also the panel's background with its alpha,
 // and the fill of the quick settings button and of the clock's label;
-// and how the UPS indicator stands. And two things the Shell's own
+// and how the UPS indicator and the Tasks checklist stand, adding a task
+// through the checklist's entry when asked to. And two things the Shell's own
 // stylesheet hides behind `!important`: the background of a menu's
 // separator, an insensitive item, and the fill of the clock's button
 // itself on hover.
@@ -15,6 +16,17 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const hex = c => '#' + [c.red, c.green, c.blue].map(v => v.toString(16).padStart(2, '0')).join('');
+// The first actor under `actor` that `test` holds for, or null.
+const find = (actor, test) => {
+    if (test(actor))
+        return actor;
+    for (const child of actor.get_children()) {
+        const found = find(child, test);
+        if (found)
+            return found;
+    }
+    return null;
+};
 const hexa = c => hex(c) + c.alpha.toString(16).padStart(2, '0');
 // The inset fill a panel button is drawn with, or "none".
 const fill = actor => {
@@ -56,6 +68,30 @@ export default class Probe extends Extension {
                     ? `${ups.container.visible ? 'shown' : 'hidden'} ${watts?.text.replace(' ', '') || '-'} ${state} ` +
                       `${watts ? hex(watts.get_theme_node().get_foreground_color()) : '-'}\n`
                     : 'none\n');
+                // The checklist: shown or not, its count, which side of the
+                // clock it is on, and the colour of a done task. A task
+                // written to add-task is added through its entry.
+                const tasks = Main.panel.statusArea['velatura-tasks'];
+                if (tasks) {
+                    const center = Main.panel._centerBox.get_children();
+                    const side = center.indexOf(tasks.container) <
+                        center.indexOf(Main.panel.statusArea.dateMenu.container) ? 'left' : 'right';
+                    const count = tasks.first_child.get_children().find(a => a instanceof St.Label);
+                    const done = find(tasks.menu.box, a => a.has_style_class_name?.('done'));
+                    GLib.file_set_contents(`${out}/tasks.txt`,
+                        `${tasks.container.visible ? 'shown' : 'hidden'} ${count.text || '0'} ` +
+                        `${side}-of-clock ${done ? hex(done.get_theme_node().get_foreground_color()) : '-'}\n`);
+                    const add = `${out}/add-task`;
+                    if (GLib.file_test(add, GLib.FileTest.EXISTS)) {
+                        const [, text] = GLib.file_get_contents(add);
+                        GLib.unlink(add);
+                        const entry = find(tasks.menu.box, a => a instanceof St.Entry);
+                        entry.set_text(new TextDecoder().decode(text).trim());
+                        entry.clutter_text.emit('activate');
+                    }
+                } else {
+                    GLib.file_set_contents(`${out}/tasks.txt`, 'none\n');
+                }
                 const clock = Main.panel.statusArea.dateMenu?._clockDisplay;
                 GLib.file_set_contents(`${out}/top-bar.txt`,
                     `${hexa(node.get_background_color())} ` +
