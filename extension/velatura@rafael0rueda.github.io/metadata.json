@@ -1,8 +1,8 @@
 {
   "uuid": "velatura@rafael0rueda.github.io",
   "name": "Velatura",
-  "description": "Loads the colors the Velatura app writes for the top bar, overview, menus and dialogs, and loads them again when they change. While the app's Top Bar Style part is on, it also loads how the top bar is drawn: as a full bar or as pills, and how opaque. While the UPS Indicator part is on, it shows the watts a UPS draws, read from Network UPS Tools on this computer. While the Window Outline part is on, it draws a thin line in the theme's accent beside the window in use. It holds no colors and no settings of its own: without the Velatura app it does nothing.",
+  "description": "Loads the colors the Velatura app writes for the top bar, overview, menus and dialogs, and loads them again when they change. While the app's Top Bar Style part is on, it also loads how the top bar is drawn: as a full bar or as pills, and how opaque. While the UPS Indicator part is on, it shows the watts a UPS draws, read from Network UPS Tools on this computer. While the Tasks part is on, it shows a checklist left of the clock, kept in Velatura's data folder. While the Window Outline part is on, it draws a thin line in the theme's accent beside the window in use. It holds no colors and no settings of its own: without the Velatura app it does nothing.",
   "url": "https://github.com/rafael0rueda/Velatura",
   "shell-version": ["47", "48", "49", "50", "51"],
-  "version-name": "6"
+  "version-name": "7"
 }

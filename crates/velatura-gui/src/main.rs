@@ -2498,6 +2498,7 @@ fn part_icon(instance: &str) -> &'static str {
         targets::CURSORS => "input-mouse-symbolic",
         targets::TOP_BAR => "focus-top-bar-symbolic",
         targets::UPS => "uninterruptible-power-supply-symbolic",
+        targets::TASKS => "view-list-bullet-symbolic",
         targets::OUTLINE => "focus-windows-symbolic",
         targets::KITTY | targets::GHOSTTY | targets::PTYXIS => "utilities-terminal-symbolic",
         targets::TMUX => "view-grid-symbolic",
@@ -2570,6 +2571,9 @@ fn part_row(
         )),
         RowState::Ready if row.instance == targets::UPS => Some(tr(
             "Shows in the top bar the watts a UPS draws, with its battery and runtime in a menu. It reads Network UPS Tools on this computer, and stays hidden while no UPS answers",
+        )),
+        RowState::Ready if row.instance == targets::TASKS => Some(tr(
+            "Shows a checklist left of the clock in the top bar, to add tasks, tick them off and delete them. The tasks stay on this computer, and are kept when the part is turned off",
         )),
         RowState::Ready if row.instance == targets::OUTLINE => Some(tr(
             "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
@@ -2814,6 +2818,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 targets::SHELL,
                 targets::TOP_BAR,
                 targets::UPS,
+                targets::TASKS,
                 targets::OUTLINE,
                 targets::APPEARANCE,
                 targets::ICONS,

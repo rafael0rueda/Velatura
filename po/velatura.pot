@@ -679,6 +679,9 @@ msgstr ""
 msgid "Shows in the top bar the watts a UPS draws, with its battery and runtime in a menu. It reads Network UPS Tools on this computer, and stays hidden while no UPS answers"
 msgstr ""
 
+msgid "Shows a checklist left of the clock in the top bar, to add tasks, tick them off and delete them. The tasks stay on this computer, and are kept when the part is turned off"
+msgstr ""
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr ""
 
@@ -1034,6 +1037,9 @@ msgid "Top Bar Style"
 msgstr ""
 
 msgid "UPS Indicator"
+msgstr ""
+
+msgid "Tasks"
 msgstr ""
 
 msgid "Window Outline"

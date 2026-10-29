@@ -33,6 +33,7 @@ pub const APPEARANCE: &str = "gnome:appearance";
 pub const OUTLINE: &str = "gnome:outline";
 pub const TOP_BAR: &str = "gnome:top-bar";
 pub const UPS: &str = "gnome:ups";
+pub const TASKS: &str = "gnome:tasks";
 pub const FLATPAK: &str = "flatpak:global";
 pub const TMUX: &str = "tmux:default";
 pub const NVIM: &str = "nvim:default";
@@ -44,7 +45,7 @@ pub use crate::firefox::FIREFOX;
 pub use crate::icon_set::ICONS;
 
 /// Every instance this build knows, in the order they are applied.
-pub const INSTANCES: [&str; 18] = [
+pub const INSTANCES: [&str; 19] = [
     KITTY,
     GHOSTTY,
     GTK4,
@@ -59,6 +60,7 @@ pub const INSTANCES: [&str; 18] = [
     SHELL,
     TOP_BAR,
     UPS,
+    TASKS,
     OUTLINE,
     APPEARANCE,
     ICONS,
@@ -67,13 +69,15 @@ pub const INSTANCES: [&str; 18] = [
 
 /// Instances that are left out until the user turns them on, because they
 /// change more than colours, or use a way in that is not supported.
-pub const OPT_IN: [&str; 7] = [FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, UPS, OUTLINE];
+pub const OPT_IN: [&str; 8] = [
+    FLATPAK, ICONS, FIREFOX, CURSORS, TOP_BAR, UPS, TASKS, OUTLINE,
+];
 
 /// Parts that are one stylesheet only Velatura's extension shows. Like
 /// every part turned off, they are taken away at the next apply by hand
 /// (see [`crate::off`]); theirs is found by its place even while the
 /// extension is off.
-pub const SHEETS: [&str; 3] = [TOP_BAR, UPS, OUTLINE];
+pub const SHEETS: [&str; 4] = [TOP_BAR, UPS, TASKS, OUTLINE];
 
 /// The name of Velatura's span in Flatpak's overrides file. Unlike the
 /// others it is not a marked block: see [`crate::keyfile`].
@@ -1549,6 +1553,19 @@ pub fn plan_ups(host: &Host<'_>, env: Env<'_>, theme: &Resolved<'_>, state: &Sta
     plan_extension_sheet(UPS, host, env, state, css, shell::ups(theme))
 }
 
+/// The checklist in the top bar: Velatura's extension shows it while its
+/// stylesheet is there, and keeps the tasks itself. Only the look is
+/// written here; the list is the user's and no part of any apply.
+pub fn plan_tasks(
+    host: &Host<'_>,
+    env: Env<'_>,
+    theme: &Resolved<'_>,
+    state: &State,
+) -> TargetPlan {
+    let css = crate::companion::tasks_stylesheet(host);
+    plan_extension_sheet(TASKS, host, env, state, css, shell::tasks(theme))
+}
+
 /// A stylesheet of a part only Velatura's extension can show, written in
 /// place at `css`.
 fn plan_extension_sheet(
@@ -1603,6 +1620,7 @@ pub fn plan_sheet_off(instance: &str, host: &Host<'_>, state: &State) -> TargetP
     let css = match instance {
         TOP_BAR => crate::companion::top_bar_stylesheet(host),
         UPS => crate::companion::ups_stylesheet(host),
+        TASKS => crate::companion::tasks_stylesheet(host),
         _ => crate::companion::outline_stylesheet(host),
     };
     let mut plan = TargetPlan::new(instance);
@@ -1781,6 +1799,7 @@ pub fn plan(
         OUTLINE => plan_outline(host, env, theme, state),
         TOP_BAR => plan_top_bar(host, env, theme, state),
         UPS => plan_ups(host, env, theme, state),
+        TASKS => plan_tasks(host, env, theme, state),
         SHELL => plan_shell(
             host,
             env,

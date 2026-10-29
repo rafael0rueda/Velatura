@@ -7,7 +7,9 @@
 # Last, through Velatura's own extension, the Top Bar Style part draws
 # the bar as pills and then as a full bar, and is taken away; and the UPS
 # indicator follows a stand-in for NUT's server on its usual port, which
-# is skipped if something already listens there.
+# is skipped if something already listens there; and the Tasks checklist
+# copies in kanagawa-shell's list, keeps a task added through its entry,
+# and leaves the tasks behind when taken away.
 #
 # Nothing of the real session is touched: private session bus, private
 # settings database, private folders. The installed User Themes extension is
@@ -39,6 +41,23 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     panel() { cat "$VEL_OUT/panel.txt" 2>/dev/null || true; }
     top_bar() { cat "$VEL_OUT/top-bar.txt" 2>/dev/null || true; }
     ups() { cat "$VEL_OUT/ups.txt" 2>/dev/null || true; }
+    tasks() { cat "$VEL_OUT/tasks.txt" 2>/dev/null || true; }
+    wait_tasks() { # shown, count, side of the clock, colour of a done task, label
+        for _ in $(seq 60); do
+            [ "$(tasks)" = "$1" ] && { echo "ok: $2: Tasks is $1"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2: expected $1, Tasks is $(tasks)"; return 1
+    }
+    has_tasks() { # how many, a text among them, label
+        list=$HOME/.local/share/velatura/tasks.json
+        for _ in $(seq 20); do
+            [ "$(grep -c "\"text\"" "$list" 2>/dev/null)" = "$1" ] && grep -q "$2" "$list" &&
+                { echo "ok: $3: $1 tasks kept"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $3: expected $1 tasks with $2 in $list"; return 1
+    }
     wait_ups() { # shown, watts, state, colour of the watts, label
         for _ in $(seq 60); do
             [ "$(ups)" = "$1" ] && { echo "ok: $2: UPS is $1"; return 0; }
@@ -167,4 +186,23 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     else
         echo "NOT RUN: the UPS round, as something listens on port 3493"
     fi
+
+    # The checklist, in Aetherius (subtle text #6c76a0), with a list that
+    # kanagawa-shell kept: two open tasks and a done one.
+    mkdir -p "$HOME/.local/share/kanagawa-shell"
+    echo "[{\"text\": \"Buy bread\", \"done\": false}, {\"text\": \"Call home\", \"done\": true}, {\"text\": \"Fix the bike\", \"done\": false}]" \
+        > "$HOME/.local/share/kanagawa-shell/tasks.json"
+    "$BIN" apply aetherius --only gnome:tasks --yes >/dev/null || status=1
+    VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell6.log" 2>&1 &
+    shell=$!
+    wait_tasks "shown 2 left-of-clock #6c76a0" "kanagawa-shell'"'"'s list, left of the clock" || status=1
+    has_tasks 3 "Fix the bike" "copied in as Velatura'"'"'s own list" || status=1
+    echo "Water the plants" > "$VEL_OUT/add-task"
+    wait_tasks "shown 3 left-of-clock #6c76a0" "a task added through the entry" || status=1
+    has_tasks 4 "Water the plants" "written at once" || status=1
+    "$BIN" apply aetherius --yes >/dev/null || status=1
+    wait_tasks "none" "gone once the part is taken away" || status=1
+    has_tasks 4 "Water the plants" "the tasks stay" || status=1
+    kill $shell 2>/dev/null; wait $shell 2>/dev/null
+    grep -i -E "velatura.*(error|warn|critical)|JS ERROR" "$VEL_OUT/shell6.log" && status=1
     exit $status' 2>/dev/null
