@@ -2596,6 +2596,15 @@ fn part_row(
         )),
         RowState::Unavailable(why) => Some(words::reason(&words::skip(why, &snap.home))),
     };
+    // Another extension that may show or draw the same, said whether
+    // the part is on or off.
+    let subtitle = row
+        .clashes
+        .iter()
+        .map(|n| words::note(n, &snap.home))
+        .fold(subtitle, |s, warn| {
+            Some(s.map_or(warn.clone(), |s| format!("{s}. {warn}")))
+        });
     let can = available(row);
     let subtitle = match (subtitle, place.filter(|p| !p.is_empty())) {
         (Some(s), Some(p)) => Some(format!("{s} · {p}")),

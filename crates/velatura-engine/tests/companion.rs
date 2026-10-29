@@ -1086,3 +1086,192 @@ fn the_media_player_has_its_stylesheet_while_on() {
     engine::execute(&host, &plan, &[]).unwrap();
     assert!(!css.exists());
 }
+
+#[test]
+fn other_extensions_that_show_the_same_are_named_on_the_part() {
+    use velatura_engine::plan::Clash;
+    use velatura_engine::targets::OUTLINE;
+    let home = Home::new();
+    let ext = |uuid: &str, file: &str, text: &str| {
+        let dir = home.path(&format!(".local/share/gnome-shell/extensions/{uuid}"));
+        let path = dir.join(file);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text).unwrap();
+        fs::write(
+            dir.join("metadata.json"),
+            format!("{{\"uuid\": \"{uuid}\", \"name\": \"Ext {uuid}\", \"settings-schema\": \"org.test.{uuid}\"}}"),
+        )
+        .unwrap();
+        fs::create_dir_all(dir.join("schemas")).unwrap();
+        fs::write(dir.join("schemas/gschemas.compiled"), "").unwrap();
+    };
+    let schema = |uuid: &str| {
+        format!(
+            "org.test.{uuid}@{}",
+            home.path(&format!(
+                ".local/share/gnome-shell/extensions/{uuid}/schemas"
+            ))
+            .display()
+        )
+    };
+    ext(
+        "media",
+        "extension.js",
+        "const MPRIS = 'org.mpris.MediaPlayer2.';",
+    );
+    ext(
+        "ups",
+        "lib/ups.js",
+        "GLib.spawn_command_line_sync('upsc ups@localhost');",
+    );
+    ext(
+        "middle",
+        "extension.js",
+        "Main.panel.addToStatusArea('middle-tasks', this._tasks, 0, 'center');",
+    );
+    ext(
+        "bar",
+        "extension.js",
+        "const PANEL_CLASS = 'bar-panel';\nMain.panel.add_style_class_name(PANEL_CLASS);",
+    );
+    ext(
+        "bar",
+        "stylesheet.css",
+        "#panel.bar-panel .panel-button { color: #d3d9ee; }",
+    );
+    ext(
+        "borders",
+        "shell/borders.js",
+        "global.display.connect('notify::focus-window', () => this._border.show());",
+    );
+    // Draws one only while its switch is on, and it is off.
+    ext(
+        "hint",
+        "src/focusHint.js",
+        "global.display.connect('notify::focus-window', () => this._outline.show());",
+    );
+    // Its preferences, its own buttons in the bar and a word that only
+    // starts like one: none of them counts.
+    ext(
+        "quiet",
+        "prefs.js",
+        "const MPRIS = 'org.mpris.MediaPlayer2.'; addToStatusArea('q', b, 0, 'center');",
+    );
+    ext(
+        "quiet",
+        "extension.js",
+        "effect.upscale(2); addToStatusArea('q', b, pos[1], pos[0]);",
+    );
+    ext(
+        "quiet",
+        "stylesheet.css",
+        "#panel .quiet-button { color: red; }",
+    );
+    // Turned off, it does nothing.
+    ext(
+        "off",
+        "extension.js",
+        "const MPRIS = 'org.mpris.MediaPlayer2.';",
+    );
+    ext("clock", "extension.js", "");
+    let (h, c) = (schema("hint"), schema("clock"));
+    let mut fields = vec![
+        (INTERFACE_SCHEMA, "color-scheme", "default"),
+        (INTERFACE_SCHEMA, "accent-color", "blue"),
+        ("org.gnome.desktop.a11y.interface", "high-contrast", "false"),
+        ("org.gnome.shell", "enabled-extensions", "@as []"),
+        ("org.gnome.shell", "disable-user-extensions", "false"),
+        (USER_THEME_SCHEMA, "name", ""),
+    ];
+    fields.extend([
+        (h.as_str(), "focus-hint", "0"),
+        (c.as_str(), "clock-menu-position", "0"),
+        (c.as_str(), "clock-menu-position-offset", "0"),
+    ]);
+    let s = MemSettings::new(&fields);
+    let host = home.host(&StdFs, &s);
+    companion::install(&host).unwrap();
+    enable(
+        &s,
+        &[
+            UUID, "media", "ups", "middle", "bar", "borders", "hint", "quiet", "clock",
+        ],
+    );
+    for part in [TOP_BAR, UPS, TASKS, MEDIA, OUTLINE] {
+        engine::set_included(&host, part, true).unwrap();
+    }
+    let notes = |instance: &str| {
+        top_bar_plan(&host, &ApplyOpts::default())
+            .targets
+            .into_iter()
+            .find(|t| t.instance == instance)
+            .unwrap()
+            .notes
+    };
+    let clash = |clash: Clash, name: &str| Note::ExtensionClash {
+        clash,
+        names: vec![format!("Ext {name}")],
+    };
+    let pinned = |offset: Option<u32>| Note::ClockPinned {
+        name: "Ext clock".to_owned(),
+        offset,
+    };
+    // The clock is kept first in the middle, where Tasks goes.
+    assert_eq!(
+        notes(TASKS),
+        [clash(Clash::Middle, "middle"), pinned(Some(1))]
+    );
+    assert_eq!(
+        notes(MEDIA),
+        [clash(Clash::Media, "media"), pinned(Some(1))]
+    );
+    assert_eq!(notes(UPS), [clash(Clash::Ups, "ups")]);
+    assert_eq!(notes(TOP_BAR), [clash(Clash::TopBar, "bar")]);
+    assert_eq!(notes(OUTLINE), [clash(Clash::Outline, "borders")]);
+    assert!(
+        !notes(SHELL)
+            .iter()
+            .any(|n| matches!(n, Note::ExtensionClash { .. } | Note::ClockPinned { .. }))
+    );
+
+    // Turned on, the hint counts too.
+    s.write(&h, "focus-hint", Some("2")).unwrap();
+    assert_eq!(
+        notes(OUTLINE),
+        [Note::ExtensionClash {
+            clash: Clash::Outline,
+            names: vec!["Ext borders".to_owned(), "Ext hint".to_owned()],
+        }]
+    );
+
+    // After Tasks, the clock is in its place; without Tasks, it is not.
+    s.write(&c, "clock-menu-position-offset", Some("1"))
+        .unwrap();
+    assert_eq!(notes(TASKS), [clash(Clash::Middle, "middle")]);
+    assert_eq!(notes(MEDIA), [clash(Clash::Media, "media")]);
+    engine::set_included(&host, TASKS, false).unwrap();
+    assert_eq!(
+        notes(MEDIA),
+        [clash(Clash::Media, "media"), pinned(Some(0))]
+    );
+
+    // Moved out of the middle, no place in it is right.
+    s.write(&c, "clock-menu-position", Some("1")).unwrap();
+    assert_eq!(notes(MEDIA), [clash(Clash::Media, "media"), pinned(None)]);
+
+    // The part says so on its own, on or off.
+    let themes = library::load(&host).0;
+    let parts = engine::parts(&host, &no_env, &themes);
+    let tasks = parts.iter().find(|p| p.instance == TASKS).unwrap();
+    assert!(!tasks.included);
+    assert_eq!(
+        tasks.clashes,
+        [clash(Clash::Middle, "middle"), pinned(None)]
+    );
+
+    // With none of them on, nothing is said.
+    enable(&s, &[UUID]);
+    for part in [TOP_BAR, UPS, TASKS, MEDIA, OUTLINE] {
+        assert!(notes(part).is_empty(), "{part}");
+    }
+}

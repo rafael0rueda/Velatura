@@ -1432,6 +1432,18 @@ pub fn colors_shell(css: &str) -> bool {
         ".search-entry",
         ".candidate-popup",
     ];
+    colors_rules(css, |s| {
+        SURFACES.iter().any(|m| {
+            s.strip_prefix(m).is_some_and(|after| {
+                !after.starts_with(|c: char| c.is_alphanumeric() || c == '-' || c == '_')
+            })
+        })
+    })
+}
+
+/// True if a rule of `css` sets a colour, a background or a border for a
+/// selector `on` says yes to. Each selector of a rule is given trimmed.
+pub(crate) fn colors_rules(css: &str, on: impl Fn(&str) -> bool) -> bool {
     let mut text = String::with_capacity(css.len());
     let mut rest = css;
     while let Some(at) = rest.find("/*") {
@@ -1457,15 +1469,7 @@ pub fn colors_shell(css: &str) -> bool {
             break;
         };
         let (selectors, body) = (&rest[..open], &rest[open + 1..close]);
-        let starts_on_surface = selectors.split(',').any(|s| {
-            let s = s.trim();
-            SURFACES.iter().any(|m| {
-                s.strip_prefix(m).is_some_and(|after| {
-                    !after.starts_with(|c: char| c.is_alphanumeric() || c == '-' || c == '_')
-                })
-            })
-        });
-        if starts_on_surface && colours(body) {
+        if selectors.split(',').any(|s| on(s.trim())) && colours(body) {
             return true;
         }
         rest = &rest[close + 1..];
@@ -1624,6 +1628,7 @@ fn plan_extension_sheet(
     if waiting {
         plan.notes.push(Note::ExtensionWaiting);
     }
+    plan.notes.extend(crate::clash::notes(host, env, instance));
     plan
 }
 
@@ -1898,43 +1903,12 @@ pub fn other_tools(host: &Host<'_>) -> Vec<OtherTool> {
 /// border or a highlight of their own. Only values that were set count: a
 /// colour left at the extension's default may well follow the accent.
 fn pinned_colors(host: &Host<'_>) -> Vec<OtherTool> {
-    let Ok(Some(enabled)) = host.settings.read("org.gnome.shell", "enabled-extensions") else {
-        return Vec::new();
-    };
     let mut dirs = vec![host.dirs.data.clone()];
     dirs.extend(["/usr/local/share", "/usr/share"].map(PathBuf::from));
     let mut found = Vec::new();
-    for uuid in listed(&enabled.effective) {
-        if uuid == crate::companion::UUID || uuid.contains('/') {
+    for ext in crate::clash::enabled(host, &dirs) {
+        let Some(schema) = ext.schema else {
             continue;
-        }
-        let Some(dir) = dirs
-            .iter()
-            .map(|d| d.join("gnome-shell/extensions").join(uuid))
-            .find(|d| exists(host, &d.join("metadata.json")))
-        else {
-            continue;
-        };
-        let Some(meta) = crate::icon_set::read_capped(host, &dir.join("metadata.json"), 64 * 1024)
-            .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
-        else {
-            continue;
-        };
-        let Some(id) = meta
-            .get("settings-schema")
-            .and_then(serde_json::Value::as_str)
-            .filter(|id| {
-                id.bytes()
-                    .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
-            })
-        else {
-            continue;
-        };
-        let local = dir.join("schemas");
-        let schema = if exists(host, &local.join("gschemas.compiled")) {
-            format!("{id}@{}", local.display())
-        } else {
-            id.to_owned()
         };
         let mut keys: Vec<String> = host
             .settings
@@ -1948,12 +1922,10 @@ fn pinned_colors(host: &Host<'_>) -> Vec<OtherTool> {
         keys.sort();
         keys.truncate(8);
         if !keys.is_empty() {
-            let name = meta
-                .get("name")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or(uuid)
-                .to_owned();
-            found.push(OtherTool::PinnedColors { name, keys });
+            found.push(OtherTool::PinnedColors {
+                name: ext.name,
+                keys,
+            });
         }
     }
     found

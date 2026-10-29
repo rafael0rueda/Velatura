@@ -6,6 +6,7 @@
 //! text for people is the caller's job.
 
 pub mod block;
+mod clash;
 pub mod companion;
 pub mod cursor_set;
 pub mod engine;

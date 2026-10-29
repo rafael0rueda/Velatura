@@ -12,7 +12,7 @@ use std::path::Path;
 use velatura_engine::companion;
 use velatura_engine::library::{Refused as LibraryRefused, Why};
 use velatura_engine::look::{Kind, Rejected};
-use velatura_engine::plan::{Change, Note, Skip};
+use velatura_engine::plan::{Change, Clash, Note, Skip};
 use velatura_engine::schedule::{LastRun, Period, Problem, Refused, Status, format_time};
 use velatura_engine::targets::OtherTool;
 use velatura_engine::txn::{Failure, Rollback};
@@ -633,6 +633,43 @@ pub fn note(n: &Note, home: &Path) -> String {
         Note::ShellExtensionStyles { names } => tf!(
             "These extensions color the top bar or its menus themselves, which wins over the theme there: {1}. Velatura's own extension wins over them: velatura extension install",
             clean_text(&names.join(", "), 400)
+        ),
+        Note::ExtensionClash { clash, names } => {
+            let names = clean_text(&names.join(", "), 400);
+            match clash {
+                Clash::Middle => tf!(
+                    "These extensions also put buttons of their own beside the clock, and may show a list there too: {1}",
+                    names
+                ),
+                Clash::Media => tf!(
+                    "These extensions may also show what is playing in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it",
+                    names
+                ),
+                Clash::Ups => tf!(
+                    "These extensions may also show a UPS in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it",
+                    names
+                ),
+                Clash::TopBar => tf!(
+                    "These extensions also style the top bar, and may draw over the look chosen here: {1}",
+                    names
+                ),
+                Clash::Outline => tf!(
+                    "These extensions may also draw a line around the window in use, so it may get two: {1}. Turning off this part or the extension avoids it",
+                    names
+                ),
+            }
+        }
+        Note::ClockPinned {
+            name,
+            offset: Some(offset),
+        } => tf!(
+            "{1} keeps the clock at a fixed place in the top bar, so this part's button may sit on the wrong side of it. In the settings of {1}, set the clock's offset to {2}",
+            clean_text(name, 80),
+            offset
+        ),
+        Note::ClockPinned { name, offset: None } => tf!(
+            "{1} moves the clock out of the middle of the top bar, so this part's button does not sit beside it",
+            clean_text(name, 80)
         ),
         Note::Gtk3DarkForced { path: p } => tf!(
             "{1} asks older apps for dark and can work against this light theme",

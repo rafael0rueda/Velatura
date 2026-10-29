@@ -355,6 +355,8 @@ fn note_code(n: &Note) -> &'static str {
         Note::ShellShortList => "shell-short-list",
         Note::ExtensionWaiting => "extension-waiting",
         Note::ShellExtensionStyles { .. } => "shell-extension-styles",
+        Note::ExtensionClash { .. } => "extension-clash",
+        Note::ClockPinned { .. } => "clock-pinned",
         Note::KittyAutoTheme { .. } => "kitty-auto-theme",
         Note::KittyReload => "kitty-reload",
         Note::AccentNearest { .. } => "accent-nearest",
@@ -724,6 +726,9 @@ impl Cx<'_> {
                     .to_owned(),
             };
             println!("{}: {state}", text::instance(&part.instance));
+            for clash in &part.clashes {
+                println!("  Note: {}", text::note(clash, self.home));
+            }
         }
         let sched = schedule::status(&self.host);
         if sched.on {
@@ -1903,6 +1908,8 @@ They are kept in {}",
                             | Note::LinkedFile { .. }
                             | Note::UserThemesOff
                             | Note::ShellExtensionStyles { .. }
+                            | Note::ExtensionClash { .. }
+                            | Note::ClockPinned { .. }
                             | Note::KittyAutoTheme { .. }
                             | Note::SettingLocked { .. }
                     ) {

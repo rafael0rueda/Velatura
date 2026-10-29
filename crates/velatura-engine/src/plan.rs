@@ -108,6 +108,21 @@ pub enum Skip {
     TemplateInvalid(crate::templates::Invalid),
 }
 
+/// What another extension may show or draw that a part does too.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Clash {
+    /// A checklist or other buttons beside the clock.
+    Middle,
+    /// What is playing, read from the media players.
+    Media,
+    /// A UPS reading.
+    Ups,
+    /// The top bar's own look.
+    TopBar,
+    /// A line around the window in use.
+    Outline,
+}
+
 /// Something the user should know that does not stop the operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Note {
@@ -190,6 +205,20 @@ pub enum Note {
     /// surfaces, which always wins over a user theme.
     ShellExtensionStyles {
         names: Vec<String>,
+    },
+    /// Enabled extensions that may show or draw the same as this part,
+    /// found by reading their files. Both show; neither is stopped.
+    ExtensionClash {
+        clash: Clash,
+        names: Vec<String>,
+    },
+    /// An enabled extension keeps the clock at a fixed place in the top
+    /// bar. `offset` is the place in the middle of the bar its settings
+    /// should give the clock for this part's button to sit beside it;
+    /// `None` when the clock was moved out of the middle.
+    ClockPinned {
+        name: String,
+        offset: Option<u32>,
     },
     Gtk3DarkForced {
         path: PathBuf,

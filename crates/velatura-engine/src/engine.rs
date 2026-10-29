@@ -914,6 +914,9 @@ pub struct Part {
     pub state: PartState,
     /// False if the user turned it off for future applies.
     pub included: bool,
+    /// Other extensions that may show or draw the same, whether the part
+    /// is on or off: [`Note::ExtensionClash`] and [`Note::ClockPinned`].
+    pub clashes: Vec<Note>,
 }
 
 /// How every part stands, learned by asking what applying would do. The
@@ -971,10 +974,17 @@ pub fn parts(host: &Host<'_>, env: Env<'_>, themes: &[crate::library::Entry]) ->
             (None, _) if t.changes.is_empty() && applied.is_some() => PartState::Themed,
             (None, _) => PartState::Ready,
         };
+        let clashes = t
+            .notes
+            .iter()
+            .filter(|n| matches!(n, Note::ExtensionClash { .. } | Note::ClockPinned { .. }))
+            .cloned()
+            .collect();
         out.push(Part {
             instance,
             state,
             included,
+            clashes,
         });
     }
     out
