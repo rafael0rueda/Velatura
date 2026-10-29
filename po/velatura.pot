@@ -682,6 +682,9 @@ msgstr ""
 msgid "Shows a checklist left of the clock in the top bar, to add tasks, tick them off and delete them. The tasks stay on this computer, and are kept when the part is turned off"
 msgstr ""
 
+msgid "Shows right of the clock in the top bar the app that plays music or video, and whether it plays, with the track and its controls in a menu. A middle click plays or pauses. It stays hidden while nothing plays"
+msgstr ""
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr ""
 
@@ -1040,6 +1043,9 @@ msgid "UPS Indicator"
 msgstr ""
 
 msgid "Tasks"
+msgstr ""
+
+msgid "Now Playing"
 msgstr ""
 
 msgid "Window Outline"

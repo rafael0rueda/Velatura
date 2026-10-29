@@ -4,11 +4,13 @@
 // and applied, and whether the toggle has the theme's accent itself.
 // For the top bar's style, also the panel's background with its alpha,
 // and the fill of the quick settings button and of the clock's label;
-// and how the UPS indicator and the Tasks checklist stand, adding a task
-// through the checklist's entry when asked to. And two things the Shell's own
+// and how the UPS indicator, the Tasks checklist and the media player
+// stand, adding a task through the checklist's entry, and clicking the
+// media player with a pointer of its own, when asked to. And two things the Shell's own
 // stylesheet hides behind `!important`: the background of a menu's
 // separator, an insensitive item, and the fill of the clock's button
 // itself on hover.
+import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 
@@ -92,6 +94,30 @@ export default class Probe extends Extension {
                 } else {
                     GLib.file_set_contents(`${out}/tasks.txt`, 'none\n');
                 }
+                // The media player: shown or not, whether it plays, which
+                // side of the clock it is on, whether its menu is open, and
+                // the colour of its play state. A button written to
+                // click-media clicks the middle of it.
+                const media = Main.panel.statusArea['velatura-media'];
+                if (media) {
+                    const center = Main.panel._centerBox.get_children();
+                    const side = center.indexOf(media.container) <
+                        center.indexOf(Main.panel.statusArea.dateMenu.container) ? 'left' : 'right';
+                    const playing = media._active ? (media._active.playing ? 'playing' : 'paused') : '-';
+                    const state = find(media, a => a.has_style_class_name?.('velatura-media-state'));
+                    GLib.file_set_contents(`${out}/media.txt`,
+                        `${media.container.visible ? 'shown' : 'hidden'} ${playing} ${side}-of-clock ` +
+                        `${media.menu.isOpen ? 'open' : 'closed'} ` +
+                        `${hex(state.get_theme_node().get_foreground_color())}\n`);
+                    const click = `${out}/click-media`;
+                    if (GLib.file_test(click, GLib.FileTest.EXISTS)) {
+                        const [, button] = GLib.file_get_contents(click);
+                        GLib.unlink(click);
+                        this._click(media, Number(new TextDecoder().decode(button)));
+                    }
+                } else {
+                    GLib.file_set_contents(`${out}/media.txt`, 'none\n');
+                }
                 const clock = Main.panel.statusArea.dateMenu?._clockDisplay;
                 GLib.file_set_contents(`${out}/top-bar.txt`,
                     `${hexa(node.get_background_color())} ` +
@@ -104,6 +130,30 @@ export default class Probe extends Extension {
             }
             return GLib.SOURCE_CONTINUE;
         });
+    }
+
+    // A press and a release of `button` in the middle of `actor`, a moment
+    // apart, through a pointer of its own, so gestures see a real click.
+    // The pointer is made at the first click and not before: added while a
+    // menu is open, an input device closes it, and resting at the corner it
+    // would hover the toggle measured above. A new one drops what it is
+    // sent at once, so its first click waits a little.
+    _click(actor, button) {
+        let wait = 0;
+        if (!this._pointer) {
+            const seat = global.stage.context.get_backend().get_default_seat();
+            this._pointer = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
+            wait = 500;
+        }
+        const [x, y] = actor.get_transformed_position();
+        const now = () => GLib.get_monotonic_time();
+        const later = (ms, step) => GLib.timeout_add(GLib.PRIORITY_DEFAULT, wait + ms, () => {
+            step();
+            return GLib.SOURCE_REMOVE;
+        });
+        later(0, () => this._pointer.notify_absolute_motion(now(), x + actor.width / 2, y + actor.height / 2));
+        later(100, () => this._pointer.notify_button(now(), button, Clutter.ButtonState.PRESSED));
+        later(180, () => this._pointer.notify_button(now(), button, Clutter.ButtonState.RELEASED));
     }
 
     disable() {

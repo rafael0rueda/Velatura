@@ -2499,6 +2499,7 @@ fn part_icon(instance: &str) -> &'static str {
         targets::TOP_BAR => "focus-top-bar-symbolic",
         targets::UPS => "uninterruptible-power-supply-symbolic",
         targets::TASKS => "view-list-bullet-symbolic",
+        targets::MEDIA => "audio-x-generic-symbolic",
         targets::OUTLINE => "focus-windows-symbolic",
         targets::KITTY | targets::GHOSTTY | targets::PTYXIS => "utilities-terminal-symbolic",
         targets::TMUX => "view-grid-symbolic",
@@ -2574,6 +2575,9 @@ fn part_row(
         )),
         RowState::Ready if row.instance == targets::TASKS => Some(tr(
             "Shows a checklist left of the clock in the top bar, to add tasks, tick them off and delete them. The tasks stay on this computer, and are kept when the part is turned off",
+        )),
+        RowState::Ready if row.instance == targets::MEDIA => Some(tr(
+            "Shows right of the clock in the top bar the app that plays music or video, and whether it plays, with the track and its controls in a menu. A middle click plays or pauses. It stays hidden while nothing plays",
         )),
         RowState::Ready if row.instance == targets::OUTLINE => Some(tr(
             "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen",
@@ -2819,6 +2823,7 @@ fn apps_view(ui: &U, snap: &Snapshot) -> gtk::Widget {
                 targets::TOP_BAR,
                 targets::UPS,
                 targets::TASKS,
+                targets::MEDIA,
                 targets::OUTLINE,
                 targets::APPEARANCE,
                 targets::ICONS,

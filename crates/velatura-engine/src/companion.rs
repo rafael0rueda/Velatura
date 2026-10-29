@@ -36,7 +36,7 @@ pub const FILES: [(&str, &str); 2] = [
 ];
 
 /// The file the extension loads for the Shell's colours: with the next
-/// four and the list of tasks, the whole contract between the two.
+/// five and the list of tasks, the whole contract between the two.
 pub fn stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("gnome-shell.css")
 }
@@ -63,6 +63,12 @@ pub fn ups_stylesheet(host: &Host<'_>) -> PathBuf {
 /// this file is there.
 pub fn tasks_stylesheet(host: &Host<'_>) -> PathBuf {
     host.data_dir().join("shell").join("tasks.css")
+}
+
+/// The media player's look. The extension shows the player only while
+/// this file is there.
+pub fn media_stylesheet(host: &Host<'_>) -> PathBuf {
+    host.data_dir().join("shell").join("media.css")
 }
 
 /// The tasks themselves, which the extension writes and the app never

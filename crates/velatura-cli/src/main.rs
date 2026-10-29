@@ -624,6 +624,12 @@ impl Cx<'_> {
                 p(velatura_engine::companion::tasks_stylesheet(h)),
             ),
             (
+                "gnome:media",
+                "Now Playing (off until turned on)",
+                "official",
+                p(velatura_engine::companion::media_stylesheet(h)),
+            ),
+            (
                 "gnome:outline",
                 "Window Outline (off until turned on)",
                 "official",

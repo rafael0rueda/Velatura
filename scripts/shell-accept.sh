@@ -9,7 +9,9 @@
 # indicator follows a stand-in for NUT's server on its usual port, which
 # is skipped if something already listens there; and the Tasks checklist
 # copies in kanagawa-shell's list, keeps a task added through its entry,
-# and leaves the tasks behind when taken away.
+# and leaves the tasks behind when taken away; and the Now Playing player
+# follows a stand-in media player, plays and pauses on a middle click and
+# opens its menu on a click.
 #
 # Nothing of the real session is touched: private session bus, private
 # settings database, private folders. The installed User Themes extension is
@@ -35,13 +37,21 @@ ln -s "$PWD/scripts/shell-accept/velatura-rival@test" "$ext/"
 
 env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8 \
     GSETTINGS_BACKEND=dconf VEL_OUT="$root/out" BIN="$PWD/target/debug/velatura" UT="$ut" \
-    FAKE_UPSD="$PWD/scripts/shell-accept/fake-upsd.py" \
+    FAKE_UPSD="$PWD/scripts/shell-accept/fake-upsd.py" FAKE_PLAYER="$PWD/scripts/shell-accept/fake-player.js" \
     dbus-run-session -- bash -c '
     exec 2>/dev/null
     panel() { cat "$VEL_OUT/panel.txt" 2>/dev/null || true; }
     top_bar() { cat "$VEL_OUT/top-bar.txt" 2>/dev/null || true; }
     ups() { cat "$VEL_OUT/ups.txt" 2>/dev/null || true; }
     tasks() { cat "$VEL_OUT/tasks.txt" 2>/dev/null || true; }
+    media() { cat "$VEL_OUT/media.txt" 2>/dev/null || true; }
+    wait_media() { # shown, playing, side of the clock, menu, colour of the state, label
+        for _ in $(seq 60); do
+            [ "$(media)" = "$1" ] && { echo "ok: $2: Now Playing is $1"; return 0; }
+            read -t 0.5 <> <(:) || true
+        done
+        echo "FAILED: $2: expected $1, Now Playing is $(media)"; return 1
+    }
     wait_tasks() { # shown, count, side of the clock, colour of a done task, label
         for _ in $(seq 60); do
             [ "$(tasks)" = "$1" ] && { echo "ok: $2: Tasks is $1"; return 0; }
@@ -205,4 +215,23 @@ env -i HOME="$root/home" PATH="$PATH" XDG_RUNTIME_DIR="$root/run" LC_ALL=C.UTF-8
     has_tasks 4 "Water the plants" "the tasks stay" || status=1
     kill $shell 2>/dev/null; wait $shell 2>/dev/null
     grep -i -E "velatura.*(error|warn|critical)|JS ERROR" "$VEL_OUT/shell6.log" && status=1
+
+    # The media player, in Aetherius (accent #8493d8), with a stand-in
+    # player that plays one track.
+    gjs -m "$FAKE_PLAYER" &
+    player=$!
+    "$BIN" apply aetherius --only gnome:media --yes >/dev/null || status=1
+    VEL_NO_OVERVIEW=1 gnome-shell --headless --no-x11 --virtual-monitor 1280x720 >"$VEL_OUT/shell7.log" 2>&1 &
+    shell=$!
+    wait_media "shown playing right-of-clock closed #8493d8" "a player that plays, right of the clock" || status=1
+    echo 2 > "$VEL_OUT/click-media"
+    wait_media "shown paused right-of-clock closed #8493d8" "paused by a middle click, the menu left closed" || status=1
+    echo 1 > "$VEL_OUT/click-media"
+    wait_media "shown paused right-of-clock open #8493d8" "its menu opened by a click" || status=1
+    kill $player 2>/dev/null; wait $player 2>/dev/null
+    wait_media "hidden - right-of-clock closed #8493d8" "hidden once the player quits" || status=1
+    "$BIN" apply aetherius --yes >/dev/null || status=1
+    wait_media "none" "gone once the part is taken away" || status=1
+    kill $shell 2>/dev/null; wait $shell 2>/dev/null
+    grep -i -E "velatura.*(error|warn|critical)|JS ERROR" "$VEL_OUT/shell7.log" && status=1
     exit $status' 2>/dev/null

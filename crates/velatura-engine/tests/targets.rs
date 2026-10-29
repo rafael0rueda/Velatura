@@ -186,6 +186,7 @@ fn all_five_apply_and_undo_to_the_exact_start() {
             &(targets::TOP_BAR.to_owned(), Skip::NotSelected),
             &(targets::UPS.to_owned(), Skip::NotSelected),
             &(targets::TASKS.to_owned(), Skip::NotSelected),
+            &(targets::MEDIA.to_owned(), Skip::NotSelected),
             &(targets::OUTLINE.to_owned(), Skip::NotSelected),
             &(targets::ICONS.to_owned(), Skip::NotSelected),
             &(targets::CURSORS.to_owned(), Skip::NotSelected)
@@ -732,6 +733,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
             targets::TOP_BAR,
             targets::UPS,
             targets::TASKS,
+            targets::MEDIA,
             targets::OUTLINE,
             targets::ICONS,
             targets::CURSORS
@@ -761,6 +763,7 @@ fn a_target_turned_off_is_left_out_until_named_or_turned_on() {
             targets::TOP_BAR,
             targets::UPS,
             targets::TASKS,
+            targets::MEDIA,
             targets::OUTLINE,
             targets::ICONS,
             targets::CURSORS
