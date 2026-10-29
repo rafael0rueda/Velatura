@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build the velatura command and the app from this checkout and install them
 # for this user only: the two programs in ~/.local/bin, the app's launcher
-# and icons under ~/.local/share. No root needed.
+# and icons under ~/.local/share, and the Shell extension this checkout
+# brings into the user's extensions folder. No root needed.
 # Run again after every merged phase to keep the copy current.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -16,4 +17,9 @@ install -D -m 644 "data/icons/hicolor/scalable/apps/$id.svg" \
 install -D -m 644 "data/icons/hicolor/symbolic/apps/$id-symbolic.svg" \
     "$share/icons/hicolor/symbolic/apps/$id-symbolic.svg"
 echo "Installed: $("$HOME/.local/bin/velatura" --version) from $(git describe --tags --always --dirty)"
+# The parts Velatura's own extension shows need the copy this checkout
+# brings, or they read as left out: installed, or brought up to date. It
+# does nothing if the copy is already this one.
+"$HOME/.local/bin/velatura" extension install ||
+    echo "Note: Velatura's Shell extension was left as it is."
 case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) echo "Note: ~/.local/bin is not on PATH";; esac
