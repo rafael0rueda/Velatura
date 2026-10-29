@@ -86,9 +86,12 @@ cd Velatura
 scripts/install-local.sh     # builds, then installs into ~/.local
 ```
 
-**Optional extras.** For the top bar, install Velatura's Shell extension
-(`velatura extension install`, then sign out and in and turn it on in
-Extensions), or use User Themes. For older GTK 3 apps, install
+Both install Velatura's Shell extension as well, and bring it up to date
+when it is updated; GNOME Shell takes a new copy after signing out and in.
+The top bar's colors and the parts drawn in it need it turned on, once, in
+Extensions; the top bar's colors can also come through User Themes.
+
+**Optional extras.** For older GTK 3 apps, install
 [adw-gtk3](https://github.com/lassekongo83/adw-gtk3).
 
 ## Use
