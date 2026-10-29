@@ -32,8 +32,11 @@ def rgb(hex_color):
 port_file = os.path.join(profile, "MarionetteActivePort")
 if os.path.exists(port_file):
     os.remove(port_file)
+# The browser's own context needs system access: asked for with the flag up
+# to Firefox 158, and from 159 with the variable as well.
 firefox = subprocess.Popen(
     ["firefox", "--headless", "--no-remote", "--profile", profile, "--marionette", "--remote-allow-system-access"],
+    env={**os.environ, "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS": "1"},
     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:
     for _ in range(300):
