@@ -15,7 +15,7 @@ use velatura_engine::library;
 use velatura_engine::plan::{Change, Note, Skip};
 use velatura_engine::schedule::{self, Auto, Period, Refused, SERVICE, TIMER, Times, WATCH};
 use velatura_engine::store::DayNight;
-use velatura_engine::targets::{INTERFACE_SCHEMA, SHELL, TASKS, TOP_BAR, UPS, USER_THEMES};
+use velatura_engine::targets::{INTERFACE_SCHEMA, MEDIA, SHELL, TASKS, TOP_BAR, UPS, USER_THEMES};
 use velatura_theme::editor::Draft;
 use velatura_theme::shell::{BarStyle, TopBar};
 use velatura_theme::{Appearance, Color, Resolved, bundled};
@@ -252,14 +252,20 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
                 .contains(&version.into())
         );
     }
-    // The contract: five files read from the user's data folder, and the
-    // outline's, the UPS indicator's and the checklist's style classes.
+    // The contract: six files read from the user's data folder, and the
+    // outline's, the UPS indicator's, the checklist's and the media
+    // player's style classes.
     assert!(js.contains("['velatura', 'shell', 'gnome-shell.css']"));
     assert!(js.contains("['velatura', 'shell', 'top-bar.css']"));
     assert!(js.contains("['velatura', 'shell', 'ups.css']"));
     assert!(js.contains(&format!("'{}'", velatura_theme::shell::UPS_CLASS)));
     assert!(js.contains("['velatura', 'shell', 'tasks.css']"));
     assert!(js.contains(&format!("'{}'", velatura_theme::shell::TASKS_CLASS)));
+    assert!(js.contains("['velatura', 'shell', 'media.css']"));
+    assert!(js.contains(&format!("'{}'", velatura_theme::shell::MEDIA_CLASS)));
+    // The media players are asked on the session bus, through MPRIS only.
+    assert!(js.contains("const MPRIS_PREFIX = 'org.mpris.MediaPlayer2.';"));
+    assert!(!js.contains("Gio.DBus.system"));
     // The one file it writes: the user's tasks, in Velatura's data folder,
     // private to the user. kanagawa-shell's list is only read.
     assert!(js.contains("const TASKS_FILE = ['velatura', 'tasks.json'];"));
@@ -293,13 +299,16 @@ fn what_is_published_is_two_files_that_say_what_they_are() {
     assert!(
         js.contains("this._tasks?.destroy()") && js.contains("GLib.source_remove(this._focusId)")
     );
+    assert!(
+        js.contains("this._media?.destroy()") && js.contains("signal_unsubscribe(this._nameWatch)")
+    );
 }
 
 /// Every version of the extension as published, with the SHA-256 of its
 /// `extension.js`. A line is never changed once its version is out: a
 /// change to `extension.js` raises `version-name` in `metadata.json` and
 /// adds a line here.
-const RELEASED: [(u64, &str); 7] = [
+const RELEASED: [(u64, &str); 8] = [
     (
         1,
         "5fe303db4bb508c20caad93f7e9abe00b709713ac0bcaecd9dbf7d6b89f043c0",
@@ -327,6 +336,10 @@ const RELEASED: [(u64, &str); 7] = [
     (
         7,
         "6c6e8616be7b097a669814c70ed91d857c1fe9f4a8b5ad65ec77f0b716df1e14",
+    ),
+    (
+        8,
+        "42a5fcfda650ac7ed99f2a72ae0c35501f47454bec9cf7e3ed68ad55dfd743c3",
     ),
 ];
 
@@ -1039,4 +1052,37 @@ fn the_checklist_has_its_stylesheet_while_on_and_its_tasks_always() {
     engine::execute(&host, &plan, &[]).unwrap();
     assert!(!css.exists());
     assert_eq!(fs::read_to_string(&list).unwrap(), tasks);
+}
+
+#[test]
+fn the_media_player_has_its_stylesheet_while_on() {
+    let home = Home::new();
+    let s = settings();
+    let host = home.host(&StdFs, &s);
+    let css = companion::media_stylesheet(&host);
+    assert_eq!(css, home.path(".local/share/velatura/shell/media.css"));
+    companion::install(&host).unwrap();
+    enable(&s, &[UUID]);
+    let part = |plan: &velatura_engine::plan::Plan| {
+        plan.targets
+            .iter()
+            .find(|t| t.instance == MEDIA)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(
+        part(&top_bar_plan(&host, &ApplyOpts::default())).skipped,
+        Some(Skip::NotSelected)
+    );
+    engine::set_included(&host, MEDIA, true).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    let written = fs::read_to_string(&css).unwrap();
+    assert!(written.contains(".velatura-media-state"));
+
+    // Turned off, the file goes, and with it the media player.
+    engine::set_included(&host, MEDIA, false).unwrap();
+    let plan = top_bar_plan(&host, &ApplyOpts::default());
+    engine::execute(&host, &plan, &[]).unwrap();
+    assert!(!css.exists());
 }

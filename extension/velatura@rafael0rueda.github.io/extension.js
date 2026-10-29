@@ -19,6 +19,11 @@
 // tasks.json in Velatura's data folder, the one file the extension writes.
 // The first time, a list kanagawa-shell kept is copied in.
 //
+// While the app's Now Playing part is on, it shows right of the clock the
+// app of the media player in use and whether it plays, with its track and
+// controls in a menu. It talks to the players on the session bus through
+// MPRIS, the interface they all offer, and shows nothing while none plays.
+//
 // It starts no programs, reaches nothing beyond this computer, holds no
 // settings and patches nothing in the Shell.
 //
@@ -29,6 +34,8 @@ import GLib from 'gi://GLib';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
+import Pango from 'gi://Pango';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -36,15 +43,17 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-// The contract with the app: five files, and three style classes.
+// The contract with the app: six files, and four style classes.
 const STYLESHEET = ['velatura', 'shell', 'gnome-shell.css'];
 const TOP_BAR_SHEET = ['velatura', 'shell', 'top-bar.css'];
 const UPS_SHEET = ['velatura', 'shell', 'ups.css'];
 const TASKS_SHEET = ['velatura', 'shell', 'tasks.css'];
+const MEDIA_SHEET = ['velatura', 'shell', 'media.css'];
 const OUTLINE_SHEET = ['velatura', 'shell', 'window-outline.css'];
 const OUTLINE_CLASS = 'velatura-window-outline';
 const UPS_CLASS = 'velatura-ups';
 const TASKS_CLASS = 'velatura-tasks';
+const MEDIA_CLASS = 'velatura-media';
 
 // The user's tasks, which the extension keeps; and kanagawa-shell's list,
 // read only while there is no list of Velatura's yet.
@@ -62,6 +71,12 @@ const POLL_SECONDS = 5;
 const NUT_DEADLINE_MS = 3000;
 const NUT_MAX_BYTES = 64 * 1024;
 
+// MPRIS: every media player on the session bus owns a name under this
+// prefix, with its two interfaces at this path. Only what is shown or
+// done is declared.
+const MPRIS_PREFIX = 'org.mpris.MediaPlayer2.';
+const MPRIS_PATH = '/org/mpris/MediaPlayer2';
+
 // GNOME 48 gave St.BoxLayout an orientation in place of `vertical`.
 const VERTICAL = GObject.Object.find_property.call(St.BoxLayout, 'orientation')
     ? {orientation: Clutter.Orientation.VERTICAL} : {vertical: true};
@@ -69,6 +84,35 @@ const VERTICAL = GObject.Object.find_property.call(St.BoxLayout, 'orientation')
 Gio._promisify(Gio.SocketClient.prototype, 'connect_to_host_async');
 Gio._promisify(Gio.OutputStream.prototype, 'write_bytes_async');
 Gio._promisify(Gio.InputStream.prototype, 'read_bytes_async');
+
+// GNOME 48 brought gestures, and with them a click that can ask for one
+// button; GNOME 47 has none, and its middle click opens the menu.
+const BUTTON_CLICK = Clutter.ClickGesture &&
+    GObject.Object.find_property.call(Clutter.ClickGesture, 'required-button');
+
+const PlayerProxy = Gio.DBusProxy.makeProxyWrapper(`
+<node>
+  <interface name="org.mpris.MediaPlayer2.Player">
+    <method name="PlayPause"/>
+    <method name="Next"/>
+    <method name="Previous"/>
+    <property name="PlaybackStatus" type="s" access="read"/>
+    <property name="Metadata" type="a{sv}" access="read"/>
+    <property name="CanGoNext" type="b" access="read"/>
+    <property name="CanGoPrevious" type="b" access="read"/>
+    <property name="CanPlay" type="b" access="read"/>
+  </interface>
+</node>`);
+
+const AppProxy = Gio.DBusProxy.makeProxyWrapper(`
+<node>
+  <interface name="org.mpris.MediaPlayer2">
+    <method name="Raise"/>
+    <property name="CanRaise" type="b" access="read"/>
+    <property name="Identity" type="s" access="read"/>
+    <property name="DesktopEntry" type="s" access="read"/>
+  </interface>
+</node>`);
 
 const OUTLINED = [
     Meta.WindowType.NORMAL,
@@ -729,15 +773,295 @@ class TasksIndicator extends PanelMenu.Button {
     }
 });
 
+// One media player on the session bus. `changed` is told whenever any of
+// what it says changes.
+class Player {
+    constructor(busName, changed) {
+        this.busName = busName;
+        this.lastChange = 0;
+        this._changed = changed;
+        this._cancel = new Gio.Cancellable();
+        this._app = new AppProxy(Gio.DBus.session, busName, MPRIS_PATH,
+            () => this._touch(), this._cancel);
+        this._player = new PlayerProxy(Gio.DBus.session, busName, MPRIS_PATH,
+            (proxy, error) => {
+                if (error)
+                    return;
+                this._propsId = proxy.connect('g-properties-changed', () => this._touch());
+                this._touch();
+            }, this._cancel);
+    }
+
+    _touch() {
+        this.lastChange = Date.now();
+        this._changed();
+    }
+
+    // Something to show: playing or paused, able to play, with a title.
+    get ready() {
+        const status = this._player?.PlaybackStatus;
+        return !!status && status !== 'Stopped' && !!this._player.CanPlay && !!this.title;
+    }
+
+    get playing() {
+        return this._player?.PlaybackStatus === 'Playing';
+    }
+
+    _meta(key) {
+        return this._player?.Metadata?.[key]?.deepUnpack();
+    }
+
+    get title() {
+        return this._meta('xesam:title') || this._app?.Identity || '';
+    }
+
+    get artist() {
+        const artists = this._meta('xesam:artist');
+        return Array.isArray(artists) ? artists.join(', ') : artists ?? '';
+    }
+
+    get artUrl() {
+        return this._meta('mpris:artUrl') ?? '';
+    }
+
+    // The player's app. Its DesktopEntry is often not the app's id: Zen
+    // says "zen" and is app.zen_browser.zen, found by its window class.
+    get app() {
+        const entry = this._app?.DesktopEntry;
+        if (!entry)
+            return null;
+        const apps = Shell.AppSystem.get_default();
+        return apps.lookup_app(`${entry}.desktop`) ??
+            apps.lookup_startup_wmclass(entry) ??
+            apps.lookup_desktop_wmclass(entry);
+    }
+
+    get canNext() {
+        return !!this._player?.CanGoNext;
+    }
+
+    get canPrevious() {
+        return !!this._player?.CanGoPrevious;
+    }
+
+    playPause() {
+        this._player?.PlayPauseAsync().catch(e => this._failed(e));
+    }
+
+    next() {
+        this._player?.NextAsync().catch(e => this._failed(e));
+    }
+
+    previous() {
+        this._player?.PreviousAsync().catch(e => this._failed(e));
+    }
+
+    // Through its app when there is one, which focus-stealing prevention
+    // lets through; otherwise as the player itself is asked to.
+    raise() {
+        const app = this.app;
+        if (app)
+            app.activate();
+        else if (this._app?.CanRaise)
+            this._app.RaiseAsync().catch(e => this._failed(e));
+    }
+
+    _failed(e) {
+        console.error(`Velatura: ${this.busName} did not answer: ${e.message}`);
+    }
+
+    destroy() {
+        this._cancel.cancel();
+        if (this._propsId)
+            this._player.disconnect(this._propsId);
+        this._player = null;
+        this._app = null;
+    }
+}
+
+// The media player in use, right of the clock: its app's icon and whether
+// it plays. A click opens a menu with the track and its controls, a middle
+// click plays or pauses. Hidden while no player has anything to show.
+const MediaIndicator = GObject.registerClass(
+class MediaIndicator extends PanelMenu.Button {
+    _init() {
+        super._init(0.5, 'Now Playing');
+        this.add_style_class_name(MEDIA_CLASS);
+
+        // The menu's click (private to PanelMenu.Button) reacts to any
+        // button, so it is kept to the first one, and a middle click of its
+        // own plays or pauses.
+        if (BUTTON_CLICK) {
+            this._clickGesture?.set_required_button?.(Clutter.BUTTON_PRIMARY);
+            const middle = new Clutter.ClickGesture({required_button: Clutter.BUTTON_MIDDLE});
+            middle.connect('recognize', () => this._active?.playPause());
+            this.add_action(middle);
+        }
+
+        const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
+        this._appIcon = new St.Icon({
+            style_class: `system-status-icon ${MEDIA_CLASS}-app`,
+            icon_name: 'audio-x-generic-symbolic',
+        });
+        box.add_child(this._appIcon);
+        this._state = new St.Icon({
+            style_class: `system-status-icon ${MEDIA_CLASS}-state`,
+            icon_name: 'media-playback-start-symbolic',
+        });
+        box.add_child(this._state);
+        this.add_child(box);
+
+        this.menu.box.add_style_class_name(`${MEDIA_CLASS}-menu`);
+        this._buildMenu();
+
+        this._players = new Map();
+        this._active = null;
+        const bus = Gio.DBus.session;
+        this._nameWatch = bus.signal_subscribe('org.freedesktop.DBus',
+            'org.freedesktop.DBus', 'NameOwnerChanged', '/org/freedesktop/DBus',
+            'org.mpris.MediaPlayer2', Gio.DBusSignalFlags.MATCH_ARG0_NAMESPACE,
+            (conn, sender, path, iface, signal, params) => {
+                const [name, oldOwner, newOwner] = params.deepUnpack();
+                if (oldOwner)
+                    this._remove(name);
+                if (newOwner)
+                    this._add(name);
+            });
+        this._listing = new Gio.Cancellable();
+        bus.call('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+            'ListNames', null, null, Gio.DBusCallFlags.NONE, -1, this._listing, (conn, res) => {
+                try {
+                    const [names] = conn.call_finish(res).deepUnpack();
+                    names.filter(n => n.startsWith(MPRIS_PREFIX)).forEach(n => this._add(n));
+                } catch (e) {
+                    if (!e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED))
+                        console.error(`Velatura: the media players could not be listed: ${e.message}`);
+                }
+            });
+
+        // However it is destroyed, by the extension or along with the panel.
+        this.connect('destroy', () => {
+            this._listing.cancel();
+            Gio.DBus.session.signal_unsubscribe(this._nameWatch);
+            this._players.forEach(p => p.destroy());
+            this._players.clear();
+            this._active = null;
+        });
+    }
+
+    _buildMenu() {
+        const item = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false});
+        const card = new St.BoxLayout({style_class: `${MEDIA_CLASS}-card`, x_expand: true});
+        item.add_child(card);
+        this.menu.addMenuItem(item);
+
+        this._art = new St.Icon({style_class: `${MEDIA_CLASS}-art`});
+        card.add_child(this._art);
+        const info = new St.BoxLayout({
+            style_class: `${MEDIA_CLASS}-info`,
+            ...VERTICAL,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        card.add_child(info);
+
+        // The title brings up the player.
+        const titleButton = new St.Button({
+            style_class: `${MEDIA_CLASS}-title-button`,
+            x_align: Clutter.ActorAlign.START,
+            can_focus: true,
+        });
+        this._title = new St.Label({style_class: `${MEDIA_CLASS}-title`});
+        this._title.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        titleButton.child = this._title;
+        titleButton.connect('clicked', () => {
+            this._active?.raise();
+            this.menu.close();
+        });
+        info.add_child(titleButton);
+        this._artist = new St.Label({style_class: `${MEDIA_CLASS}-artist`});
+        this._artist.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        info.add_child(this._artist);
+
+        const controls = new St.BoxLayout({
+            style_class: `${MEDIA_CLASS}-controls`,
+            x_align: Clutter.ActorAlign.START,
+        });
+        const control = (iconName, accessibleName, act) => {
+            const button = new St.Button({
+                style_class: `${MEDIA_CLASS}-icon-button`,
+                child: new St.Icon({icon_name: iconName}),
+                accessible_name: accessibleName,
+                can_focus: true,
+            });
+            button.connect('clicked', () => this._active && act(this._active));
+            controls.add_child(button);
+            return button;
+        };
+        this._previous = control('media-skip-backward-symbolic', 'Previous', p => p.previous());
+        this._playPause = control('media-playback-start-symbolic', 'Play or Pause', p => p.playPause());
+        this._next = control('media-skip-forward-symbolic', 'Next', p => p.next());
+        info.add_child(controls);
+    }
+
+    _add(name) {
+        if (!this._players.has(name))
+            this._players.set(name, new Player(name, () => this.sync()));
+    }
+
+    _remove(name) {
+        this._players.get(name)?.destroy();
+        this._players.delete(name);
+        this.sync();
+    }
+
+    // A player that plays first; otherwise the one that changed last.
+    _pick() {
+        const ready = [...this._players.values()].filter(p => p.ready);
+        ready.sort((a, b) => (b.playing - a.playing) || (b.lastChange - a.lastChange));
+        return ready[0] ?? null;
+    }
+
+    sync() {
+        const p = this._active = this._pick();
+        this.container.visible = !!p;
+        if (!p) {
+            this.menu.close();
+            return;
+        }
+        this.accessible_name = p.artist ? `${p.title} — ${p.artist}` : p.title;
+        const appIcon = p.app?.get_icon();
+        if (appIcon)
+            this._appIcon.gicon = appIcon;
+        else
+            this._appIcon.icon_name = 'audio-x-generic-symbolic';
+        // The pill says what is happening, the menu's button what it does.
+        this._state.icon_name = p.playing
+            ? 'media-playback-start-symbolic' : 'media-playback-pause-symbolic';
+        this._playPause.child.icon_name = p.playing
+            ? 'media-playback-pause-symbolic' : 'media-playback-start-symbolic';
+        this._title.text = p.title;
+        this._artist.text = p.artist;
+        this._artist.visible = !!p.artist;
+        this._previous.reactive = p.canPrevious;
+        this._next.reactive = p.canNext;
+        this._art.gicon = p.artUrl
+            ? new Gio.FileIcon({file: Gio.File.new_for_uri(p.artUrl)})
+            : appIcon ?? Gio.ThemedIcon.new('audio-x-generic-symbolic');
+    }
+});
+
 export default class Velatura extends Extension {
     enable() {
         this._ups = null;
         this._tasks = null;
+        this._media = null;
         this._sheets = [
             new Sheet(STYLESHEET),
             new Sheet(TOP_BAR_SHEET),
             new Sheet(UPS_SHEET, loaded => this._showUps(loaded)),
             new Sheet(TASKS_SHEET, loaded => this._showTasks(loaded)),
+            new Sheet(MEDIA_SHEET, loaded => this._showMedia(loaded)),
             new Sheet(OUTLINE_SHEET),
         ];
         this._outline = new Outline();
@@ -768,7 +1092,23 @@ export default class Velatura extends Extension {
         }
     }
 
+    // The media player lives while its stylesheet is there: last in the
+    // middle of the bar, so right of the clock. Hidden until one plays.
+    _showMedia(loaded) {
+        if (loaded && !this._media) {
+            this._media = new MediaIndicator();
+            Main.panel.addToStatusArea(MEDIA_CLASS, this._media, -1, 'center');
+            // Shown by addToStatusArea(); hidden again unless one plays.
+            this._media.sync();
+        } else if (!loaded && this._media) {
+            this._media.destroy();
+            this._media = null;
+        }
+    }
+
     disable() {
+        this._media?.destroy();
+        this._media = null;
         this._ups?.destroy();
         this._ups = null;
         this._tasks?.destroy();

@@ -680,6 +680,9 @@ msgstr "Muestra en la barra superior los vatios que consume un SAI, con su bater
 msgid "Shows a checklist left of the clock in the top bar, to add tasks, tick them off and delete them. The tasks stay on this computer, and are kept when the part is turned off"
 msgstr "Muestra una lista de tareas a la izquierda del reloj en la barra superior, para añadir tareas, marcarlas como hechas y borrarlas. Las tareas se quedan en este equipo, y se conservan al desactivar la parte"
 
+msgid "Shows right of the clock in the top bar the app that plays music or video, and whether it plays, with the track and its controls in a menu. A middle click plays or pauses. It stays hidden while nothing plays"
+msgstr "Muestra a la derecha del reloj en la barra superior la aplicación que reproduce música o vídeo, y si está reproduciendo, con la pista y sus controles en un menú. Un clic central reproduce o pausa. Se oculta mientras no se reproduce nada"
+
 msgid "Draws a thin line in the theme's accent color around the window in use, except when it is maximized or full screen"
 msgstr "Dibuja una línea fina del color de acento del tema alrededor de la ventana en uso, salvo cuando está maximizada o a pantalla completa"
 
@@ -1039,6 +1042,9 @@ msgstr "Indicador del SAI"
 
 msgid "Tasks"
 msgstr "Tareas"
+
+msgid "Now Playing"
+msgstr "En reproducción"
 
 msgid "Window Outline"
 msgstr "Contorno de la ventana"
