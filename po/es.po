@@ -1389,6 +1389,34 @@ msgid "These extensions color the top bar or its menus themselves, which wins ov
 msgstr "Estas extensiones colorean ellas mismas la barra superior o sus menús, y eso gana al tema allí: {1}. La extensión propia de Velatura gana sobre ellas: velatura extension install"
 
 #, rust-format
+msgid "These extensions also put buttons of their own beside the clock, and may show a list there too: {1}"
+msgstr "Estas extensiones también ponen botones propios junto al reloj, y pueden mostrar ahí otra lista: {1}"
+
+#, rust-format
+msgid "These extensions may also show what is playing in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it"
+msgstr "Estas extensiones también pueden mostrar en la barra superior lo que se está reproduciendo, así que puede verse dos veces: {1}. Desactivar esta parte o la extensión lo evita"
+
+#, rust-format
+msgid "These extensions may also show a UPS in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it"
+msgstr "Estas extensiones también pueden mostrar un SAI en la barra superior, así que puede verse dos veces: {1}. Desactivar esta parte o la extensión lo evita"
+
+#, rust-format
+msgid "These extensions also style the top bar, and may draw over the look chosen here: {1}"
+msgstr "Estas extensiones también dan estilo a la barra superior, y pueden tapar el aspecto elegido aquí: {1}"
+
+#, rust-format
+msgid "These extensions may also draw a line around the window in use, so it may get two: {1}. Turning off this part or the extension avoids it"
+msgstr "Estas extensiones también pueden dibujar una línea alrededor de la ventana en uso, así que puede tener dos: {1}. Desactivar esta parte o la extensión lo evita"
+
+#, rust-format
+msgid "{1} keeps the clock at a fixed place in the top bar, so this part's button may sit on the wrong side of it. In the settings of {1}, set the clock's offset to {2}"
+msgstr "{1} mantiene el reloj en un sitio fijo de la barra superior, así que el botón de esta parte puede quedar del lado equivocado. En los ajustes de {1}, ponga el desplazamiento del reloj en {2}"
+
+#, rust-format
+msgid "{1} moves the clock out of the middle of the top bar, so this part's button does not sit beside it"
+msgstr "{1} saca el reloj del centro de la barra superior, así que el botón de esta parte no queda junto a él"
+
+#, rust-format
 msgid "{1} asks older apps for dark and can work against this light theme"
 msgstr "{1} pide el modo oscuro a las aplicaciones antiguas y puede ir en contra de este tema claro"
 

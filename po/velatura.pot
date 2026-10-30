@@ -1391,6 +1391,34 @@ msgid "These extensions color the top bar or its menus themselves, which wins ov
 msgstr ""
 
 #, rust-format
+msgid "These extensions also put buttons of their own beside the clock, and may show a list there too: {1}"
+msgstr ""
+
+#, rust-format
+msgid "These extensions may also show what is playing in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it"
+msgstr ""
+
+#, rust-format
+msgid "These extensions may also show a UPS in the top bar, so it may show twice: {1}. Turning off this part or the extension avoids it"
+msgstr ""
+
+#, rust-format
+msgid "These extensions also style the top bar, and may draw over the look chosen here: {1}"
+msgstr ""
+
+#, rust-format
+msgid "These extensions may also draw a line around the window in use, so it may get two: {1}. Turning off this part or the extension avoids it"
+msgstr ""
+
+#, rust-format
+msgid "{1} keeps the clock at a fixed place in the top bar, so this part's button may sit on the wrong side of it. In the settings of {1}, set the clock's offset to {2}"
+msgstr ""
+
+#, rust-format
+msgid "{1} moves the clock out of the middle of the top bar, so this part's button does not sit beside it"
+msgstr ""
+
+#, rust-format
 msgid "{1} asks older apps for dark and can work against this light theme"
 msgstr ""
 
