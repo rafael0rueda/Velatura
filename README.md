@@ -10,9 +10,13 @@ from a text console if a theme ever makes the desktop hard to read.
 
 ![The Themes view: the theme in use, every theme as a card, and the day and night pair](docs/images/themes.png)
 
-Status: **0.1.0**, the first release. The app and the `velatura` command work;
-the parts marked *Unofficial* or *experimental* below may stop working after a
-GNOME or Firefox update.
+Status: **0.2.0**. The app and the `velatura` command work; the parts marked
+*Unofficial* or *experimental* below may stop working after a GNOME or Firefox
+update.
+
+This page follows the `main` branch. Tasks, Now Playing and installing the
+Shell extension along with Velatura came after 0.2.0, so for now they need an
+install from source.
 
 ## What it does
 
@@ -30,6 +34,9 @@ GNOME or Firefox update.
   base16, base24 and Kitty themes, and export any theme to share it.
 - **Icons, wallpaper and fonts** can be chosen from the same window.
 - **Templates** put a theme's colors into any other app's config file.
+- **Warns about overlaps.** It names other tools and extensions that keep their
+  own colors, and warns when another extension may show or draw the same thing
+  as one of its parts. Nothing of theirs is changed.
 
 ## What it themes
 
@@ -97,8 +104,9 @@ Extensions; the top bar's colors can also come through User Themes.
 ## Use
 
 Open **Velatura** from the app grid. Select a theme's card to apply it; the
-toast that follows has **Undo**. A card's menu (right-click, long press, or the
-Menu key) has Details, Edit, Export and Remove.
+toast that follows has **Undo**. A card's ⋮ button (or right-click, long press,
+or the Menu key) opens its menu: Details, Preview Changes, Edit, Export and
+Remove.
 
 Everything the app does, the `velatura` command does too:
 
