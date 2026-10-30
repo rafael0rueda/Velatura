@@ -138,8 +138,11 @@ Then go back to the desktop with Ctrl+Alt+F2 (or F1).
 
 ## Documentation
 
-The documentation is HTML in [`docs/`](docs/index.html), and online at
-<https://rafael0rueda.github.io/Velatura/>:
+New to Velatura? The [User Manual](docs/user-manual.md) explains how to use the
+app and create themes, with no technical knowledge needed.
+
+The rest of the documentation is HTML in [`docs/`](docs/index.html), and online
+at <https://rafael0rueda.github.io/Velatura/>:
 
 - [Plan](https://rafael0rueda.github.io/Velatura/plan.html) and
   [Architecture](https://rafael0rueda.github.io/Velatura/architecture.html)
