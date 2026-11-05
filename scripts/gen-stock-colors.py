@@ -45,8 +45,10 @@ def names():
 
 
 def probe(scheme):
+    # Without the portal off, libadwaita takes the desktop's accent from it
+    # and the selection colours follow that accent, not the stock one.
     env = dict(os.environ, XDG_CONFIG_HOME=tempfile.mkdtemp(), GTK_A11Y="none",
-               GSETTINGS_BACKEND="memory", GTK_THEME="")
+               GSETTINGS_BACKEND="memory", GTK_THEME="", ADW_DISABLE_PORTAL="1")
     env.pop("GTK_THEME")
     out = subprocess.check_output([sys.executable, "-c", PROBE, scheme] + names(), env=env, text=True)
     return [line.split(" ", 1) for line in out.splitlines()]
