@@ -57,6 +57,10 @@ impl Sandbox {
             .env("PATH", self.path_var())
             .env("XDG_RUNTIME_DIR", self.root.join("run"))
             .env("GSETTINGS_BACKEND", "dconf")
+            // Without it GIO starts gvfsd on the private bus, and on
+            // Fedora 45 (gvfs 1.62) its gvfsd-fuse outlives the bus with
+            // this pipe open, so the output never ends.
+            .env("GIO_USE_VFS", "local")
             .env("LC_ALL", "C.UTF-8")
             .stdin(std::process::Stdio::null())
             .output()
